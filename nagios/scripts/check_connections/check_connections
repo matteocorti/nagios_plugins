@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION     = "1.0.0";
+my $VERSION     = "1.1";
 
 my $critical   = 0;
 my $help       = '';
@@ -73,7 +73,7 @@ if ($critical <= 0)       { usage("Could not parse \"critical\""); }
 if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
-my $command = 'netstat | grep ^tcp';
+my $command = 'netstat -a | grep ^tcp';
 my $output;
 my %states;
 
