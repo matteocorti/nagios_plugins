@@ -1,0 +1,166 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+use File::stat;
+
+my $dirname    = '';
+my @dirnames;
+my $verbose    = '';
+my $help       = '';
+my $n          = 0;
+my $warning    = 0;
+my $recursive  = 0;
+my $critical   = 0;
+my $result     = 0;
+my $status     = 0;
+my $status_msg = '';
+
+my $VERSION="1.1";
+
+##############################################################################
+
+################################
+# prints the usage of the plugin
+sub usage {
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "$msg\n";
+  }
+
+  print << "EOT";
+usage:
+  -d dirname   directory
+  -r           recursive
+  -c crit      critical
+  -w warn      warning
+  --version    version
+  -v           verbose
+EOT
+  unknown();
+}
+
+#################################################
+# prints an "unknown" error message (exit code 3)
+sub unknown {
+
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "UNKNOWN: $msg\n";
+  }
+
+  exit(3);
+
+}
+
+sub check_dir {
+
+  my $dirname = shift;
+  my $file;
+  my $info;
+  my @files;
+
+  ###############################
+  # check if the directory exists
+
+  if (! -d $dirname) {
+    unknown("Folder $dirname does not exist.");
+  }
+
+  ####################################
+  # check if the directory is readable
+
+  $info = stat($dirname) or unknwon("can't read stat for $dirname: $!");
+
+  if (!(($info->mode & 005) || ($info->uid == $<))) {
+    if ($verbose > 0) {
+      print "skipping $dirname: Permission denied\n";
+    }
+    return;
+  }
+
+  #######################
+  # get directory listing
+
+  opendir(DIR, $dirname) or unknown("can't open $dirname: $!");
+
+  @files = readdir(DIR);
+  @files = sort grep(!/^\./, @files);
+
+  close(DIR);
+
+  $n = @files;
+
+  #################
+  # Additional info
+  if ($verbose > 0) {
+    print "Directory'$dirname' has $n files\n";
+  }
+
+  #################
+  # Output (status)
+
+  if ($n >= $critical) {
+    $status_msg = "$dirname has $n files";
+    $status     = 2;
+  } else {
+    if ($n >= $warning && $status < 2) {
+      $status_msg = "$dirname has $n files";
+      $status     = 1;
+    }
+  }
+
+  ###########
+  # Recursive
+  if ($recursive) {
+    foreach $file (@files) {
+      if (-d "$dirname/$file") {
+        check_dir("$dirname/$file");
+      }
+    }
+  }
+
+}
+
+##############################################################################
+
+########################
+# Command line arguments
+
+$result = GetOptions ("dir=s"      => \@dirnames,
+                      "critical=i" => \$critical,
+                      "warining=i" => \$warning,
+                      "help"       => \$help,
+                      "recursive"  => \$recursive,
+                      "verbose|v+"   => \$verbose,
+                      "version"    => sub { print "check_dir version $VERSION\n"; exit 3;} );
+
+if (!$result) {
+  usage();
+}
+
+if ($help)                { usage(); }
+if ($critical <= 0)       { usage("Could not parse \"critical\""); }
+if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
+if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+
+#############
+# process dir
+
+foreach $dirname (@dirnames) {
+  check_dir($dirname);
+}
+
+if ($status == 0) {
+  print "DIR OK\n";
+  exit 0;
+} else {
+  if ($status == 1) {
+    print "DIR WARNING - $status_msg\n";
+  } else {
+    print "DIR CRITICAL - $status_msg\n";
+  }
+  exit $status;
+}

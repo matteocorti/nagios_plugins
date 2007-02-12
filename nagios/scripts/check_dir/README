@@ -1,0 +1,15 @@
+check_dir is a Nagios plugin to monitor the number of files in one or
+more directories.
+
+Usage
+=====
+
+usage:
+  -d dirname   directory
+  -r           recursive
+  -c crit      critical
+  -w warn      warning
+  -v           verbose
+
+--------------------------------------------------------------------------------
+Please report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>

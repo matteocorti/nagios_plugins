@@ -1,0 +1,8 @@
+2006-08-21  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* VERSION 1.1: added patch from Gunther Schlegel: report if a
+	folder does not exist and added the missing "UKNOWN" tag
+
+2006-08-14  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* VERSION 1.0: initial release
