@@ -32,21 +32,7 @@ usage:
   --version    version
   -v           verbose
 EOT
-  unknown();
-}
-
-#################################################
-# prints an "unknown" error message (exit code 3)
-sub unknown {
-
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "UNKNOWN: $msg\n";
-  }
-
   exit(3);
-
 }
 
 ##############################################################################
@@ -77,10 +63,6 @@ my $command = 'netstat -a | grep ^tcp';
 my $output;
 my %states;
 
-if ($verbose) {
-    print "Executing: $command\n";
-}
-
 my $pid = open($output, "$command 2>&1 |") or
     die("Cannot execute $command");
 
@@ -90,27 +72,32 @@ while (<$output>) {
     $states{$1}++;
 }
 
+my $total;
+my $status = '';
+
+while ( my ($state,$count) = each %states ) {
+    $total += $count;
+    $status = $status . " " . "$state=$count;;;;";
+}
+
+$status = ": $total connections"
+    . " |"
+    . " TOTAL=$total;$warning;$critical;;"
+    . $status
+    . "\n";
+
 close $output or
     die("Couldn't close: $!");
 
-# build status string
-my $status;
-my $total = 0;
-while ( my ($state,$count) = each %states ) {
-    $total += $count;
-    $status = $status . ", $state = $count";
-}
-$status = "TOTAL = $total" . $status;
-
 if ($total < $warning) {
-  print "CONNECTIONS OK ($status)\n";
-  exit 0;
+    print "CONNECTIONS OK".$status;
+    exit 0;
 } else {
   if ($total < $critical) {
-    print "CONNECTIONS WARNING ($status)\n";
+    print "CONNECTIONS WARNING".$status;
     exit 1;
   } else {
-    print "CONNECTIONS CRITICAL ($status)\n";
+    print "CONNECTIONS CRITICAL".$status;
     exit 2;
   }
 }
