@@ -59,7 +59,7 @@ if ($critical <= 0)       { usage("Could not parse \"critical\""); }
 if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
-my $command = 'netstat -a | grep ^tcp';
+my $command = 'netstat -an | grep ^tcp';
 my $output;
 my %states;
 
