@@ -1,0 +1,92 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my $hostname   = '';
+my $vos        = '/usr/sbin/vos';
+my $verbose    = '';
+my $help       = '';
+my $warning    = 0;
+my $critical   = 0;
+my $result     = 0;
+my $status     = 0;
+my $status_msg = '';
+
+my $VERSION="1.0";
+
+##############################################################################
+
+################################
+# prints the usage of the plugin
+sub usage {
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "$msg\n";
+  }
+
+  print << "EOT";
+usage:
+  -H,--hostname=server    server
+  --vos=path              vos executable location
+  --version               version
+  -v                      verbose
+EOT
+  unknown();
+}
+
+#################################################
+# prints an "unknown" error message (exit code 3)
+sub unknown {
+
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "UNKNOWN: $msg\n";
+  }
+
+  exit(3);
+
+}
+
+##############################################################################
+
+Getopt::Long::Configure ("bundling", "no_ignorecase");
+
+########################
+# Command line arguments
+
+$result = GetOptions ("hostname|H=s" => \$hostname,
+                      "help|h"       => \$help,
+                      "verbose|v+"   => \$verbose,
+                      "vos"          => \$vos,
+                      "version"      => sub { print "check_dir version $VERSION\n"; exit 3;} );
+
+if (!$result) {
+  usage();
+}
+
+if ($help)                { usage(); }
+if (!$hostname)           { usage(); }
+
+# execute vos listvol
+my $pid = open(OUT, "$vos listvol $hostname 2>/dev/null | grep 'Could not attach' |");
+while (<OUT>) {
+  chomp;
+  $status_msg = $status_msg . $_;
+  $status     = 2;
+}
+
+
+if ($status == 0) {
+  print "AFS_VOL OK\n";
+  exit 0;
+} else {
+  if ($status == 1) {
+    print "AFS_VOL WARNING - $status_msg\n";
+  } else {
+    print "AFS_VOL CRITICAL - $status_msg\n";
+  }
+  exit $status;
+}

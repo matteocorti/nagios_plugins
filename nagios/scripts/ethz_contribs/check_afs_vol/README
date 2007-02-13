@@ -1,0 +1,13 @@
+check_afs_vol checks for not-attached afs volumes
+
+Usage
+=====
+
+  -H,--hostname=server    server
+  --vos=path              vos executable location
+  --version               version
+  -v                      verbose
+
+
+--------------------------------------------------------------------------------
+Please report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>
