@@ -1,4 +1,4 @@
-check_dir is a Nagios plugin to monitor the number open TCP connections.
+check_connections is a Nagios plugin to monitor the number open TCP connections.
 
 Usage
 =====
