@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION     = "1.2";
+my $VERSION     = "1.0";
 
 my $critical   = 0;
 my $help       = '';
@@ -56,45 +56,4 @@ if ($critical <= 0)       { usage("Could not parse \"critical\""); }
 if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
-my $command = 'netstat -an | grep ^tcp';
-my $output;
-my %states;
-
-my $pid = open($output, "$command 2>&1 |") or
-    die("Cannot execute $command");
-
-while (<$output>) {
-    chomp;    
-    /tcp.*\s([A-Z_]+)/;
-    $states{$1}++;
-}
-
-my $total;
-my $status = '';
-
-while ( my ($state,$count) = each %states ) {
-    $total += $count;
-    $status = $status . " " . "$state=$count;;;;";
-}
-
-$status = ": $total connections"
-    . " |"
-    . " TOTAL=$total;$warning;$critical;;"
-    . $status
-    . "\n";
-
-close $output or
-    die("Couldn't close: $!");
-
-if ($total < $warning) {
-    print "CONNECTIONS OK".$status;
-    exit 0;
-} else {
-  if ($total < $critical) {
-    print "CONNECTIONS WARNING".$status;
-    exit 1;
-  } else {
-    print "CONNECTIONS CRITICAL".$status;
-    exit 2;
-  }
-}
+exit 3;

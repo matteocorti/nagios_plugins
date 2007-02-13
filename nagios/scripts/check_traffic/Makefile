@@ -1,6 +1,6 @@
 VERSION=`cat VERSION`
-DIST_DIR=check_connections-$(VERSION)
-DIST_FILES=AUTHORS COPYING ChangeLog INSTALL Makefile NEWS README TODO VERSION check_connections
+DIST_DIR=check_traffic-$(VERSION)
+DIST_FILES=AUTHORS COPYING ChangeLog INSTALL Makefile NEWS README TODO VERSION check_traffic
 
 dist:
 	rm -rf $(DIST_DIR) $(DIST_DIR).tar.gz
