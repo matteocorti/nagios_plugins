@@ -10,7 +10,6 @@ my $help       = '';
 my $result;
 my $status     = 0;
 my $status_msg = '';
-my $verbose    = '';
 my $warning    = 0;
 
 ##############################################################################
@@ -30,7 +29,6 @@ usage:
   -c crit      critical
   -w warn      warning
   --version    version
-  -v           verbose
 EOT
   exit(3);
 }
@@ -46,7 +44,6 @@ $result = GetOptions (
     "critical=i"  => \$critical,
     "warning=i"   => \$warning,
     "help"        => \$help,
-    "verbose|v+"  => \$verbose,
     "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
 );
 
