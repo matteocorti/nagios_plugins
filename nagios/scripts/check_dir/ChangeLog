@@ -1,3 +1,7 @@
+2007-02-13  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* VERSION 1.2: fixing a typo and adding a makefile to generate the tarball
+
 2006-08-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* VERSION 1.1: added patch from Gunther Schlegel: report if a

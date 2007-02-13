@@ -16,7 +16,7 @@ my $result     = 0;
 my $status     = 0;
 my $status_msg = '';
 
-my $VERSION="1.1";
+my $VERSION="1.2";
 
 ##############################################################################
 
@@ -72,7 +72,7 @@ sub check_dir {
   ####################################
   # check if the directory is readable
 
-  $info = stat($dirname) or unknwon("can't read stat for $dirname: $!");
+  $info = stat($dirname) or unknown("can't read stat for $dirname: $!");
 
   if (!(($info->mode & 005) || ($info->uid == $<))) {
     if ($verbose > 0) {
