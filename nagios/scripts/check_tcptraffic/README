@@ -1,0 +1,12 @@
+check_tcptraffic is a Nagios plugin to monitor the amount of TCP traffic
+
+Usage
+=====
+
+usage:
+  -c crit      critical
+  -w warn      warning
+  -v           verbose
+
+--------------------------------------------------------------------------------
+Please report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>
