@@ -6,6 +6,8 @@ Usage
 usage:
   -c crit      critical
   -w warn      warning
+  -i iface     network interface
+  -r           initialize
   -v           verbose
 
 --------------------------------------------------------------------------------
