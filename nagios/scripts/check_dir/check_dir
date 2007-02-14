@@ -48,7 +48,7 @@ sub unknown {
   my $msg = shift;
 
   if (defined $msg) {
-    print "UNKNOWN: $msg\n";
+    print "DIR UNKNOWN: $msg\n";
   }
 
   exit(3);

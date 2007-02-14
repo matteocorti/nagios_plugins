@@ -1,0 +1,217 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my $VERSION    = "1.0";
+
+my $tmp        = '/tmp/check_tcptraffic_status';
+
+my $critical   = 0;
+my $help       = '';
+my $interface  = '';
+my $reset      = '';
+my $result;
+my $status     = 0;
+my $status_msg = '';
+my $warning    = 0;
+
+##############################################################################
+# subroutines
+
+################################
+# prints the usage of the plugin
+sub usage {
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "$msg\n";
+  }
+
+  print << "EOT";
+usage:
+  -c crit, --critical=crit      critical
+  -i iface, --interface=iface   network interface
+  -r, --reset                   reset the counter
+  -w warn, --warning warn       warning
+  -v, --version                 version
+EOT
+  exit(3);
+}
+
+#################################################
+# prints an "unknown" error message (exit code 3)
+sub unknown {
+
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "TCPTRAFFIC UNKNOWN: $msg\n";
+  }
+
+  exit(3);
+
+}
+
+#################################################
+# writes the time and transmit data to
+# the temporary file
+sub write_timer {
+
+    my $in  = shift;
+    my $out = shift;
+    
+    open(TMP, "> $tmp") or
+        unknown("Cannot initialize timer");
+    print TMP time . " $in $out\n";
+    close TMP or
+        unknown("Cannot close timer");
+}
+
+
+##############################################################################
+# main
+#
+
+########################
+# Command line arguments
+
+$result = GetOptions (
+    "critical=i"  => \$critical,
+    "interface=s" => \$interface,
+    "help"        => \$help,
+    "reset"       => \$reset,
+    "warning=i"   => \$warning,
+    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
+);
+
+if (!$result) {
+  usage();
+}
+
+if ($help)                { usage(); }
+if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
+if (!$interface)          { usage("Could not parse \"interface\""); }
+if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
+if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+
+########################
+# Check the proc entry
+
+my $diff;
+my $found  = 0;
+my $in;
+my $out;
+my $time;
+
+open(IN,"/proc/net/dev") or
+    unknown("Cannot open /proc/net/dev");
+
+while(<IN>) {
+
+    chomp;
+    
+    if ( /:/ ) {
+        
+        # /proc/net/dev format
+        #
+        # bytes:      The total number of bytes of data transmitted or received
+        #             by the interface.
+        # packets:    The total number of packets of data transmitted or
+        #             received by the interface.
+        # errs:       The total number of transmit or receive errors detected
+        #             by the device driver.
+        # drop:       The total number of packets dropped by the device driver.
+        # fifo        The number of FIFO buffer errors.
+        # frame:      The number of packet framing errors.
+        # compressed: The number of compressed packets transmitted or received
+        #             by the device driver.
+        # multicast:  The number of multicast frames transmitted or received by
+        #             the device driver. 
+        
+        my ($combined,
+            $packets_in,
+            $errs_in,
+            $drop_in,
+            $fifo_in,
+            $frame_in,
+            $compressed_in,
+            $multicast_in,
+            $bytes_out,
+            $packets_out,
+            $errs_out,
+            $drop_out,
+            $fifo_out,
+            $frame_out,
+            $compressed_out,
+            $multicast_out) = split;
+        
+        my ($name, $bytes_in) = split(":", $combined);
+
+        if ($name eq $interface) {
+
+            $found = 1;
+
+            # get the time difference
+            if ($reset || !open(TMP, $tmp)) {
+                write_timer($bytes_in, $bytes_out);
+                unknown("Initializing timer");
+            }
+            
+            while (<TMP>) {
+                chomp;
+                ($time, $in, $out) = split;
+                $diff = time - $time;
+            }
+              
+            close(TMP);
+
+            write_timer($bytes_in, $bytes_out);
+
+            if ($diff > 3600) {
+                # time difference is > 1h
+                # we reeinitialize
+                write_timer($bytes_in, $bytes_out);
+                unknown("Time difference too big: initializing");
+            }
+
+            if ($diff == 0) {
+                # round up
+                $diff = 1;
+            }
+
+            my $traffic_in  = int(($bytes_in  - $in)  / $diff);
+            my $traffic_out = int(($bytes_out - $out) / $diff);
+            my $traffic     = $traffic_in + $traffic_out;
+
+            my $performance = "TOTAL=$traffic;$warning;$critical;;"
+                ." IN=$traffic_in;;;;"
+                ." OUT=$traffic_out;;;;"
+                ." TIME=$diff;;;;";
+            
+            if ($traffic < $warning) {
+                print "TCPTRAFFIC OK $traffic bytes/s|$performance\n";
+                exit 0;
+            } else {
+                if ($traffic < $critical) {
+                    print "TCPTRAFFIC WARNING $traffic bytes/s|$performance\n";
+                    exit 1;
+                } else {
+                    print "TCPTRAFFIC CRITICAL $traffic bytes/s|$performance\n";
+                    exit 2;
+                }
+            }
+            
+            print $traffic . "\n";
+            
+            last;
+
+        }
+        
+    }
+}
+close(IN);
+
+if (!$found) {
+    unknown("Interface $interface not found");
+}
