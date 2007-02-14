@@ -168,9 +168,10 @@ while(<IN>) {
 
             write_timer($bytes_in, $bytes_out);
 
-            if ($diff > 3600) {
-                # time difference is > 1h
-                # we reeinitialize
+            if ($diff > 400) {
+                # time difference is > 400s
+                # since the counter could overflow
+                # we reeinitilize the timer
                 write_timer($bytes_in, $bytes_out);
                 unknown("Time difference too big: initializing");
             }
@@ -180,8 +181,8 @@ while(<IN>) {
                 $diff = 1;
             }
 
-            my $traffic_in  = int(($bytes_in  - $in)  / $diff);
-            my $traffic_out = int(($bytes_out - $out) / $diff);
+            my $traffic_in  = abs(int(($bytes_in  - $in)  / $diff));
+            my $traffic_out = abs(int(($bytes_out - $out) / $diff));
             my $traffic     = $traffic_in + $traffic_out;
 
             my $performance = "TOTAL=$traffic;$warning;$critical;;"
