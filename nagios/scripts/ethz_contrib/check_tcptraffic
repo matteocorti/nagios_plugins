@@ -95,6 +95,9 @@ if (!$interface)          { usage("Could not parse \"interface\""); }
 if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
+# we need one temporary file per interface
+$tmp = $tmp . "-$interface";
+
 ########################
 # Check the proc entry
 
