@@ -1,0 +1,116 @@
+#! /usr/bin/perl -w
+#
+# check_mem v1.5 plugin for nagios
+#
+# uses the output of `free` to find the percentage of memory used
+#
+# Copyright Notice: GPL
+#
+# History:
+#
+# v1.5 Rouven Homann - rouven.homann@cimt-ag.de
+#	+ perfomance tweak with free -mt (just one sub process started instead of 7)
+#	+ more code cleanup
+#
+# v1.4 Garrett Honeycutt - gh@3gupload.com
+#	+ Fixed PerfData output to adhere to standards and show crit/warn values
+#
+# v1.3 Rouven Homann - rouven.homann@cimt-ag.de
+# 	+ Memory installed, used and free displayed in verbose mode
+#	+ Bit Code Cleanup
+#
+# v1.2 Rouven Homann - rouven.homann@cimt-ag.de
+#	+ Bug fixed where verbose output was required (nrpe2)
+#       + Bug fixed where perfomance data was not displayed at verbose output
+#	+ FindBin Module used for the nagios plugin path of the utils.pm
+#
+# v1.1 Rouven Homann - rouven.homann@cimt-ag.de
+#    	+ Status Support (-c, -w)
+#	+ Syntax Help Informations (-h)
+#       + Version Informations Output (-V)
+#	+ Verbose Output (-v)
+#       + Better Error Code Output (as described in plugin guideline)
+#
+# v1.0 Garrett Honeycutt - gh@3gupload.com
+# 	+ Initial Release
+# 
+use lib  "/usr/lib/nagios/plugins";
+use strict;
+use FindBin;
+use lib $FindBin::Bin;
+use utils  qw($TIMEOUT %ERRORS &print_revision &support);
+use vars qw($PROGNAME $PROGVER);
+use Getopt::Long;
+use vars qw($opt_V $opt_h $verbose $opt_w $opt_c);
+
+$PROGNAME = "check_mem";
+$PROGVER = "1.5";
+
+sub print_help ();
+sub print_usage ();
+
+Getopt::Long::Configure('bundling');
+GetOptions ("V"   => \$opt_V, "version"    => \$opt_V,
+	"h"   => \$opt_h, "help"       => \$opt_h,
+        "v" => \$verbose, "verbose"  => \$verbose,
+	"w=s" => \$opt_w, "warning=s"  => \$opt_w,
+	"c=s" => \$opt_c, "critical=s" => \$opt_c);
+
+if ($opt_V) {
+    print_revision($PROGNAME,'$Revision: '.$PROGVER.' $'); 
+    exit $ERRORS{'UNKNOWN'};
+}
+
+if ($opt_h) {
+     print_help();
+    exit $ERRORS{'UNKNOWN'};
+}
+
+print_usage() unless (($opt_c) && ($opt_w));
+
+my $critical = $1 if ($opt_c =~ /([0-9]+)/);
+my $warning = $1 if ($opt_w =~ /([0-9]+)/);
+
+my $verbose = $verbose;
+ 
+my ($mem_percent, $mem_total, $mem_used) = &sys_stats();
+my $free_mem = $mem_total - $mem_used;
+if ($mem_percent>$critical) {
+    if ($verbose) { print "CRITICAL: $mem_percent\% Used Memory - Total: $mem_total MB, used: $mem_used MB, free: $free_mem MB | MemUsed=$mem_percent\%;$warning;$critical\n";} 
+    else { print "CRITICAL: $mem_percent\% Used Memory | MemUsed=$mem_percent\%;$warning;$critical\n";};
+    exit $ERRORS{'CRITICAL'};
+} elsif ($mem_percent>$warning) {
+    if ($verbose) { print "WARNING: $mem_percent\% Used Memory - Total: $mem_total MB, used: $mem_used MB, free: $free_mem MB | MemUsed=$mem_percent\%;$warning;$critical\n";}
+    else { print "WARNING: $mem_percent\% Used Memory | MemUsed=$mem_percent\%;$warning;$critical\n";};
+    exit $ERRORS{'WARNING'};
+} else {
+    if ($verbose) { print "OK: $mem_percent\% Used Memory - Total: $mem_total MB, used: $mem_used MB, free: $free_mem MB | MemUsed=$mem_percent\%;$warning;$critical\n"; }
+    else { print "OK: $mem_percent\% Used Memory | MemUsed=$mem_percent\%;$warning;$critical\n";};
+    exit $ERRORS{'OK'};
+}
+
+sub sys_stats {
+    my @memory = split(" ", `free -mt`);
+    my $mem_total = $memory[7];
+    my $mem_used = $memory[15];
+    my $mem_percent = ($mem_used / $mem_total) * 100;
+    return (sprintf("%.0f",$mem_percent),$mem_total,$mem_used);
+}
+			
+sub print_usage () {
+    print "Usage: $PROGNAME -w <warn> -c <crit> [-v] [-h]\n";
+    exit $ERRORS{'UNKNOWN'} unless ($opt_h);
+}
+				
+sub print_help () {
+    print_revision($PROGNAME,'$Revision: '.$PROGVER.' $');
+    print "Copyright (c) 2005 Garrett Honeycutt/Rouven Homann\n";
+    print "\n";
+    print_usage();
+    print "\n";
+    print "-w <warn> = Memory usage to activate a warning message.\n";
+    print "-c <crit> = Memory usage to activate a critical message.\n";
+    print "-v = Verbose Output.\n";
+    print "-h = This screen.\n\n";
+    support();
+}

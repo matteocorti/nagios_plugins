@@ -1,0 +1,228 @@
+#!/usr/bin/perl -w
+my $ID = q$Id: check_rxdebug,v 1.10 2005/11/09 20:43:04 eagle Exp $;
+#
+# check_rxdebug -- Nagios AFS server check for waiting connections.
+#
+# Written by Quanah Gibson-Mount based on work by Neil Crellin
+# Updated by Russ Allbery <rra@stanford.edu>
+# Copyright 2003, 2004, 2005 Board of Trustees, Leland Stanford Jr. University
+#
+# This program is free software; you may redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+# Expects a file server with the -H option and runs rxdebug against that file
+# server, looking for any connections that are waiting for a thread.  Exits
+# with status 1 if there are more than two connections in that state (a
+# warning) and with status 2 if there are more than eight connections in that
+# state.  The thresholds can be overridden from the command line.
+
+##############################################################################
+# Site configuration
+##############################################################################
+
+# The default count of blocked connections at which to warn or send a critical
+# alert.  These can be overridden with the -w and -c command-line options.
+my $WARNINGS = 2;
+my $CRITICAL = 8;
+
+# The default timeout in seconds (implemented by alarm) for rxdebug.
+my $TIMEOUT = 60;
+
+# The full path to rxdebug.  Make sure that this is on local disk so that
+# monitoring doesn't have an AFS dependency.
+my $RXDEBUG;
+($RXDEBUG) = grep { -x $_ } qw(/usr/bin/rxdebug /usr/local/bin/rxdebug /usr/sbin/rxdebug);
+$RXDEBUG ||= '/usr/bin/rxdebug';
+
+##############################################################################
+# Modules and declarations
+##############################################################################
+
+require 5.003;
+
+use strict;
+use vars qw($CRITICAL $ID $RXDEBUG $TIMEOUT $WARNINGS);
+
+use Getopt::Long qw(GetOptions);
+
+##############################################################################
+# Implementation
+##############################################################################
+
+# Parse command line options.
+my ($help, $host, $version);
+Getopt::Long::config ('bundling', 'no_ignore_case');
+GetOptions ('critical|c=i' => \$CRITICAL,
+            'hostname|H=s' => \$host,
+            'help|h'       => \$help,
+            'timeout|t=i'  => \$TIMEOUT,
+            'version|V'    => \$version,
+            'warning|w=i'  => \$WARNINGS) or exit 3;
+if ($help) {
+    print "Feeding myself to perldoc, please wait....\n";
+    exec ('perldoc', '-t', $0) or die "Cannot fork: $!\n";
+} elsif ($version) {
+    my $version = join (' ', (split (' ', $ID))[1..3]);
+    $version =~ s/,v\b//;
+    $version =~ s/(\S+)$/($1)/;
+    $version =~ tr%/%-%;
+    print $version, "\n";
+    exit 0;
+}
+if (@ARGV) {
+    warn "Usage: $0 [-hv] [-c <level>] [-w <level>] -H <host>\n";
+    exit 3;
+}
+if ($WARNINGS > $CRITICAL) {
+    warn "$0: warning level $WARNINGS greater than critical level $CRITICAL\n";
+    exit 3;
+}
+
+# Set up the alarm.
+$SIG{ALRM} = sub {
+    print "AFS CRITICAL: network timeout after $TIMEOUT seconds\n";
+    exit 2;
+};
+alarm ($TIMEOUT);
+
+# Run rxdebug and parse the output, counting the number of waiting for process
+# connections that we have.
+unless (open (RXDEBUG, "$RXDEBUG $host -noconn |")) {
+    warn "$0: cannot run rxdebug\n";
+    exit 3;
+}
+my $blocked;
+while (<RXDEBUG>) {
+    if (/^(\d+) calls waiting for a thread/) {
+        $blocked = $1;
+        last;
+    }
+}
+close RXDEBUG;
+if ($? != 0) {
+    print "AFS CRITICAL: cannot contact server\n";
+    exit 2;
+}
+unless (defined $blocked) {
+    print "AFS CRITICAL: cannot parse rxdebug output\n";
+    exit 2;
+}
+
+# Check the connection count against our limits and make sure that it's okay.
+if ($blocked >= $CRITICAL) {
+    print "AFS CRITICAL: $blocked blocked connections\n";
+    exit 2;
+} elsif ($blocked >= $WARNINGS) {
+    print "AFS WARNING: $blocked blocked connections\n";
+    exit 1;
+} else {
+    print "AFS OK: $blocked blocked connections\n";
+    exit 0;
+}
+
+##############################################################################
+# Documentation
+##############################################################################
+
+=head1 NAME
+
+check_rxdebug - Check AFS servers for blocked connections in Nagios
+
+=head1 SYNOPSIS
+
+check_rxdebug [B<-hV>] [B<-c> I<threshold>] [B<-w> I<threshold>]
+[B<-t> I<timeout>] B<-H> I<host>
+
+=head1 DESCRIPTION
+
+B<check_rxdebug> is a Nagios plugin for checking AFS file servers to see if
+there are client connections waiting for a free thread.  If there are more
+than a few of these, AFS performance tends to be very slow; this is a fairly
+reliable way to catch overloaded file servers.  By default, B<check_rxdebug>
+returns a critical error if there are more than eight connections waiting
+for a free thread and a warning if there are more than two.  These
+thresholds can be changed with the B<-c> and B<-w> options.
+
+B<check_rxdebug> will always print out a single line of output including the
+number of blocked connections, displaying whether this is critical, a
+warning, or okay.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-c> I<threshold>, B<--critical>=I<threshold>
+
+Change the critical blocked connection count threshold to I<threshold>,
+which should be an integer.  The default is 8.
+
+=item B<-H> I<host>, B<--hostname>=I<host>
+
+The AFS file server whose connections B<check_rxdebug> should check.  This
+option is required.
+
+=item B<-h>, B<--help>
+
+Print out this documentation (which is done simply by feeding the script
+to C<perldoc -t>).
+
+=item B<-t> I<timeout>, B<--timeout>=I<timeout>
+
+Change the timeout for the B<rxdebug> command.  The default timeout is 60
+seconds.
+
+=item B<-V>, B<--version>
+
+Print out the version of B<check_rxdebug> and quit.
+
+=item B<-w> I<threshold>, B<--warning>=I<threshold>
+
+Change the warning blocked connection threshold to I<threshold>, which
+should be an integer.  The default is 2.
+
+=back
+
+=head1 EXIT STATUS
+
+B<check_rxdebug> follows the standard Nagios exit status requirements.  This
+means that it will exit with status 0 if there are no problems, with status
+1 if there is a warning, and with status 2 if there is a critical problem.
+For other errors, such as invalid syntax, B<check_rxdebug> will exit with
+status 3.
+
+=head1 BUGS
+
+The standard B<-v> verbose Nagios plugin option is not supported, although
+it's not entirely clear what it would add.
+
+The usage message for invalid options and for the B<-h> option doesn't
+conform to Nagios standards.
+
+=head1 CAVEATS
+
+This script does not use the Nagios util library or any of the defaults that
+it provides, which makes it somewhat deficient as a Nagios plugin.  This is
+intentional, though, since this script can be used with other monitoring
+systems as well.  It's not clear what a good solution to this would be.
+
+=head1 SEE ALSO
+
+The current version of this and other AFS monitoring plugins for Nagios are
+available from the AFS monitoring tools page at
+L<http://www.eyrie.org/~eagle/software/afs-monitor/>.
+
+=head1 AUTHORS
+
+The original idea behind this script was from Neil Crellin.  It was updated
+by Quanah Gibson-Mount to work with Nagios, and then further updated by Russ
+Allbery <rra@stanford.edu> to support more standard options and to use a
+more uniform coding style.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2003, 2004, 2005 Board of Trustees, Leland Stanford Jr. University.
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
