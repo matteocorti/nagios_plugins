@@ -1,0 +1,3 @@
+* BUG: if the check interval is too high the amount of transferred bytes from
+  /proc/net/dev could have overflown twice
+* FEATURE: support different platforms (other than Linux)
