@@ -2,6 +2,7 @@
 
 use strict;
 use Getopt::Long;
+use POSIX "uname";
 
 my $VERSION    = "1.0";
 
@@ -32,7 +33,7 @@ sub usage {
   print << "EOT";
 usage:
   -c crit, --critical=crit      critical
-  -d device, --device=device    device
+  -d device, --device=device    device name
   -r, --reset                   reset the counter
   -w warn, --warning warn       warning
   -v, --version                 version
@@ -61,7 +62,7 @@ sub write_timer {
 
     my $in  = shift;
     my $out = shift;
-    
+
     open(TMP, "> $tmp") or
         unknown("Cannot initialize timer");
     print TMP time . " $in $out\n";
@@ -69,51 +70,36 @@ sub write_timer {
         unknown("Cannot close timer");
 }
 
+#################################################
+# detects the Linux kernel version
+sub kernel_version {
 
-##############################################################################
-# main
-#
+  my ($sysname, $nodename, $release, $version, $machine ) = uname;
+  if ($release =~ /^2.4/) {
+    return "2.4";
+  }
+  if ($release =~ /^2.6/) {
+    return "2.6";
+  }
 
-########################
-# Command line arguments
+  unknown "kernel version ($release)";
 
-$result = GetOptions (
-    "critical=i"  => \$critical,
-    "device=s"    => \$device,
-    "help"        => \$help,
-    "reset"       => \$reset,
-    "warning=i"   => \$warning,
-    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
-);
-
-if (!$result) {
-  usage();
 }
 
-if ($help)                { usage(); }
-if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
-if (!$device)             { usage("Could not parse \"device\"");    }
-if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
-if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+#################################################
+# reads kernel 2.6 disk stats
+sub read_26 {
 
-# we need one temporary file per interface
-$tmp = $tmp . "-$device";
+  my $device = shift;
 
-########################
-# Check the proc entry
-
-my $diff;
-my $found  = 0;
-my $in;
-my $out;
-my $time;
-
-open(IN,"/proc/diskstats") or
+  open(IN,"/proc/diskstats") or
     unknown("Cannot open /proc/diskstats");
 
-while(<IN>) {
+  while(<IN>) {
 
     chomp;
+
+    # kernel version 2.6
 
     # /proc/diskstats format
     #
@@ -143,10 +129,11 @@ while(<IN>) {
         $minor,
         $name,
         $reads,
-        $merged,
+        $merge_read,
         $s_read,
         $ms_read,
         $writes,
+        $merge_write,
         $s_write,
         $ms_write,
         $ios,
@@ -154,70 +141,190 @@ while(<IN>) {
         $ms_weighted) = split;
 
     if ($name eq $device) {
-
-        $found = 1;
-
-        # get the time difference
-        if ($reset || !open(TMP, $tmp)) {
-            write_timer($s_write, $s_read);
-            unknown("Initializing timer");
-        }
-            
-        while (<TMP>) {
-            chomp;
-            ($time, $in, $out) = split;
-            $diff = time - $time;
-        }
-              
-        close(TMP);
-        
-        write_timer($s_write, $s_read);
-
-        if ($diff > 400) {
-            # time difference is > 400s
-            # since the counter could overflow
-            # we reeinitilize the timer
-            write_timer($s_write, $s_read);
-            unknown("Time difference too big: initializing");
-        }
-
-        if ($diff == 0) {
-            # round up
-            $diff = 1;
-        }
-
-        my $diskio_w = abs(int(($s_write - $in)  / $diff));
-        my $diskio_r = abs(int(($s_read  - $out) / $diff));
-        my $diskio   = $diskio_w + $diskio_r;
-
-        my $performance = "TOTAL=$diskio;$warning;$critical;;"
-            ." WRITE=$diskio_w;;;;"
-            ." READ=$diskio_r;;;;"
-            ." TIME=$diff;;;;";
-            
-        if ($diskio < $warning) {
-            print "$name OK $diskio sectors/s|$performance\n";
-            exit 0;
-        } else {
-            if ($diskio < $critical) {
-                print "$name WARNING $diskio sectors/s|$performance\n";
-                exit 1;
-            } else {
-                print "$name CRITICAL $diskio sectors/s|$performance\n";
-                exit 2;
-            }
-        }
-            
-        warning("Implementation error");
-            
-        last;
-        
+      close(IN);
+      return ($s_read, $s_write);
     }
-        
+
+  }
+
+  close(IN);
+  unknown("Device $device not found");
+
 }
 
-close(IN);
+#################################################
+# reads kernel 2.4 disk stats
+sub read_24 {
 
-if (!$found) {
-    unknown("Device $device not found");
+  my $device = shift;
+
+  open(IN,"/proc/partitions") or
+    unknown("Cannot open /proc/partitions");
+
+  while(<IN>) {
+
+    chomp;
+
+    # kernel version 2.6
+
+    # /proc/diskstats format
+    #
+    # major         Major number
+    # minor         Minor number
+    # blocks        Blocks
+    # name          Name
+    # reads         This is the total number of reads completed successfully.
+    # merge_read    Reads and writes which are adjacent to each other may be merged for
+    #               efficiency.  Thus two 4K reads may become one 8K read before it is
+    #               ultimately handed to the disk, and so it will be counted (and queued)
+    #               as only one I/O.  This field lets you know how often this was done.
+    # s_read        This is the total number of sectors read successfully.
+    # ms_read       This is the total number of milliseconds spent by all reads.
+    # writes        This is the total number of writes completed successfully.
+    # merge_write   Reads and writes which are adjacent to each other may be merged for
+    #               efficiency.  Thus two 4K reads may become one 8K read before it is
+    #               ultimately handed to the disk, and so it will be counted (and queued)
+    #               as only one I/O.  This field lets you know how often this was done.
+    # s_write       This is the total number of sectors written successfully.
+    # ms_write      This is the total number of milliseconds spent by all writes.
+    # ios           The only field that should go to zero. Incremented as requests are
+    #               given to appropriate request_queue_t and decremented as they finish.
+    # ms_io         This field is increases so long as field 9 is nonzero.
+    # ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
+    #               merge, or read f these stats by the number of I/Os in progress
+    #               times the number of milliseconds spent doing I/O since the
+    #               last update of this field.  This can provide an easy measure of both
+    #               I/O completion time and the backlog that may be accumulating.
+
+    my ($major,
+        $minor,
+        $blocks,
+        $name,
+        $reads,
+        $merge_read,
+        $s_read,
+        $ms_read,
+        $writes,
+        $merge_write,
+        $s_write,
+        $ms_write,
+        $ios,
+        $ms_io,
+        $ms_weighted) = split;
+
+    if ($name eq $device) {
+      close(IN);
+      return ($s_read, $s_write);
+    }
+
+  }
+
+  close(IN);
+  unknown("Device $device not found");
+
 }
+
+##############################################################################
+# main
+#
+
+########################
+# Command line arguments
+
+$result = GetOptions (
+    "critical=i"  => \$critical,
+    "device=s"    => \$device,
+    "help"        => \$help,
+    "reset"       => \$reset,
+    "warning=i"   => \$warning,
+    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
+);
+
+if (!$result) {
+  usage();
+}
+
+my $version = kernel_version;
+
+
+if ($help)                { usage(); }
+if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
+if (!$device)             { usage("Could not parse \"device\"");    }
+if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
+if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+
+
+# we need one temporary file per interface
+$tmp = $tmp . "-$device";
+
+
+########################
+# Check the proc entry
+
+my $diff;
+my $found  = 0;
+my $in;
+my $out;
+my $time;
+
+my $s_read;
+my $s_write;
+
+if ($version eq "2.6") {
+  ($s_read, $s_write) = read_26($device);
+}  elsif ($version eq "2.4") {
+  ($s_read, $s_write) = read_24($device);
+}
+
+# get the time difference
+if ($reset || !open(TMP, $tmp)) {
+  write_timer($s_write, $s_read);
+  unknown("Initializing timer");
+}
+
+while (<TMP>) {
+  chomp;
+  ($time, $in, $out) = split;
+  $diff = time - $time;
+}
+
+close(TMP);
+
+write_timer($s_write, $s_read);
+
+if ($diff > 400) {
+  # time difference is > 400s
+  # since the counter could overflow
+  # we reeinitilize the timer
+  write_timer($s_write, $s_read);
+  unknown("Time difference too big: initializing");
+}
+
+if ($diff == 0) {
+  # round up
+  $diff = 1;
+}
+
+my $diskio_w = abs(int(($s_write - $in)  / $diff));
+my $diskio_r = abs(int(($s_read  - $out) / $diff));
+my $diskio   = $diskio_w + $diskio_r;
+
+my $performance = "TOTAL=$diskio;$warning;$critical;;"
+  ." WRITE=$diskio_w;;;;"
+  ." READ=$diskio_r;;;;"
+  ." TIME=$diff;;;;";
+
+if ($diskio < $warning) {
+  print "$name OK $diskio sectors/s|$performance\n";
+  exit 0;
+} else {
+  if ($diskio < $critical) {
+    print "$name WARNING $diskio sectors/s|$performance\n";
+    exit 1;
+  } else {
+    print "$name CRITICAL $diskio sectors/s|$performance\n";
+    exit 2;
+  }
+}
+
+warning("Implementation error");
