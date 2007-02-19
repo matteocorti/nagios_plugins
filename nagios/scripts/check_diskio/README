@@ -1,5 +1,5 @@
 check_tcptraffic is a Nagios plugin to monitor the amount of disk I/O in sectors
-on Linux 2.6 systems
+on Linux 2.6 and 2.4 systems
 
 Usage
 =====
