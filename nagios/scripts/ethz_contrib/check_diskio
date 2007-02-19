@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION    = "0.1";
+my $VERSION    = "1.0";
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
