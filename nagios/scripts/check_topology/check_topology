@@ -23,9 +23,10 @@ function usage () {
     echo "  Checks the network topology for the hosts specified"
     echo "  in the conf nagios hosts.cfg file"
     echo
-    echo "  -c conf   hosts.cfg file"
-    echo "  -h        this help screen"
-    echo "  -v        increase verbosity"
+    echo "  -c conf     hosts.cfg file"
+    echo "  -h          this help screen"
+    echo "  -x          exclude hosts"
+    echo "  -v          increase verbosity"
     echo
     echo
 
@@ -70,11 +71,13 @@ function unknown() {
 PROG=`basename $0`
 
 verbose=0
+exclude=''
 
-while getopts "h?c:v" opt ; do
+while getopts "h?c:vx:" opt ; do
     case $opt in
         c )      CONF=$OPTARG    ;;
         h | \? ) usage ; exit 0; ;;
+        x )      exclude="$exclude $OPTARG" ;;
         v )      (( verbose++ )) ;;
     esac
 done
@@ -84,20 +87,30 @@ if [ -z $CONF ] ; then
     error "-c not specified"
 fi
 
-HOSTS=`grep address $CONF | sed -e "s/address//" | grep -v matteocorti | grep -v casa | sort`
+HOSTS=`grep address $CONF | sed -e "s/address//" | sort`
 num=`echo $HOSTS | wc -w`
 
 # process hosts
 for h in $HOSTS ; do
+
+    # check exclude
+    for x in $exclude ; do
+        if echo $h | grep -q $x ; then
+           if [ $verbose -gt 0 ] ; then echo "Skipping $h"; fi
+           continue 2
+        fi
+    done
+
 
     # reset variables
     def_p=
     p=
 
     if [ $verbose -gt 0 ] ; then echo -n "Checking $h: "; fi
+    if [ $verbose -gt 1 ] ; then echo ; fi
 
     # retrieve the real parent
-    p=`lft $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s+[0-9]+\s+//" | sed -e "s/\..*//"`
+    p=`lft -n $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s+[0-9]+\s+//" | sed -r "s/\s.*//"`
 
     if echo $p | grep -q TTL ; then
 
@@ -107,20 +120,49 @@ for h in $HOSTS ; do
 
     fi
 
+    if [ $verbose -gt 1 ] ; then
+        echo "  real parent IP: $p"
+    fi
+
+
     # retrieve the configured parent
     def_p=`grep -A $MAX_ENTRY_LEN "address\s*$h" $CONF | grep -B $MAX_ENTRY_LEN } | grep parents | head -n 1 | sed -r "s/\s+parents\s+//" | sed -e "s/,.*//"`
 
     if [ -z $def_p ] ; then
-        if [ $verbose -gt 0 ] ; then echo "error"; fi
-        unknown "cannot extract the defined parent"
+        if [ $verbose -gt 0 ] ; then echo " no parent defined"; fi
+        continue
+    fi
+        
+    if [ $verbose -gt 1 ] ; then
+        echo "  defined parent: $def_p"
     fi
         
     if [ $def_p != $p ] ; then
-        if [ $verbose -gt 0 ] ; then echo "parent $p does not match $def_p"; fi
-        error "The defined parent for $h ($def_p) is different from the real parent ($p)"
+
+        # the name is different but maybe it's the same host
+        if echo $def_p | grep -q [a-zA-Z] ; then
+            def_ip=`host $def_p | sed -e "s/.*has\ address\ //" | tr '\n' ' '`
+        else
+            def_ip=$def_p
+        fi
+
+        if [ $verbose -gt 1 ] ; then
+            echo "  defined IP: $def_ip"
+        fi        
+
+        for ip in $def_ip ; do
+            if [ $ip = $p ] ; then
+                if [ $verbose -gt 1 ] ; then echo -n "  "; fi
+                if [ $verbose -gt 0 ] ; then echo "parent $def_p OK"; fi
+                continue 2
+            fi
+        done
+
     fi
 
-    if [ $verbose -gt 0 ] ; then echo "parent $p OK"; fi
+    if [ $verbose -gt 1 ] ; then echo -n "  "; fi
+    if [ $verbose -gt 0 ] ; then echo "parent $p does not match $def_p"; fi
+    error "The defined parent for $h ($def_p) is different from the real parent ($p)"
     
 done
 
