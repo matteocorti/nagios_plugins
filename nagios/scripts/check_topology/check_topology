@@ -88,7 +88,6 @@ if [ -z $CONF ] ; then
 fi
 
 HOSTS=`grep address $CONF | sed -e "s/address//" | sort`
-HOSTS=birchers.ch
 num=`echo $HOSTS | wc -w`
 
 # process hosts
