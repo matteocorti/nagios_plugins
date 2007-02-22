@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# options
+
+# the maximum length in lines of a 'define'
+MAX_ENTRY_LEN=16
+
+################################################################################
+# usage
+#   prints the usage help
+# param $1 (optional): error message
+#
+
+function usage () {
+
+    if [ -n "$1" ] ; then
+        echo "Error: $1"
+        echo
+    fi
+
+    echo "Usage: $PROG -c conf"
+    echo
+    echo "  Checks the network topology for the hosts specified"
+    echo "  in the conf nagios hosts.cfg file"
+    echo
+    echo "  -c conf   hosts.cfg file"
+    echo "  -h        this help screen"
+    echo "  -v        increase verbosity"
+    echo
+    echo
+
+    if [ -n "$1" ] ; then
+        exit 1;
+    fi
+
+}
+
+################################################################################
+# error
+#   prints an error message and exits
+# param $1 error message
+#
+function error() {
+    echo "TOPOLOGY CRITICAL: $1"
+    exit 2
+}
+
+################################################################################
+# error
+#   prints an error message and exits
+# param $1 error message
+#
+function warning() {
+    echo "TOPOLOGY WARNING: $1"
+    exit 1
+}
+
+################################################################################
+# error
+#   prints an error message and exits
+# param $1 error message
+#
+function unknown() {
+    echo "TOPOLOGY UNKNOWN: $1"
+    exit 3
+}
+
+################################################################################
+
+PROG=`basename $0`
+
+verbose=0
+
+while getopts "h?c:v" opt ; do
+    case $opt in
+        c )      CONF=$OPTARG    ;;
+        h | \? ) usage ; exit 0; ;;
+        v )      (( verbose++ )) ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z $CONF ] ; then
+    error "-c not specified"
+fi
+
+HOSTS=`grep address $CONF | sed -e "s/address//" | grep -v matteocorti | grep -v casa | sort`
+num=`echo $HOSTS | wc -w`
+
+# process hosts
+for h in $HOSTS ; do
+
+    # reset variables
+    def_p=
+    p=
+
+    if [ $verbose -gt 0 ] ; then echo -n "Checking $h: "; fi
+
+    # retrieve the real parent
+    p=`lft $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s+[0-9]+\s+//" | sed -e "s/\..*//"`
+
+    if echo $p | grep -q TTL ; then
+
+        if [ $verbose -gt 0 ] ; then echo "first host"; fi
+
+        continue;
+
+    fi
+
+    # retrieve the configured parent
+    def_p=`grep -A $MAX_ENTRY_LEN "address\s*$h" $CONF | grep -B $MAX_ENTRY_LEN } | grep parents | head -n 1 | sed -r "s/\s+parents\s+//" | sed -e "s/,.*//"`
+
+    if [ -z $def_p ] ; then
+        if [ $verbose -gt 0 ] ; then echo "error"; fi
+        unknown "cannot extract the defined parent"
+    fi
+        
+    if [ $def_p != $p ] ; then
+        if [ $verbose -gt 0 ] ; then echo "parent $p does not match $def_p"; fi
+        error "The defined parent for $h ($def_p) is different from the real parent ($p)"
+    fi
+
+    if [ $verbose -gt 0 ] ; then echo "parent $p OK"; fi
+    
+done
+
+echo "TOPOLOGY OK: topology checked for $num hosts"
+exit 0
