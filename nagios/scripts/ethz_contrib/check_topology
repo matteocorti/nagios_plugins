@@ -110,7 +110,7 @@ for h in $HOSTS ; do
     if [ $verbose -gt 1 ] ; then echo ; fi
 
     # retrieve the real parent
-    p=`lft -n $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s+[0-9]+\s+//" | sed -r "s/\s.*//"`
+    p=`lft -n $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s*[0-9]+\s+//" | sed -r "s/\s.*//"`
 
     if echo $p | grep -q TTL ; then
 
