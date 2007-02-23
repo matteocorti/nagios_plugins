@@ -1,0 +1,17 @@
+check_topology is a Nagios plugin to check for the correct configuration of the hosts' parents.
+
+For each defined host in the supplied hosts.cfg Nagios configuration file check_topology checks
+if the last hop in the network path corresponds to the defined parent.
+
+Usage: check_topology [options] -c conf
+
+  -c conf     hosts.cfg file
+  -h          help screen
+  -x          exclude hosts
+  -v          increase verbosity
+  -V          prints version information
+
+Example: ./check_topology -c /etc/nagios/hosts.cfg -x somehost -v -v
+
+Requirements:
+- lft: layer four traceroute (http://pwhois.org/lft/index.who)
