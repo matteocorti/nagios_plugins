@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use POSIX "uname";
 
-my $VERSION    = "1.0";
+my $VERSION    = "1.1";
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
@@ -291,14 +291,6 @@ while (<TMP>) {
 close(TMP);
 
 write_timer($s_write, $s_read);
-
-if ($diff > 400) {
-  # time difference is > 400s
-  # since the counter could overflow
-  # we reeinitilize the timer
-  write_timer($s_write, $s_read);
-  unknown("Time difference too big: initializing");
-}
 
 if ($diff == 0) {
   # round up
