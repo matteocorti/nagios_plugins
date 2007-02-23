@@ -23,7 +23,7 @@ ln -s ../common/INSTALL  .
 ln -s ../common/Makefile .
 
 echo "creating empty files"
-touch Changelog
+touch ChangeLog
 touch NEWS
 touch README
 touch README
