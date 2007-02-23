@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION    = "0.9";
+my $VERSION    = "1.0";
 
 my $tmp        = '/tmp/check_tcptraffic_status';
 
@@ -12,6 +12,7 @@ my $help       = '';
 my $interface  = '';
 my $reset      = '';
 my $result;
+my $speed      = '';
 my $status     = 0;
 my $status_msg = '';
 my $warning    = 0;
@@ -32,6 +33,7 @@ sub usage {
 usage:
   -c crit, --critical=crit      critical
   -i iface, --interface=iface   network interface
+  -s speed, --speed=speed       interface speed in Mbit/s
   -r, --reset                   reset the counter
   -w warn, --warning warn       warning
   -v, --version                 version
@@ -81,6 +83,7 @@ $result = GetOptions (
     "interface=s" => \$interface,
     "help"        => \$help,
     "reset"       => \$reset,
+    "speed=i"     => \$speed,
     "warning=i"   => \$warning,
     "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
 );
@@ -92,9 +95,13 @@ if (!$result) {
 if ($help)                { usage(); }
 if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
 if (!$interface)          { usage("Could not parse \"interface\""); }
+if (!$speed)              { usage("Could not parse \"speed\"");     }
 if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
+# check the speed
+my $max_check_time = int(32768/$speed); # in seconds
+                              
 # we need one temporary file per interface
 $tmp = $tmp . "-$interface";
 
@@ -171,12 +178,12 @@ while(<IN>) {
 
             write_timer($bytes_in, $bytes_out);
 
-            if ($diff > 400) {
-                # time difference is > 400s
+            if ($diff > $max_check_time) {
+                # time difference is > max_check_time
                 # since the counter could overflow
                 # we reeinitilize the timer
                 write_timer($bytes_in, $bytes_out);
-                unknown("Time difference too big: initializing");
+                unknown("Time difference ($diff seconds) too big: max $max_check_time seconds between checks on a $speed Mbit/s interface");
             }
 
             if ($diff == 0) {
