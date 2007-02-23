@@ -77,6 +77,22 @@ sub check_yum {
 }
 
 ########################
+# checks an up2date system
+sub check_up2date {
+
+    # parsing the output of up2date -l
+
+    my $updates = `up2date -l | grep -A 64 -- '----------------------------------------------------------' | grep [a-z] | wc -l `;
+
+    if ($updates > 0) {
+        critical();
+    } else {
+        ok();
+    }
+    
+}
+
+########################
 # Command line arguments
 
 my $result = GetOptions (
@@ -115,6 +131,10 @@ if ($^O eq 'linux') {
             }
             check_yum();
         } elsif ($header =~ /Red\ Hat/) {
+            if ($verbose) {
+                print "Red Hat detected: using up2date\n";
+            }
+            check_up2date();            
         } else {
             unknown("unknown Linux distribution");
         }
