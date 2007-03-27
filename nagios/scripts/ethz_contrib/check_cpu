@@ -208,14 +208,14 @@ my $running   = $new{running};
 my $blocked   = $new{blocked};
 
 my $performance = "CPU=$cpu;$warning;$critical;;"
-    ."NICE=$nice;;;;"
-    ."SYS=$system;;;;"
-    ."USER=$user;;;;"
-    ."IRQ=$irq;;;;"
-    ."CTXT=$ctxt;;;;"
-    ."NEW_PROCS=$new_procs;;;;"
-    ."RUNNING=$running;;;;"
-    ."BLOCKED=$blocked;;;;";
+    ." NICE=$nice;;;;"
+    ." SYS=$system;;;;"
+    ." USER=$user;;;;"
+    ." IRQ=$irq;;;;"
+    ." CTXT=$ctxt;;;;"
+    ." NEW_PROCS=$new_procs;;;;"
+    ." RUNNING=$running;;;;"
+    ." BLOCKED=$blocked;;;;";
 
 if ($cpu < $warning) {
     print "$name OK $cpu%|$performance\n";
