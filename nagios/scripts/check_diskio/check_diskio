@@ -237,7 +237,7 @@ $result = GetOptions (
     "help"        => \$help,
     "reset"       => \$reset,
     "warning=i"   => \$warning,
-    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
+    "version"     => sub { print "check_diskio version $VERSION\n"; exit 3;}
 );
 
 if (!$result) {

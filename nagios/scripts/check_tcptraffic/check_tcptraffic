@@ -85,7 +85,7 @@ $result = GetOptions (
     "reset"       => \$reset,
     "speed=i"     => \$speed,
     "warning=i"   => \$warning,
-    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
+    "version"     => sub { print "check_tcptraffic version $VERSION\n"; exit 3;}
 );
 
 if (!$result) {
