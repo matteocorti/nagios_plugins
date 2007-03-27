@@ -197,7 +197,10 @@ if ($diff == 0) {
 }
 
 # cpu = (new - old)(tot_new - tot_old)
-my $cpu       = sprintf("%.0f",(1-($new{cpu_idle} - $old{cpu_idle})/($new{cpu}-$old{cpu}))*100);
+my $cpu       = sprintf("%.0f",(1-($new{cpu_idle} - $old{cpu_idle})  /($new{cpu}-$old{cpu}))*100);
+my $nice      = sprintf("%.0f",(($new{cpu_nice}   - $old{cpu_nice})  /($new{cpu}-$old{cpu}))*100);
+my $system    = sprintf("%.0f",(($new{cpu_system} - $old{cpu_system})/($new{cpu}-$old{cpu}))*100);
+my $user      = sprintf("%.0f",(($new{cpu_user}   - $old{cpu_user})  /($new{cpu}-$old{cpu}))*100);
 my $irq       = abs(int(($new{irq}       - $old{irq})/      $diff));
 my $ctxt      = abs(int(($new{ctxt}      - $old{ctxt})/     $diff));
 my $new_procs = abs(int(($new{new_procs} - $old{new_procs})/$diff));
@@ -205,6 +208,9 @@ my $running   = $new{running};
 my $blocked   = $new{blocked};
 
 my $performance = "CPU=$cpu;$warning;$critical;;"
+    ."NICE=$nice;;;;"
+    ."SYS=$system;;;;"
+    ."USER=$user;;;;"
     ."IRQ=$irq;;;;"
     ."CTXT=$ctxt;;;;"
     ."NEW_PROCS=$new_procs;;;;"
