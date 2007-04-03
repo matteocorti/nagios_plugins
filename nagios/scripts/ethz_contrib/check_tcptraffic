@@ -3,11 +3,12 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION    = "1.0";
+my $VERSION    = "1.1";
 
 my $tmp        = '/tmp/check_tcptraffic_status';
 
 my $critical   = 0;
+my $debug;
 my $help       = '';
 my $interface  = '';
 my $reset      = '';
@@ -32,6 +33,7 @@ sub usage {
   print << "EOT";
 usage:
   -c crit, --critical=crit      critical
+  -d                            debug
   -i iface, --interface=iface   network interface
   -s speed, --speed=speed       interface speed in Mbit/s
   -r, --reset                   reset the counter
@@ -70,6 +72,120 @@ sub write_timer {
         unknown("Cannot close timer");
 }
 
+sub read_proc {
+
+    my $iface = shift;
+
+    my %data;
+
+    my $found  = 0;
+    my $in;
+    my $out;
+    my $time;
+
+    open(IN,"/proc/net/dev") or
+        unknown("Cannot open /proc/net/dev");
+
+    while(<IN>) {
+
+        chomp;
+    
+        if ( /:/ ) {
+        
+            # /proc/net/dev format
+            #
+            # bytes:      The total number of bytes of data transmitted or received
+            #             by the interface.
+            # packets:    The total number of packets of data transmitted or
+            #             received by the interface.
+            # errs:       The total number of transmit or receive errors detected
+            #             by the device driver.
+            # drop:       The total number of packets dropped by the device driver.
+            # fifo        The number of FIFO buffer errors.
+            # frame:      The number of packet framing errors.
+            # compressed: The number of compressed packets transmitted or received
+            #             by the device driver.
+            # multicast:  The number of multicast frames transmitted or received by
+            #             the device driver. 
+            
+            my ($combined,
+                $packets_in,
+                $errs_in,
+                $drop_in,
+                $fifo_in,
+                $frame_in,
+                $compressed_in,
+                $multicast_in,
+                $bytes_out,
+                $packets_out,
+                $errs_out,
+                $drop_out,
+                $fifo_out,
+                $frame_out,
+                $compressed_out,
+                $multicast_out) = split;
+            
+            my ($name, $bytes_in) = split(":", $combined);
+
+            if ($name eq $interface) {
+
+                $found = 1;
+
+                $data{combined}       = $combined;
+                $data{packets_in}     = $packets_in;
+                $data{errs_in}        = $errs_in;
+                $data{drop_in}        = $drop_in;
+                $data{fifo_in}        = $fifo_in;
+                $data{frame_in}       = $frame_in;
+                $data{compressed_in}  = $compressed_in;
+                $data{multicast_in}   = $multicast_in;
+                $data{bytes_out}      = $bytes_out;
+                $data{packets_out}    = $packets_out;
+                $data{errs_out}       = $errs_out;
+                $data{drop_out}       = $drop_out;
+                $data{fifo_out}       = $fifo_out;
+                $data{frame_out}      = $frame_out;
+                $data{compressed_out} = $compressed_out;
+                $data{multicast_out}  = $multicast_out;
+                $data{bytes_in}       = $bytes_in;
+
+                # get the time difference
+                if ($reset || !open(TMP, $tmp)) {
+                    write_timer($bytes_in, $bytes_out);
+                    unknown("Initializing timer");
+                }
+            
+                while (<TMP>) {
+                    chomp;
+                    ($time, $in, $out) = split;
+                    $data{diff} = time - $time;
+                    $data{in}   = $in;
+                    $data{out}  = $out;
+                }
+              
+                close(TMP);
+
+                write_timer($bytes_in, $bytes_out);
+
+                last;
+
+
+            }
+            
+        }
+
+    }
+
+    if (!$found) {
+        unknown("Interface $interface not found");
+    }
+
+    close(IN);
+
+    return %data;
+            
+}
+
 
 ##############################################################################
 # main
@@ -80,6 +196,7 @@ sub write_timer {
 
 $result = GetOptions (
     "critical=i"  => \$critical,
+    "debug"       => \$debug,
     "interface=s" => \$interface,
     "help"        => \$help,
     "reset"       => \$reset,
@@ -108,121 +225,54 @@ $tmp = $tmp . "-$interface";
 ########################
 # Check the proc entry
 
-my $diff;
-my $found  = 0;
-my $in;
-my $out;
-my $time;
 
-open(IN,"/proc/net/dev") or
-    unknown("Cannot open /proc/net/dev");
+my %data = read_proc($interface);
 
-while(<IN>) {
+if ($data{diff} > $max_check_time) {
 
-    chomp;
+    if ($debug) {
+        print "$data{diff} > $max_check_time: sleeping 1s to gather data again\n";
+    }
     
-    if ( /:/ ) {
-        
-        # /proc/net/dev format
-        #
-        # bytes:      The total number of bytes of data transmitted or received
-        #             by the interface.
-        # packets:    The total number of packets of data transmitted or
-        #             received by the interface.
-        # errs:       The total number of transmit or receive errors detected
-        #             by the device driver.
-        # drop:       The total number of packets dropped by the device driver.
-        # fifo        The number of FIFO buffer errors.
-        # frame:      The number of packet framing errors.
-        # compressed: The number of compressed packets transmitted or received
-        #             by the device driver.
-        # multicast:  The number of multicast frames transmitted or received by
-        #             the device driver. 
-        
-        my ($combined,
-            $packets_in,
-            $errs_in,
-            $drop_in,
-            $fifo_in,
-            $frame_in,
-            $compressed_in,
-            $multicast_in,
-            $bytes_out,
-            $packets_out,
-            $errs_out,
-            $drop_out,
-            $fifo_out,
-            $frame_out,
-            $compressed_out,
-            $multicast_out) = split;
-        
-        my ($name, $bytes_in) = split(":", $combined);
+    # time difference is > max_check_time
+    # since the counter could overflow
+    # we reeinitilize the timer and
+    # we perform a 1s check
+    write_timer($data{bytes_in}, $data{bytes_out});
 
-        if ($name eq $interface) {
+    sleep 1;
 
-            $found = 1;
+    %data = read_proc($interface);
 
-            # get the time difference
-            if ($reset || !open(TMP, $tmp)) {
-                write_timer($bytes_in, $bytes_out);
-                unknown("Initializing timer");
-            }
+}
+    
+if ($data{diff} == 0) {
+    # round up
+    $data{diff} = 1;
+}
+
+my $traffic_in  = abs(int(($data{bytes_in}  - $data{in})  / $data{diff}));
+my $traffic_out = abs(int(($data{bytes_out} - $data{out}) / $data{diff}));
+my $traffic     = $traffic_in + $traffic_out;
+
+my $performance = "TOTAL=$traffic;$warning;$critical;;"
+    ." IN=$traffic_in;;;;"
+    ." OUT=$traffic_out;;;;"
+    ." TIME=$data{diff};;;;";
             
-            while (<TMP>) {
-                chomp;
-                ($time, $in, $out) = split;
-                $diff = time - $time;
-            }
-              
-            close(TMP);
-
-            write_timer($bytes_in, $bytes_out);
-
-            if ($diff > $max_check_time) {
-                # time difference is > max_check_time
-                # since the counter could overflow
-                # we reeinitilize the timer
-                write_timer($bytes_in, $bytes_out);
-                unknown("Time difference ($diff seconds) too big: max $max_check_time seconds between checks on a $speed Mbit/s interface");
-            }
-
-            if ($diff == 0) {
-                # round up
-                $diff = 1;
-            }
-
-            my $traffic_in  = abs(int(($bytes_in  - $in)  / $diff));
-            my $traffic_out = abs(int(($bytes_out - $out) / $diff));
-            my $traffic     = $traffic_in + $traffic_out;
-
-            my $performance = "TOTAL=$traffic;$warning;$critical;;"
-                ." IN=$traffic_in;;;;"
-                ." OUT=$traffic_out;;;;"
-                ." TIME=$diff;;;;";
-            
-            if ($traffic < $warning) {
-                print "TCPTRAFFIC OK $traffic bytes/s|$performance\n";
-                exit 0;
-            } else {
-                if ($traffic < $critical) {
-                    print "TCPTRAFFIC WARNING $traffic bytes/s|$performance\n";
-                    exit 1;
-                } else {
-                    print "TCPTRAFFIC CRITICAL $traffic bytes/s|$performance\n";
-                    exit 2;
-                }
-            }
-            
-	    warning("Implementation error");
-            
-            last;
-
-        }
-        
+if ($traffic < $warning) {
+    print "TCPTRAFFIC OK $traffic bytes/s|$performance\n";
+    exit 0;
+} else {
+    if ($traffic < $critical) {
+        print "TCPTRAFFIC WARNING $traffic bytes/s|$performance\n";
+        exit 1;
+    } else {
+        print "TCPTRAFFIC CRITICAL $traffic bytes/s|$performance\n";
+        exit 2;
     }
 }
-close(IN);
+            
+warning("Implementation error");
+            
 
-if (!$found) {
-    unknown("Interface $interface not found");
-}
