@@ -1,3 +1,7 @@
+2007-04-03  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_traffic: if the time difference is too big wait and recompute
+
 2007-02-23  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_traffic: the interface speed is considered in the overflow
