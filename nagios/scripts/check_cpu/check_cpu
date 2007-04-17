@@ -4,18 +4,19 @@ use strict;
 use Getopt::Long;
 use File::Copy;
 
-my $VERSION    = "0.8";
+my $VERSION    = "0.9";
 
 my $tmp        = '/tmp/check_cpu_status';
 my $name       = "CPU";
 
-my $critical   = 0;
+my $critical;
 my $help       = '';
 my $reset      = '';
 my $result;
+my $silent;
 my $status     = 0;
 my $status_msg = '';
-my $warning    = 0;
+my $warning;
 
 ##############################################################################
 # subroutines
@@ -33,6 +34,7 @@ sub usage {
 usage:
   -c crit, --critical=crit      critical
   -r, --reset                   reset the counter
+  -s, --silent                  do not issue warnings
   -w warn, --warning warn       warning
   -v, --version                 version
 EOT
@@ -154,6 +156,7 @@ $result = GetOptions (
     "critical=i"  => \$critical,
     "help"        => \$help,
     "reset"       => \$reset,
+    "silent"      => \$silent,
     "warning=i"   => \$warning,
     "version"     => sub { print "check_cpu version $VERSION\n"; exit 3;}
 );
@@ -164,9 +167,11 @@ if (!$result) {
 
 
 if ($help)                { usage(); }
-if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
-if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
-if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if (!$silent) {
+    if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
+    if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
+    if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+}
 
 
 ########################
@@ -217,17 +222,22 @@ my $performance = "CPU=$cpu;$warning;$critical;;"
     ." RUNNING=$running;;;;"
     ." BLOCKED=$blocked;;;;";
 
-if ($cpu < $warning) {
-    print "$name OK $cpu%|$performance\n";
-    exit 0;
-} else {
-    if ($cpu < $critical) {
-        print "$name WARNING $cpu%|$performance\n";
-        exit 1;
+if (!$silent) {
+    if ($cpu < $warning) {
+        print "$name OK $cpu%|$performance\n";
+        exit 0;
     } else {
-        print "$name CRITICAL $cpu%|$performance\n";
-        exit 2;
+        if ($cpu < $critical) {
+            print "$name WARNING $cpu%|$performance\n";
+            exit 1;
+        } else {
+            print "$name CRITICAL $cpu%|$performance\n";
+            exit 2;
+        }
     }
+} else {
+    print "$name $cpu%|$performance\n";
+    exit 0;
 }
 
 warning("Implementation error");
