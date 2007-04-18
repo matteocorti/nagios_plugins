@@ -1,0 +1,10 @@
+2007-02-23  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Initial release
+
+2007-04-18  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Handle IP-only hosts
+	* lft flags to speed up the trace
+	
+
