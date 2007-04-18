@@ -4,8 +4,9 @@
 
 # the maximum length in lines of a 'define'
 MAX_ENTRY_LEN=16
-VERSION=0.8
+VERSION=0.9
 LFT=/usr/bin/lft
+LFTFLAGS="-M 1 -t 500"
 
 ################################################################################
 # usage
@@ -27,6 +28,7 @@ function usage () {
     echo
     echo "  -c conf     hosts.cfg file"
     echo "  -h          this help screen"
+    echo "  -H          check a single host"
     echo "  -x          exclude hosts"
     echo "  -v          increase verbosity"
     echo "  -V          prints version information"
@@ -74,10 +76,11 @@ function unknown() {
 verbose=0
 exclude=''
 
-while getopts "h?c:vx:V" opt ; do
+while getopts "H:h?c:vx:V" opt ; do
     case $opt in
         c )      CONF=$OPTARG    ;;
         h | \? ) usage ; exit 0; ;;
+        H )      HOST=$OPTARG    ;;
         x )      exclude="$exclude $OPTARG" ;;
         v )      (( verbose++ )) ;;
         V )      echo "check_topology version $VERSION"; exit 0 ;;
@@ -95,7 +98,11 @@ fi
 
 ################################################################################
 
-HOSTS=`grep address $CONF | sed -e "s/address//" | sort`
+if [ -z $HOST ] ; then 
+    HOSTS=`grep address $CONF | sed -e "s/address//" | sort`
+else
+    HOSTS=$HOST
+fi    
 num=`echo $HOSTS | wc -w`
 
 # process hosts
@@ -118,7 +125,7 @@ for h in $HOSTS ; do
     if [ $verbose -gt 1 ] ; then echo ; fi
 
     # retrieve the real parent
-    p=`$LFT -n $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s*[0-9]+\s+//" | sed -r "s/\s.*//"`
+    p=`$LFT $LFTFLAGS -n $h | grep -v target | grep -v failed | tail -n 1 | sed -r "s/^\s*[0-9]+\s+//" | sed -r "s/\s.*//"`
 
     if echo $p | grep -q TTL ; then
 
@@ -166,12 +173,15 @@ for h in $HOSTS ; do
             fi
         done
 
+        if [ $verbose -gt 1 ] ; then echo -n "  "; fi
+        if [ $verbose -gt 0 ] ; then echo "parent $p does not match $def_p"; fi
+    
+        error "The defined parent $def_p for $h is different from the real parent $p"
+
     fi
 
-    if [ $verbose -gt 1 ] ; then echo -n "  "; fi
-    if [ $verbose -gt 0 ] ; then echo "parent $p does not match $def_p"; fi
-    error "The defined parent for $h ($def_p) is different from the real parent ($p)"
-    
+    if [ $verbose -gt 0 ] ; then echo "parent $def_p OK"; fi
+            
 done
 
 echo "TOPOLOGY OK: topology checked for $num hosts"
