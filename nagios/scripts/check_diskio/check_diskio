@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use POSIX "uname";
 
-my $VERSION    = "1.1";
+my $VERSION    = "1.3";
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
@@ -254,9 +254,13 @@ if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
 if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
 
-# we need one temporary file per interface
-$tmp = $tmp . "-$device";
-
+# we need one temporary file per device
+my ($controller, $disk) = split(/\//,$device);
+if (!$disk) {
+    $tmp = $tmp . "-$controller";
+} else {
+    $tmp = $tmp . "-$disk";
+}
 
 ########################
 # Check the proc entry
