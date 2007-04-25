@@ -166,10 +166,6 @@ if (!$result) {
   usage();
 }
 
-if (! -x $LFT) {
-    unknown("Cannot find lft: check the LFT configuration variable");
-}
-
 if ($threads > 0) {
     $THREADS = $threads;
 }
