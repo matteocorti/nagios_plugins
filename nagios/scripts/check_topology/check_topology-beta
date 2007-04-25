@@ -1,0 +1,284 @@
+#!/usr/bin/perl
+
+# (c) 2007 ETH Zurich
+# Matteo Corti <matteo.corti@id.ethz.ch>
+
+use strict;
+use Getopt::Long;
+use Net::DNS;
+use Net::Traceroute;
+use threads;
+use threads::shared;
+
+my $LFT        = '/usr/bin/lft';
+my $LFTFLAGS   = '-M 1 -t 500';
+my $NAME       = 'TOPOLOGY';
+my $VERSION    = '0.9.1';
+my $THREADS    = 10;
+
+################################################################################
+# Variables
+
+# command line options
+my $conf;
+my @exclude;
+my $help;
+my %hosts;
+my $result;
+my $threads;
+my $verbose;
+
+my $running : shared = 0;
+
+################################################################################
+# Functions
+
+################################
+# prints the usage of the plugin
+sub usage {
+
+    my $msg = shift;
+
+    if (defined $msg) {
+        print "Error: $msg\n\n";
+    }
+
+    print "check_topology version $VERSION\n\n";
+    
+    print << "EOT";
+Usage: check_topology [options] -c conf
+
+Checks the network topology for the hosts specified
+in the nagios hosts.cfg configuration file
+
+Options:
+
+    --conf,-c conf     hosts.cfg file
+    --help,-h,-?       this help screen
+    --host,-H          check a single host
+    --exclude,-x       exclude hosts (regular expression)
+    --threads,-t       maximum number of concurrent checks
+    --verbose,-v       increase verbosity
+    --version,-V       prints version information
+EOT
+  exit(3);
+}
+
+#-------------------------------------------------------------------------------
+
+#################################################
+# prints an "unknown" error message (exit code 3)
+sub unknown {
+  my $msg = shift;
+  if (defined $msg) {
+    print "$NAME UNKNOWN: $msg\n";
+  }
+  exit(3);
+}
+
+#-------------------------------------------------------------------------------
+
+#################################################
+# prints a "critical" error message (exit code 2)
+sub critical {
+  my $msg = shift;
+  if (defined $msg) {
+    print "$NAME CRITICAL: $msg\n";
+  }
+  exit(2);
+}
+
+#-------------------------------------------------------------------------------
+
+#################################################
+# prints a "warning" error message (exit code 1)
+sub warning {
+  my $msg = shift;
+  if (defined $msg) {
+    print "$NAME WARNING: $msg\n";
+  }
+  exit(1);
+}
+
+#-------------------------------------------------------------------------------
+
+##################################################
+# checks an host for the correct parent definition
+
+sub check_host {
+    
+    $running++;
+
+    my $host = shift;
+
+    if ($verbose > 1) {
+        print "checking $host\n";
+    }
+    
+    my $trace = Net::Traceroute->new(
+        host    => $host,
+        queries => 1
+    ) or unknown("cannot exec traceroute");
+    
+    if($trace->found) {
+        my $hops = $trace->hops or unknown("no output from traceroute to $host");
+
+        if ($verbose > 2) {
+            print "  trace to $host found: $hops hops\n";
+        }
+        
+        if($hops > 1) {
+            my $real_parent = $trace->hop_query_host($trace->hops - 1, 0);
+            if ($real_parent != $hosts{$host}) {                
+                critical("the real parent ($real_parent) of $host is different from the defined parent ("
+                             . $hosts{$host}
+                             . ")");
+            }
+        }
+    } else {
+        if ($verbose > 1) {
+            print "  cannot compute the route to $host\n";
+        }
+    }
+    
+    $running--;
+
+}
+
+
+################################################################################
+# Main
+
+######################
+# command line options
+
+$result = GetOptions (
+    "conf=s"       => \$conf,
+    "help|?"       => \$help,
+    "host|H=s"     => \%hosts,
+    "exclude|x=s"  => \@exclude,
+    "threads=i"    => \$threads,
+    "verbose|v+"   => \$verbose,
+);
+
+###############
+# sanity checks
+
+if (!$result) {
+  usage();
+}
+
+if (! -x $LFT) {
+    unknown("Cannot find lft: check the LFT configuration variable");
+}
+
+if ($threads > 0) {
+    $THREADS = $threads;
+}
+
+##############
+# gather hosts
+
+my $dns_resolver = Net::DNS::Resolver->new;
+
+my $host;
+my $parent;
+
+if ($conf) {
+
+    open(CFG,"$conf") or unknown("cannot open $conf");
+
+    if ($verbose > 0) {
+        print "reading $conf\n";
+    }
+    
+  HOST: while(<CFG>) {
+          
+        chomp;
+
+        ##############
+        # address line
+        
+        # checks for alpha, digit or safe chars
+        # (see http://www.foad.org/~abigail/Perl/url2.html)
+        if (m/\s*address\s+([0-9A-Za-z\.\-\$\+_]+)\s*/) {            
+
+            $host            = $1;
+            
+            # check for excluded hosts
+            foreach my $pattern (@exclude) {
+                if ($host =~ /$pattern/) {
+                    if ($verbose > 1) {
+                        print "skipping $host\n";
+                    }
+                    $host = '';
+                    next HOST;
+                }
+            }
+        }
+
+        #############
+        # parent line
+        if ($host &&
+                m/\s*parents\s+([0-9A-Za-z\.\-\$\+_]+)\s*/) {
+            $parent = $1;
+        }
+
+        if (m/\}/ && $host && $parent) {
+            
+            my $query = $dns_resolver->search($parent);
+            if ($query) {
+                foreach my $rr ($query->answer) {
+                    next unless $rr->type eq "A";
+                    $parent = $rr->address;
+                }
+            } else {
+                unknown("cannot compute address of $parent (".$dns_resolver->errorstring.")");
+            }
+            
+            # end of the host definition            
+            $hosts{$host} = $parent;
+            
+        }
+               
+    }
+    close(CFG) or unknown("cannot close $conf");
+}
+
+if (%hosts == 0) {
+    unknown("no hosts specified (use the -c or -H option)");
+}
+
+#################
+# check each host
+
+my $no_hosts = (keys %hosts);
+
+if ($verbose > 0) {
+    print "checking $no_hosts hosts\n";
+}
+
+$running = 0;
+foreach my $host (keys %hosts) {
+
+    while ($running > $THREADS) {
+        sleep 1;
+    }
+    
+    # generate another thread
+    my $thread  = threads->create("check_host",$host);
+
+    if ($THREADS != 1) {
+        $thread->detach();
+    } else {
+        $thread->join();
+    }
+    
+}
+
+print "$NAME OK|HOSTS=$no_hosts\n";
+
+
+exit 0;
+
+__END__
