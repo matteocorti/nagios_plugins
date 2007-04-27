@@ -9,6 +9,7 @@ usage:
   -w warn      warning
   -d device    disk
   -r           initialize
+  -s           silent (no warnings, does not require -c or -w)
   -v           verbose
 
 --------------------------------------------------------------------------------

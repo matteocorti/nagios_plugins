@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use POSIX "uname";
 
-my $VERSION    = "1.3";
+my $VERSION    = "1.4";
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
@@ -17,6 +17,7 @@ my $result;
 my $status     = 0;
 my $status_msg = '';
 my $warning    = 0;
+my $silent     = '';
 
 ##############################################################################
 # subroutines
@@ -35,8 +36,11 @@ usage:
   -c crit, --critical=crit      critical
   -d device, --device=device    device name
   -r, --reset                   reset the counter
-  -w warn, --warning warn       warning
+  -s, --silent                  no warnings or critials
   -v, --version                 version
+  -w warn, --warning warn       warning
+
+  either -c and -w or -s have to be specified
 EOT
   exit(3);
 }
@@ -92,7 +96,7 @@ sub read_26 {
 
   my $device = shift;
 
-  open(IN,"/proc/diskstats") or
+  open(IN, '/proc/diskstats') or
     unknown("Cannot open /proc/diskstats");
 
   while(<IN>) {
@@ -236,6 +240,7 @@ $result = GetOptions (
     "device=s"    => \$device,
     "help"        => \$help,
     "reset"       => \$reset,
+    "silent"      => \$silent,
     "warning=i"   => \$warning,
     "version"     => sub { print "check_diskio version $VERSION\n"; exit 3;}
 );
@@ -247,12 +252,14 @@ if (!$result) {
 my $version = kernel_version;
 
 
-if ($help)                { usage(); }
-if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
-if (!$device)             { usage("Could not parse \"device\"");    }
-if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
-if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if ($help)                            { usage(); }
+if (!$silent && $critical <= 0)       { usage("Could not parse \"critical\"");  }
+if (!$device)                         { usage("Could not parse \"device\"");    }
+if (!$silent && $warning  <= 0)       { usage("Could not parse \"warning\"");   }
+if (!$silent && $critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
 
+# strip /dev/
+$device =~ s/^\/dev\///;
 
 # we need one temporary file per device
 my ($controller, $disk) = split(/\//,$device);
@@ -323,22 +330,30 @@ $diskio_r = int($diskio_r/ $diff);
 
 my $diskio   = $diskio_w + $diskio_r;
 
-my $performance = "TOTAL=$diskio;$warning;$critical;;"
-  ." WRITE=$diskio_w;;;;"
-  ." READ=$diskio_r;;;;"
-  ." TIME=$diff;;;;";
-
-if ($diskio < $warning) {
-  print "$name OK $diskio sectors/s|$performance\n";
-  exit 0;
+if ($silent) {
+    print "$name OK $diskio sectors/s|TOTAL=$diskio;;;;"
+        ." WRITE=$diskio_w;;;;"
+        ." READ=$diskio_r;;;;"
+        ." TIME=$diff;;;;\n";
+    exit 0;
 } else {
-  if ($diskio < $critical) {
-    print "$name WARNING $diskio sectors/s|$performance\n";
-    exit 1;
-  } else {
-    print "$name CRITICAL $diskio sectors/s|$performance\n";
-    exit 2;
-  }
+    my $performance = "TOTAL=$diskio;$warning;$critical;;"
+        ." WRITE=$diskio_w;;;;"
+        ." READ=$diskio_r;;;;"
+        ." TIME=$diff;;;;";
+    
+    if ($diskio < $warning) {
+        print "$name OK $diskio sectors/s|$performance\n";
+        exit 0;
+    } else {
+        if ($diskio < $critical) {
+            print "$name WARNING $diskio sectors/s|$performance\n";
+            exit 1;
+        } else {
+            print "$name CRITICAL $diskio sectors/s|$performance\n";
+            exit 2;
+        }
+    }
 }
 
 warning("Implementation error");

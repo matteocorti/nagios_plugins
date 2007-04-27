@@ -1,3 +1,4 @@
+2007-04-20 1.4: handle /dev/xxx as a valid device and addition of the -s flag
 2007-03-30 1.3: handle RAID devices
 2007-03-30 1.2: check for overflows
 2007-02-23 1.1: removed the max interval check

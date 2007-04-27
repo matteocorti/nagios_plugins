@@ -1,9 +1,9 @@
-%define version 1.0
-%define release 1
-%define name    check_topology
+%define version 0.9
+%define release 0
+%define name    check_afs_offline_volumes
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   check_topology is a Nagios plugin to check for the correct configuration of the hosts' parents.
+Summary:   A simple plugin to check the number of offline volumes on an AFS server
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -15,8 +15,7 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 %description
-For each defined host in the supplied hosts.cfg Nagios configuration file check_topology checks
-if the last hop in the network path corresponds to the defined parent.
+A simple plugin to check the number of offline volumes on an AFS server
 
 %prep
 %setup -q
@@ -32,7 +31,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-, root, root, 0644)
 %doc AUTHORS ChangeLog NEWS README INSTALL TODO COPYING VERSION
-%attr(0755, root, root) %{_prefix}/check_topology
+%attr(0755, root, root) %{_prefix}/check_afs_offline_volumes
 
 %changelog
 * Wed Apr 25 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0-1
