@@ -6,7 +6,10 @@
 use strict;
 use Getopt::Long;
 use Net::DNS;
-use Net::Traceroute;
+use Net::Traceroute::PurePerl;
+
+# bug: Net::Traceroute::PurePerl is not thread safe
+
 use threads;
 use threads::shared;
 
@@ -101,24 +104,67 @@ sub warning {
 #-------------------------------------------------------------------------------
 
 ##################################################
-# checks an host for the correct parent definition
+# performs a time-bound traceroute
+sub perform_trace {
 
+    my $trace   = shift;
+    my $timeout = shift;
+    
+    eval {
+        local $SIG{ALRM} = sub { die "alarm" };
+        alarm $timeout;
+        $trace->traceroute; 
+        alarm 0;
+    };
+    warn "Traceroute timed out\n" if ($@ and $@ eq 'alarm');
+    
+}
+
+##################################################
+# checks an host for the correct parent definition
 sub check_host {
     
     $running++;
 
-    my $host = shift;
-
+    my $host    = shift;
+    my $timeout = 5;
+    my $trace;
+    
     if ($verbose > 1) {
         print "checking $host\n";
     }
+
+    # try to get the route as quickly as possible
     
-    my $trace = Net::Traceroute->new(
-        host    => $host,
-        queries => 1
+    $trace = Net::Traceroute::PurePerl->new(
+        backend       => 'PurePerl',
+        queries       => 1,
+        query_timeout => 1,
+        host          => $host,
+        protocol      => 'icmp',
+        max_ttl       => 20
     ) or unknown("cannot exec traceroute");
+
+    perform_trace($trace,$timeout);
+
+    # in case of error try to be more patient
+    
+    if (!$trace->found) {
+        $trace = Net::Traceroute::PurePerl->new(
+            backend       => 'PurePerl',
+            queries       => 3,
+            query_timeout => 5,
+            host          => $host,
+            protocol      => 'udp',
+            max_ttl       => 20
+        ) or unknown("cannot exec traceroute");
+
+        perform_trace($trace,$timeout);
+        
+    }
     
     if($trace->found) {
+        
         my $hops = $trace->hops or unknown("no output from traceroute to $host");
 
         if ($verbose > 2) {
@@ -126,17 +172,45 @@ sub check_host {
         }
         
         if($hops > 1) {
-            my $real_parent = $trace->hop_query_host($trace->hops - 1, 0);
-            if ($real_parent != $hosts{$host}) {                
+
+            # the host in not in the same subnet
+            
+            my $real_parent; # the last hop on the trace
+
+            # check if the last host is present twice
+            
+            if ($trace->hop_query_host($trace->hops, 0) eq
+                    $trace->hop_query_host($trace->hops - 1, 0)) {
+                if ($verbose > 2) {
+                    print "  the last two hosts in the trace are the same\n";
+                }
+                $real_parent = $trace->hop_query_host($trace->hops - 2, 0);
+            } else {
+                $real_parent = $trace->hop_query_host($trace->hops - 1, 0);
+            }
+
+            # check if the defined parent is correct
+            
+            if ($real_parent != $hosts{$host}) {
+                
+                if ($verbose > 2) {
+                    $trace->pretty_print
+                }
+                
                 critical("the real parent ($real_parent) of $host is different from the defined parent ("
                              . $hosts{$host}
                              . ")");
             }
         }
+
     } else {
+
+        # if we cannot compute the route ignore the host
+        
         if ($verbose > 1) {
             print "  cannot compute the route to $host\n";
         }
+        
     }
     
     $running--;
@@ -252,22 +326,44 @@ if ($verbose > 0) {
     print "checking $no_hosts hosts\n";
 }
 
-$running = 0;
-foreach my $host (keys %hosts) {
+if ($THREADS == 1) {
 
-    while ($running > $THREADS) {
-        sleep 1;
+    # sequential version
+
+    if ($verbose > 0) {
+        print "Sequential checks\n";
+    }
+
+    foreach my $host (keys %hosts) {
+        check_host($host);
     }
     
-    # generate another thread
-    my $thread  = threads->create("check_host",$host);
+} else {
 
-    if ($THREADS != 1) {
-        $thread->detach();
-    } else {
-        $thread->join();
-    }
+    # parallel version
+
+    if ($verbose > 0) {
+        print "Parallel checks\n";
+    } 
+
+    $running = 0;
+    foreach my $host (keys %hosts) {
+        
+        while ($running > $THREADS) {
+            sleep 1;
+        }
     
+        # generate another thread
+        my $thread  = threads->create("check_host",$host);
+        
+        if ($THREADS != 1) {
+            $thread->detach();
+        } else {
+            $thread->join();
+        }
+    
+    }
+
 }
 
 print "$NAME OK|HOSTS=$no_hosts\n";

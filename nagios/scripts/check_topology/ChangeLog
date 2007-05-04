@@ -1,3 +1,8 @@
+2007-05-04  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Net::Traceroute::PurePerl to avoid problems with negative TTLs
+	* If the two last hosts in the trace are the same they are considered a single hop
+
 2007-02-23  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* Initial release
