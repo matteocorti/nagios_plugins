@@ -127,7 +127,7 @@ sub check_host {
     $running++;
 
     my $host    = shift;
-    my $timeout = 5;
+    my $timeout = 10;
     my $trace;
     
     if ($verbose > 1) {
@@ -197,7 +197,9 @@ sub check_host {
                     $trace->pretty_print
                 }
                 
-                critical("the real parent ($real_parent) of $host is different from the defined parent ("
+                critical("the real parent ($real_parent) of $host ("
+                             . get_ip($host)
+                             . ") is different from the defined parent ("
                              . $hosts{$host}
                              . ")");
             }
@@ -217,6 +219,31 @@ sub check_host {
 
 }
 
+##################################################
+# gets the IP of a host
+# param host
+sub get_ip {
+
+    my $host = shift;
+
+    if ($host =~ /((25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))\.){3}(25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))/) {
+        return $host;
+    }
+
+    
+    my $dns_resolver = Net::DNS::Resolver->new;
+    my $query        = $dns_resolver->search($host);
+    
+    if ($query) {
+        foreach my $rr ($query->answer) {
+            next unless $rr->type eq "A";
+            return $rr->address;
+        }
+    } else {
+        unknown("cannot compute address of $host (".$dns_resolver->errorstring.")");
+    }
+
+}
 
 ################################################################################
 # Main
@@ -240,14 +267,14 @@ if (!$result) {
   usage();
 }
 
-if ($threads > 0) {
+if ($threads > 1) {
     $THREADS = $threads;
+} else {
+    $THREADS = 1;
 }
 
 ##############
 # gather hosts
-
-my $dns_resolver = Net::DNS::Resolver->new;
 
 my $host;
 my $parent;
@@ -293,17 +320,9 @@ if ($conf) {
         }
 
         if (m/\}/ && $host && $parent) {
-            
-            my $query = $dns_resolver->search($parent);
-            if ($query) {
-                foreach my $rr ($query->answer) {
-                    next unless $rr->type eq "A";
-                    $parent = $rr->address;
-                }
-            } else {
-                unknown("cannot compute address of $parent (".$dns_resolver->errorstring.")");
-            }
-            
+
+            $parent = get_ip($parent);
+
             # end of the host definition            
             $hosts{$host} = $parent;
             
