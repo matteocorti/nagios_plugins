@@ -1,0 +1,155 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my $VERSION    = "0.1";
+
+my $prog_name       = "LM_SENSORS";
+
+my %checks;
+my @drives;
+my $help       = '';
+my $verbose;
+my $result;
+
+my %sensors;
+
+##############################################################################
+# subroutines
+
+################################
+# prints the usage of the plugin
+sub usage {
+  my $msg = shift;
+
+  if (defined $msg) {
+    print "$msg\n";
+  }
+
+  print << "EOT";
+usage:
+  -h, --help                help
+  -c, --checks              specifies the sensor along with warn and crit values
+                            -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
+                            -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
+  -d, --drive               check drive temperature
+  -v, --verbose             verbose output
+  --version                 prints $prog_name's version and exits
+EOT
+  exit(3);
+}
+
+sub parse_drives {
+
+    foreach my $drive (@drives) {
+
+        my $command = "smartctl -A $drive | grep -i temperature";
+        my $output;
+        
+        my $pid = open($output, "$command 2>&1 |") or
+            die("Cannot execute $command");
+
+        while (<$output>) {
+            chomp;
+
+            /.*0x[0-9A-Fa-f]+\s+([0-9]+).*/;
+
+            $sensors{"$drive Temp"} = $1;
+            $sensors{"$drive Temp"} =~ s/^0+//;
+            
+        }
+
+    }
+    
+}
+
+sub parse_sensors {
+
+    my $command = 'sensors -A | grep \:';
+    my $output;
+    
+    my $pid = open($output, "$command 2>&1 |") or
+        die("Cannot execute $command");
+
+    while (<$output>) {
+        chomp;
+
+        /(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /;
+
+        $sensors{$1} = $2;
+                    
+    }
+
+
+}
+
+##############################################################################
+# main
+#
+
+########################
+# Command line arguments
+
+$result = GetOptions (
+    "check=s"      => \%checks, 
+    "drive=s"      => \@drives,
+    "help"         => sub { usage() },
+    "verbose|v+"   => \$verbose,
+    "version"      => sub { print "check_diskio version $VERSION\n"; exit 3;}
+);
+
+if (!$result) {
+  usage();
+}
+
+parse_sensors();
+parse_drives();
+
+# build status string
+
+my $space = '';
+my $status;
+while ( my ($sensor,$value) = each %sensors ) {
+    if ($space) {
+        $status = $status . " ";
+    }
+    $status = $status . "'$sensor'=$value;;;;";
+    $space = 1;
+}
+
+# perform checks
+while ( my ($name,$limits) = each %checks ) {
+
+    if (!$sensors{$name}) {
+        print "$prog_name UNKOWN unkown sensor $name|$status\n";
+        exit(3);
+    }
+
+    my ($warn, $crit, $ref) = split /,/,$limits;
+
+    my $value = $sensors{$name};
+    if ($ref) {
+        $value = abs($value-$ref);
+    }
+    
+    if ($value > $crit) {
+        print "$prog_name CRITICAL $name = ".$sensors{$name}."|$status\n";
+        exit(2);
+    }        
+    
+   if ($value > $warn) {
+        print "$prog_name WARNING $name = ".$sensors{$name}."|$status\n";
+        exit(1);
+    }        
+
+}
+
+
+print "$prog_name OK|$status\n";
+exit(0);
+
+1;
+
+__END__
+
