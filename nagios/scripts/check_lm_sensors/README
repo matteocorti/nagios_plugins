@@ -3,13 +3,20 @@ disk temperatures on Linux systems
 
 usage:
   -h, --help                help
-  -a, --all                 return the result for all the found sensors
-  -c, --checks              specifies a sensor along with warn and crit values
+  -c, --check               specifies a sensor along with warn and crit values
                             -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
                             -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
+                            sensors with a space in the name can be specified
+                            - by escaping the space --check sda\ Temp=50,60
+                            - by quoting the name --check 'sda Temp'=50,60
+                            - by substituting the space by an underscore --check sda_Temp=50,60
   -d, --drive               check drive temperature
+  -l, --list                list sensors
+  --hddtemp_bin             specifies the location of the hddtemp binary
+  --sensors_bin             specified the location of the sensors binary
+  --sanitize                sanitize sensor names (e.g., removing spaces)
   -v, --verbose             verbose output
-  --version                 prints  version and exits
+  --version                 prints $prog_name's version and exits
 
 Example:
 

@@ -1,4 +1,6 @@
-2007-06-15  root  <matteo.corti@id.ethz.ch>
+2007-06-18  Matteo Corti  <matteo.corti@id.ethz.ch>
 
+	* check_lm_sensors: output only the checked values
+	* check_lm_sensors: added the --sanitize option to remove spaces in sensor names
 	* Initial release
 

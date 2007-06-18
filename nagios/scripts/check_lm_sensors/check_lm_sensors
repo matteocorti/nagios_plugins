@@ -2,17 +2,21 @@
 
 use strict;
 use Getopt::Long;
+    
+my $VERSION    = "1.1";
 
-my $VERSION    = "1.0";
+my $prog_name  = "LM_SENSORS";
 
-my $prog_name       = "LM_SENSORS";
+my $hddtemp_bin    = '/usr/bin/hddtemp';
+my $sensors_bin    = '/usr/bin/sensors';
 
-my $all;
 my %checks;
 my @drives;
 my $help       = '';
+my $list;
 my $verbose;
 my $result;
+my $sanitize;
 
 my %sensors;
 
@@ -26,92 +30,148 @@ sub usage {
 
   if (defined $msg) {
     print "$msg\n";
-  }
+}
 
-  print << "EOT";
-usage:
+print "usage:
   -h, --help                help
-  -a, --all                 return the result for all the found sensors
-  -c, --checks              specifies a sensor along with warn and crit values
+  -c, --check               specifies a sensor along with warn and crit values
                             -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
                             -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
+                            sensors with a space in the name can be specified
+                            - by escaping the space --check sda\ Temp=50,60
+                            - by quoting the name --check 'sda Temp'=50,60
+                            - by substituting the space by an underscore --check sda_Temp=50,60
   -d, --drive               check drive temperature
+  -l, --list                list sensors
+  --hddtemp_bin             specifies the location of the hddtemp binary
+  --sensors_bin             specified the location of the sensors binary
+  --sanitize                sanitize sensor names (e.g., removing spaces)
   -v, --verbose             verbose output
-  --version                 prints $prog_name's version and exits
-EOT
+  --version                 prints $prog_name's version and exits\n";
+    
   exit(3);
 }
 
 sub parse_drives {
 
-    open(IN, '/proc/partitions') or
-        unknown("Cannot open /proc/partitions");
+    if (-x $hddtemp_bin) {
+    
+        open(IN, '/proc/partitions') or
+            unknown("Cannot open /proc/partitions");
 
-    while(<IN>) {
-        
-        chomp;
-        
-        my (
-            $major,
-            $minor,
-            $blocs,
-            $name
-        ) = split;
-        
-        if ($major eq 'major' || $major eq '') {
-            next;
-        }
-
-        if ($name =~ /[0-9]$/) {
-            next;
+        while(<IN>) {
+            
+            chomp;
+            
+            my (
+                $major,
+                $minor,
+                $blocs,
+                $name
+            ) = split;
+            
+            if ($major eq 'major' || $major eq '') {
+                next;
+            }
+            
+            if ($name =~ /[0-9]$/) {
+                next;
+            }
+            
+            my $command = "$hddtemp_bin -n /dev/$name";
+            
+            my $output;
+            
+            my $pid = open($output, "$command 2>&1 |") or
+                die("Cannot execute $command");
+            
+            while (<$output>) {
+                chomp;
+                
+                if ($_ =~ /^[0-9]+$/) {
+                    if ($verbose || $list) {
+                        print "found temperature for drive $name ($_)\n";
+                    }            
+                    if ($sanitize) {
+                        $sensors{$name.'Temp'} = $_;                        
+                    } else {
+                        $sensors{"$name Temp"} = $_;
+                    }
+                    
+                }
+                
+            }
+            
         }
     
-        my $command = "hddtemp -n /dev/$name";
+        close(IN);
 
+    } else {
+        if ($verbose) {
+            print "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
+        }
+    }
+        
+}
+
+sub parse_sensors {
+
+    if (-x $sensors_bin) {
+    
+        # check if there are configured sensors
+
+        my $command = "$sensors_bin 2>&1";
         my $output;
+
+        my $pid = open($output, "$command 2>&1 |") or
+            die("Cannot execute $command");
+
+        while (<$output>) {
+            chomp;
+            if (/^No\ sensors found/) {
+                if ($verbose) {
+                    print "warning: no sensors found\n";
+                }
+                return;
+            }
+            last;
+        }
+
+        close $output;
+        
+        $command = "$sensors_bin -A | grep \:";
+        $output;
         
         my $pid = open($output, "$command 2>&1 |") or
             die("Cannot execute $command");
 
         while (<$output>) {
             chomp;
+            
+            /(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /;
 
-            if ($_ =~ /^[0-9]+$/) {
-               if ($verbose) {
-                    print "found temperature for drive $name ($_)\n";
-                }            
-                $sensors{"$name Temp"} = $_;
+            my $name  = $1;
+            my $value = $2;
+            
+            if ($sanitize) {
+                $name =~ s/\ //g;
+            }
+            
+            $sensors{$name} = $value;
+            
+            if ($verbose || $list) {
+                print "found sensor $name ($value)\n";
             }
             
         }
-                
-    }
-    
-    close(IN);
-        
-}
 
-sub parse_sensors {
+        close $output;
 
-    my $command = 'sensors -A | grep \:';
-    my $output;
-    
-    my $pid = open($output, "$command 2>&1 |") or
-        die("Cannot execute $command");
-
-    while (<$output>) {
-        chomp;
-
-        /(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /;
-
-        $sensors{$1} = $2;
-
+    } else {
         if ($verbose) {
-            print "found sensor $1 ($2)\n";
+            print "warning: $sensors_bin not found: HDD temperatures not checked\n";
         }
-                    
     }
-
 
 }
 
@@ -122,19 +182,23 @@ sub parse_sensors {
 ########################
 # Command line arguments
 
+Getopt::Long::Configure ("bundling");
 $result = GetOptions (
-    "all"          => \$all,
-    "check=s"      => \%checks, 
-    "help"         => sub { usage() },
-    "verbose|v+"   => \$verbose,
-    "version"      => sub { print "check_diskio version $VERSION\n"; exit 3;}
+    "check|c=s"     => \%checks,
+    "help|?|h"      => sub { usage() },
+    "hddtemp_bin=s" => \$hddtemp_bin,
+    "sanitize"      => \$sanitize,
+    "sensors_bin=s" => \$sensors_bin,
+    "list|l"        => \$list,
+    "verbose|v+"    => \$verbose,
+    "version"       => sub { print "check_diskio version $VERSION\n"; exit 3;}
 );
 
 if (!$result) {
   usage();
 }
 
-if (!(defined $all) && !(defined %checks)) {
+if (!(defined $list) && !(defined %checks)) {
     die "at least one check has to be specified";
 }
 
@@ -143,24 +207,22 @@ parse_drives();
 
 # build status string
 
-my $space = '';
-my $status;
-while ( my ($sensor,$value) = each %sensors ) {
-    if ($space) {
-        $status = $status . " ";
-    }
-    $status = $status . "'$sensor'=$value;;;;";
-    $space = 1;
-}
-
 # perform checks
+my $space     = '';
+my $status;
 my $criticals = '';
 my $warnings  = '';
 my $unknowns  = '';
 while ( my ($name,$limits) = each %checks ) {
 
+    my $converted_name = $name;
+    $converted_name =~ s/_/\ /g;
+
+    if (!$sensors{$name} && $sensors{$converted_name}) {
+        $name = $converted_name;
+    }
     if (!$sensors{$name}) {
-        $unknowns = $unknowns . " $name=".$sensors{$name};
+        $unknowns = $unknowns . " $name";
         next;
     }
 
@@ -176,6 +238,12 @@ while ( my ($name,$limits) = each %checks ) {
     } elsif ($value > $warn) {
         $warnings = $warnings   . " $name=".$sensors{$name};
     }        
+
+    if ($space) {
+        $status = $status . " ";
+    }
+    $status = $status . "$name=$value;$warn;$crit;;";
+    $space = 1;
 
 }
 
