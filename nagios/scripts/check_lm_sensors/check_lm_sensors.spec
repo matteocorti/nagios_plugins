@@ -1,9 +1,9 @@
 %define version 1.0
 %define release 0
-%define name    check_tcptraffic
+%define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   A Nagios plugin to monitor the amount of TCP traffic
+Summary:   A Nagios plugin to monitor sensors values
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -15,19 +15,8 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 %description
-check_tcptraffic is a Nagios plugin to monitor the amount of TCP traffic
-
-Usage check_tcptraffic [-v] [-r] -c crit -w warn -i iface
-
-  -c crit      critical
-  -w warn      warning
-  -i iface     network interface
-  -r           initialize
-  -v           verbose
-
-check_tcptraffic uses the /proc/net/dev Linux entry to compute the
-amount of transferred bytes from the last plugin execution (temporary
-data is stored in the /tmp/check_tcptraffic-iface file)
+check_lm_sensors is a Nagios plugin to monitor the values of on board sensors and hard
+disk temperatures on Linux systems
 
 %prep
 %setup -q
@@ -46,5 +35,5 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_tcptraffic
 
 %changelog
-* Wed Apr 25 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0-1
+* Mon Jun 18 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0-0
 - Initial release
