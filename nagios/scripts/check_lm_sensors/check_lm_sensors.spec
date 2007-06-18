@@ -32,7 +32,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-, root, root, 0644)
 %doc AUTHORS ChangeLog NEWS README INSTALL TODO COPYING VERSION
-%attr(0755, root, root) %{_prefix}/check_tcptraffic
+%attr(0755, root, root) %{_prefix}/check_lm_sensors
 
 %changelog
 * Mon Jun 18 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0-0
