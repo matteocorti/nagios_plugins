@@ -179,6 +179,11 @@ while ( my ($name,$limits) = each %checks ) {
 
 }
 
+print STDERR "\$criticals: $criticals\n";
+print STDERR "\$warnings:  $warnings\n";
+print STDERR "\$unknowns:  $unknowns\n";
+
+
 my $problems;
 if (defined $criticals) {
     $problems = $criticals;
@@ -186,21 +191,21 @@ if (defined $criticals) {
 if (defined $warnings) {
     $problems = $problems . $warnings;
 }
-if (defined $criticals) {
-    $problems = $problems . $warnings;
+if (defined $unknowns) {
+    $problems = $problems . $unknowns;
 }
 
-if (defined $criticals) {
+if ($criticals ne '') {
     print "$prog_name CRITICAL $problems|$status\n";
     exit(2);
 }
     
-if (defined $warnings) {
+if ($warnings ne '') {
     print "$prog_name WARNING $problems|$status\n";
     exit(1);
 }
 
-if (defined $unknowns) {
+if ($unknowns ne '') {
     print "$prog_name UNKNOWN $problems|$status\n";
     exit(1);
 }
