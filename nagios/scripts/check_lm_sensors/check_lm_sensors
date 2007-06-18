@@ -179,11 +179,6 @@ while ( my ($name,$limits) = each %checks ) {
 
 }
 
-print STDERR "\$criticals: $criticals\n";
-print STDERR "\$warnings:  $warnings\n";
-print STDERR "\$unknowns:  $unknowns\n";
-
-
 my $problems;
 if (defined $criticals) {
     $problems = $criticals;
