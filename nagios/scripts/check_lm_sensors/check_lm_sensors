@@ -7,6 +7,7 @@ my $VERSION    = "0.1";
 
 my $prog_name       = "LM_SENSORS";
 
+my $all;
 my %checks;
 my @drives;
 my $help       = '';
@@ -30,7 +31,8 @@ sub usage {
   print << "EOT";
 usage:
   -h, --help                help
-  -c, --checks              specifies the sensor along with warn and crit values
+  -a, --all                 return the result for all the found sensors
+  -c, --checks              specifies a sensor along with warn and crit values
                             -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
                             -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
   -d, --drive               check drive temperature
@@ -42,9 +44,30 @@ EOT
 
 sub parse_drives {
 
-    foreach my $drive (@drives) {
+    open(IN, '/proc/partitions') or
+        unknown("Cannot open /proc/partitions");
 
-        my $command = "smartctl -A $drive | grep -i temperature";
+    while(<IN>) {
+        
+        chomp;
+        
+        my (
+            $major,
+            $minor,
+            $blocs,
+            $name
+        ) = split;
+        
+        if ($major eq 'major' || $major eq '') {
+            next;
+        }
+
+        if ($name =~ /[0-9]$/) {
+            next;
+        }
+    
+        my $command = "hddtemp -n /dev/$name";
+
         my $output;
         
         my $pid = open($output, "$command 2>&1 |") or
@@ -53,15 +76,19 @@ sub parse_drives {
         while (<$output>) {
             chomp;
 
-            /.*0x[0-9A-Fa-f]+\s+([0-9]+).*/;
-
-            $sensors{"$drive Temp"} = $1;
-            $sensors{"$drive Temp"} =~ s/^0+//;
+            if ($_ =~ /^[0-9]+$/) {
+               if ($verbose) {
+                    print "found temperature for drive $name ($_)\n";
+                }            
+                $sensors{"$name Temp"} = $_;
+            }
             
         }
-
+                
     }
     
+    close(IN);
+        
 }
 
 sub parse_sensors {
@@ -78,6 +105,10 @@ sub parse_sensors {
         /(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /;
 
         $sensors{$1} = $2;
+
+        if ($verbose) {
+            print "found sensor $1 ($2)\n";
+        }
                     
     }
 
@@ -92,8 +123,8 @@ sub parse_sensors {
 # Command line arguments
 
 $result = GetOptions (
+    "all"          => \$all,
     "check=s"      => \%checks, 
-    "drive=s"      => \@drives,
     "help"         => sub { usage() },
     "verbose|v+"   => \$verbose,
     "version"      => sub { print "check_diskio version $VERSION\n"; exit 3;}
@@ -101,6 +132,10 @@ $result = GetOptions (
 
 if (!$result) {
   usage();
+}
+
+if (!(defined $all) && !(defined %checks)) {
+    die "at least one check has to be specified";
 }
 
 parse_sensors();
@@ -119,11 +154,14 @@ while ( my ($sensor,$value) = each %sensors ) {
 }
 
 # perform checks
+my $criticals = '';
+my $warnings  = '';
+my $unknowns  = '';
 while ( my ($name,$limits) = each %checks ) {
 
     if (!$sensors{$name}) {
-        print "$prog_name UNKOWN unkown sensor $name|$status\n";
-        exit(3);
+        $unknowns = $unknowns . " $name=".$sensors{$name};
+        next;
     }
 
     my ($warn, $crit, $ref) = split /,/,$limits;
@@ -134,17 +172,38 @@ while ( my ($name,$limits) = each %checks ) {
     }
     
     if ($value > $crit) {
-        print "$prog_name CRITICAL $name = ".$sensors{$name}."|$status\n";
-        exit(2);
-    }        
-    
-   if ($value > $warn) {
-        print "$prog_name WARNING $name = ".$sensors{$name}."|$status\n";
-        exit(1);
+        $criticals = $criticals . " $name=".$sensors{$name};
+    } elsif ($value > $warn) {
+        $warnings = $warnings   . " $name=".$sensors{$name};
     }        
 
 }
 
+my $problems;
+if (defined $criticals) {
+    $problems = $criticals;
+}
+if (defined $warnings) {
+    $problems = $problems . $warnings;
+}
+if (defined $criticals) {
+    $problems = $problems . $warnings;
+}
+
+if (defined $criticals) {
+    print "$prog_name CRITICAL $problems|$status\n";
+    exit(2);
+}
+    
+if (defined $warnings) {
+    print "$prog_name WARNING $problems|$status\n";
+    exit(1);
+}
+
+if (defined $unknowns) {
+    print "$prog_name UNKNOWN $problems|$status\n";
+    exit(1);
+}
 
 print "$prog_name OK|$status\n";
 exit(0);
@@ -152,4 +211,3 @@ exit(0);
 1;
 
 __END__
-
