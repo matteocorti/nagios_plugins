@@ -2,7 +2,9 @@ check_lm_sensors is a Nagios plugin to monitor the values of on board sensors an
 disk temperatures on Linux systems
 
 usage:
+
   -h, --help                help
+
   -c, --check               specifies a sensor along with warn and crit values
                             -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
                             -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
@@ -10,14 +12,26 @@ usage:
                             - by escaping the space --check sda\ Temp=50,60
                             - by quoting the name --check 'sda Temp'=50,60
                             - by substituting the space by an underscore --check sda_Temp=50,60
-  -d, --drive               check drive temperature
-  -l, --list                list sensors
-  --hddtemp_bin             specifies the location of the hddtemp binary
-  --sensors_bin             specified the location of the sensors binary
-  --sanitize                sanitize sensor names (e.g., removing spaces)
-  -v, --verbose             verbose output
-  --version                 prints $prog_name's version and exits
 
+  -d, --drive               check drive temperature
+
+  -l, --list                list sensors
+
+  --hddtemp_bin             specifies the location of the hddtemp binary
+
+  --sensors_bin             specified the location of the sensors binary
+
+  --rename                  renames a sensor in the performance output (useful if you want to have common
+                            names for similar sensors across machines)
+                            example:
+                            --rename cputemp=temp1
+
+  --sanitize                sanitize sensor names (e.g., removing spaces)
+
+  -v, --verbose             verbose output
+
+  --version                 prints $prog_name's version and exits\n";
+    
 Example:
 
 $ ./check_lm_sensors -v -c 'sda Temp'=30,5,10 -c '+2.5V'=0.2,0.3,2.5

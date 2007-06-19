@@ -1,6 +1,11 @@
+2007-06-19  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_lm_sensors: added the --rename option to rename sensors
+	* check_lm_sensors: fixed the program name in --version ouput
+
 2007-06-18  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_lm_sensors: output only the checked values
 	* check_lm_sensors: added the --sanitize option to remove spaces in sensor names
-	* Initial release
+	* check_lm_sensors: initial release
 
