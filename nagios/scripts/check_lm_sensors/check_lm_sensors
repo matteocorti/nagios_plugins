@@ -84,7 +84,9 @@ sub get_path {
 
     while (<$output>) {
         chomp;
-        $path = $_;
+        if (! /^which:/) {
+            $path = $_;
+        }
     }
 
     close $output;
