@@ -1,3 +1,8 @@
+2007-06-20  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_lm_sensors: added the --nosensors and --nodrives options
+	* check_lm_sensors: the path for hddtemp and sensors is dynamic (retrieved with 'which')
+
 2007-06-19  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_lm_sensors: added the --rename option to rename sensors

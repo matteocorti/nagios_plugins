@@ -17,6 +17,10 @@ usage:
 
   -l, --list                list sensors
 
+  --nosensors               do not check lm_sensors
+
+  --nodrives                do not check drive temperature
+
   --hddtemp_bin             specifies the location of the hddtemp binary
 
   --sensors_bin             specified the location of the sensors binary
