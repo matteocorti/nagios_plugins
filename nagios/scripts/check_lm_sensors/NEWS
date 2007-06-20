@@ -1,6 +1,9 @@
+2007-06-20
+* automatic detection of the path for hddtemp and sensors
+* --nosensors and --nodrives to disable sensors or drive temperature checks
+* --rename option to rename sensors
+* only the checked sensors are included in the performace output
+* --sanitaze option to remove spaces from sensor names
 
-- --rename option to rename sensors
-- only the checked sensors are included in the performace output
-- --sanitaze option to remove spaces from sensor names
 2007-06-18
-- Initial release
+* Initial release

@@ -144,7 +144,7 @@ sub parse_drives {
                     $sensor_values{$name} = $_;
 
                     if ($verbose || $list) {
-                        print "found temperature for drive $name ($name"."Temp = $_)\n";
+                        print "found temperature for drive $name ($name = $_)\n";
                     }
 
                 } else {
