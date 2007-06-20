@@ -2,6 +2,7 @@
 
 	* check_lm_sensors: added the --nosensors and --nodrives options
 	* check_lm_sensors: the path for hddtemp and sensors is dynamic (retrieved with 'which')
+	* check_lm_sensors: fixed a bug that make the checker ignore the --sensors_bin and --hddtemp_bin options
 
 2007-06-19  Matteo Corti  <matteo.corti@id.ethz.ch>
 

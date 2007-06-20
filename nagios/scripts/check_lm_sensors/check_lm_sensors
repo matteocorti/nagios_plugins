@@ -118,6 +118,10 @@ sub parse_drives {
                 next;
             }
 
+            if ($verbose > 1) {
+                print "  checking disk /dev/$name\n";
+            }
+
             my $command = "$hddtemp_bin -n /dev/$name";
 
             my $output;
@@ -266,9 +270,13 @@ if (!(defined $list) && !(defined %checks)) {
 }
 
 if ($drives) {
-    $hddtemp_bin = get_path('hddtemp');
-    if (!$hddtemp_bin && $verbose) {
-        print "warning: hddtemp not found: HDD temperatures not checked\n";
+    if (!$hddtemp_bin) {
+        $hddtemp_bin = get_path('hddtemp');
+    }
+    if (!$hddtemp_bin) {
+        if ($verbose) {
+            print "warning: hddtemp not found: HDD temperatures not checked\n";
+        }
     } else {
         if ($verbose) {
             print "hddtemp found at $hddtemp_bin\n";
@@ -279,7 +287,9 @@ if ($drives) {
 
 
 if ($sensors) {
-    $sensors_bin = get_path('sensors');
+    if (!$sensors_bin) {
+        $sensors_bin = get_path('sensors');
+    }
     if (!$sensors_bin && $verbose) {
         print "warning: sensors not found: lm_sensors not checked\n";
     } else {
