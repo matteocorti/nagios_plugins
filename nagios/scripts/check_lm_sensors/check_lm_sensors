@@ -17,10 +17,17 @@ my $result;
 my $sanitize;
 my $sensors    = 1;
 my $verbose;
-my %checks;
 my %rename;
 my %sensor_values;
 my @drives;
+
+# command line options
+my %highs;
+my %lows;
+my %ranges;
+
+# deprecated options
+my %checks;
 
 ##############################################################################
 # subroutines
@@ -36,60 +43,66 @@ sub usage {
 
 print "usage:
 
-  -?, --help                help
+  -?, --help      help
 
-  -l, --low                 specifies a check for a sensor value which is too low.
-                            Example:
-                              --low fan1=2000,1000
-                            will give a warning if the value of the fan1 sensor drops
-                            below 2000 RPMs and a critical status if it drops below
-                            1000 RPMs
+  -l, --low       specifies a check for a sensor value which is too low.
+                  Example:
+                    --low fan1=2000,1000
+                  will give a warning if the value of the fan1 sensor drops
+                  below 2000 RPMs and a critical status if it drops below
+                  1000 RPMs
 
-  -h, --high                specifies a check for a sensor value which is too high.
-                            Example:
-                              --high temp1=50,60
-                            will give a warning if the value of the temp1 sensor reaches
-                            50 degrees and a critical status if it reaches 60 degrees
+  -h, --high      specifies a check for a sensor value which is too high.
+                  Example:
+                    --high temp1=50,60
+                  will give a warning if the value of the temp1 sensor reaches
+                  50 degrees and a critical status if it reaches 60 degrees
 
-  -r, --range               specifies a check for a sensor value which should stay in a given
-                            range.
-                            Example:
-                              --range v1=1,2,12
-                            will give a warning if the value of the sensor gets outside the 11-13 range (12+-1)
-                            and a critical status if the value is outside the 10-14 range (12+-2)
+  -r, --range     specifies a check for a sensor value which should stay
+                  in a given range.
+                  Example:
+                    --range v1=1,2,12
+                  will give a warning if the value of the sensor gets outside
+                  the 11-13 range (12+-1) and a critical status if the value is
+                  outside the 10-14 range (12+-2)
 
-  --rename                  renames a sensor in the performance output (useful if you want to have common
-                            names for similar sensors across different machines)
-                            Example:
-                              --rename cputemp=temp1
+  --rename        renames a sensor in the performance output (useful if you
+                  want to have common names for similar sensors across different
+                  machines)
+                  Example:
+                    --rename cputemp=temp1
 
-  --sanitize                sanitize sensor names (e.g., removing spaces)
+  --sanitize      sanitize sensor names (e.g., removing spaces)
 
-  --list                    list all available sensors
+  --list          list all available sensors
 
-  --nosensors               disable checks on check lm_sensors
+  --nosensors     disable checks on check lm_sensors
 
-  --nodrives                disable checks on drive temperatures
+  --nodrives      disable checks on drive temperatures
 
-  -d, --drives              enable checks on drive temperature
+  -d, --drives    enable checks on drive temperature
 
-  --hddtemp_bin             manually specifies the location of the hddtemp binary
+  --hddtemp_bin   manually specifies the location of the hddtemp binary
 
-  --sensors_bin             manually specified the location of the sensors binary
+  --sensors_bin   manually specified the location of the sensors binary
 
-  -v, --verbose             verbose output
+  -v, --verbose   verbose output
 
-  --version                 prints $prog_name's version and exits
+  --version       prints $prog_name's version and exits
 
 Deprecated options:
 
-  -c, --check               specifies a sensor along with warn and crit values
-                            -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
-                            -c vcore=1,2,12          checks if vcore is between 11-13 or 10-14 (12+-value)
-                            sensors with a space in the name can be specified
-                            - by escaping the space --check sda\ Temp=50,60
-                            - by quoting the name --check 'sda Temp'=50,60
-                            - by substituting the space by an underscore --check sda_Temp=50,60
+  -c, --check     specifies a check on a sensor. This options accepts two or
+                  three numerical values:
+                  * with two arguments works similarly to the --high option
+                  * with three arguments works similarly to the --range option
+
+Sensors with a space in the name can be specified
+* by escaping the space:                        --high sda\ Temp=50,60
+* by quoting the name:                          --high 'sda Temp'=50,60
+* by substituting the space with an underscore: --high sda_Temp=50,60
+* by using the --sanitize option to remove the space
+    --sanitize --high sdaTemp=50,60
 ";
   
   exit(3);
@@ -100,6 +113,7 @@ Deprecated options:
 # params:
 #   - executable name
 # returns
+#   - the path of program (if found)
 sub get_path {
 
     my $prog = shift;
@@ -122,6 +136,9 @@ sub get_path {
 
 }    
 
+################################################################################
+# parses /proc/partitions to find available drives and
+# tries to get the temperature
 sub parse_drives {
 
     if (-x $hddtemp_bin) {
@@ -203,6 +220,8 @@ sub parse_drives {
 
 }
 
+################################################################################
+# retrieves the values of the available sensors
 sub parse_sensors {
 
     if (-x $sensors_bin) {
@@ -282,9 +301,9 @@ $result = GetOptions (
     "drives!"       => \$drives,
     "hddtemp_bin=s" => \$hddtemp_bin,
     "help|?"        => sub { usage() },
-    "high|h"        => \%highs,
+    "high|h=s"      => \%highs,
     "list|l"        => \$list,
-    "low|l"         => \%lows,
+    "low|l=s"       => \%lows,
     "range|r=s"     => \%ranges,
     "rename|r=s"    => \%rename,
     "sanitize"      => \$sanitize,
@@ -298,7 +317,11 @@ if (!$result) {
   usage();
 }
 
-if (!(defined $list) && !(defined %checks)) {
+if (!(defined $list)   &&
+    !(defined %checks) &&
+    !(defined %highs)  &&
+    !(defined %lows)   &&
+    !(defined %ranges)) {
     die "at least one check has to be specified";
 }
 
@@ -338,16 +361,24 @@ if ($sensors) {
     }
 }
 
+################
 # perform checks
+
 my $space     = '';
 my $status;
+my $desc;
 my $criticals = '';
 my $warnings  = '';
 my $unknowns  = '';
 
-while ( my ($name,$limits) = each %checks ) {
+my $name;
+my $limits;
+my $converted_name;
 
-    my $converted_name = $name;
+# old style checks
+while ( ($name,$limits) = each %checks ) {
+
+    $converted_name = $name;
     $converted_name =~ s/_/\ /g;
 
     if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
@@ -375,39 +406,137 @@ while ( my ($name,$limits) = each %checks ) {
 
     if ($space) {
         $status = $status . " ";
+        $desc   = $desc   . " ";
     }
     $status = $status . "$name=$value;$warn;$crit;;";
+    $desc   = $desc   . "$name=$value";
     $space = 1;
 
 }
 
-my $problems;
-if (defined $criticals) {
-    $problems = $criticals;
-}
-if (defined $warnings) {
-    $problems = $problems . $warnings;
-}
-if (defined $unknowns) {
-    $problems = $problems . $unknowns;
+# lows
+while ( ($name,$limits) = each %lows ) {
+
+    $converted_name = $name;
+    $converted_name =~ s/_/\ /g;
+
+    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+        $name = $converted_name;
+    }
+    if (!$sensor_values{$name}) {
+        $unknowns = $unknowns . " $name";
+        next;
+    }
+
+    my ($warn, $crit) = split /,/,$limits;
+
+    my $value = $sensor_values{$name};
+
+    if ($value < $crit) {
+        $criticals = $criticals . " $name=".$sensor_values{$name};
+    } elsif ($value < $warn) {
+        $warnings = $warnings   . " $name=".$sensor_values{$name};
+    }
+
+    if ($space) {
+        $status = $status . " ";
+    }
+    $status = $status . "$name=$value;$warn;$crit;;";
+    $desc   = $desc   . "$name=$value";
+    $space = 1;
+
 }
 
+# highs
+while ( ($name,$limits) = each %highs ) {
+
+    $converted_name = $name;
+    $converted_name =~ s/_/\ /g;
+
+    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+        $name = $converted_name;
+    }
+    if (!$sensor_values{$name}) {
+        $unknowns = $unknowns . " $name";
+        next;
+    }
+
+    my ($warn, $crit) = split /,/,$limits;
+
+    my $value = $sensor_values{$name};
+
+    if ($value > $crit) {
+        $criticals = $criticals . " $name=".$sensor_values{$name};
+    } elsif ($value > $warn) {
+        $warnings = $warnings   . " $name=".$sensor_values{$name};
+    }
+
+    if ($space) {
+        $status = $status . " ";
+        $desc   = $desc   . " ";
+    }
+    $status = $status . "$name=$value;$warn;$crit;;";
+    $desc   = $desc   . "$name=$value";
+    $space = 1;
+
+}
+
+# ranges
+while ( ($name,$limits) = each %ranges ) {
+
+    $converted_name = $name;
+    $converted_name =~ s/_/\ /g;
+
+    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+        $name = $converted_name;
+    }
+    if (!$sensor_values{$name}) {
+        $unknowns = $unknowns . " $name";
+        next;
+    }
+
+    my ($warn, $crit, $ref) = split /,/,$limits;
+
+    my $value = $sensor_values{$name};
+    my $diff  = $value;
+    
+    $diff = abs($value-$ref);
+    
+    if ($diff > $crit) {
+        $criticals = $criticals . " $name=".$sensor_values{$name};
+    } elsif ($diff > $warn) {
+        $warnings = $warnings   . " $name=".$sensor_values{$name};
+    }
+
+    if ($space) {
+        $status = $status . " ";
+        $desc   = $desc   . " ";
+    }
+    $status = $status . "$name=$value;$warn;$crit;;";
+    $desc   = $desc   . "$name=$value";
+    $space = 1;
+
+}
+
+#########################
+# build the status string
+
 if ($criticals ne '') {
-    print "$prog_name CRITICAL $problems|$status\n";
+    print "$prog_name CRITICAL - $desc|$status\n";
     exit(2);
 }
 
 if ($warnings ne '') {
-    print "$prog_name WARNING $problems|$status\n";
+    print "$prog_name WARNING - $desc|$status\n";
     exit(1);
 }
 
 if ($unknowns ne '') {
-    print "$prog_name UNKNOWN $problems|$status\n";
+    print "$prog_name UNKNOWN - $desc|$status\n";
     exit(1);
 }
 
-print "$prog_name OK|$status\n";
+print "$prog_name OK - $desc|$status\n";
 exit(0);
 
 1;

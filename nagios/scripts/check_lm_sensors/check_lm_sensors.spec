@@ -1,5 +1,5 @@
-%define version 1.2
-%define release 3
+%define version 2.0
+%define release 2
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -38,6 +38,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_lm_sensors
 
 %changelog
+* Tue Jul 10 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0-1
+- updated to 2.0
+
 * Wed Jun 20 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1-4
 - Requires perl and hddtemp
 
