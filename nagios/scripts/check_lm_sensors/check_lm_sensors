@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION    = "1.2";
+my $VERSION    = "2.0";
 
 my $prog_name  = "LM_SENSORS";
 
@@ -36,7 +36,52 @@ sub usage {
 
 print "usage:
 
-  -h, --help                help
+  -?, --help                help
+
+  -l, --low                 specifies a check for a sensor value which is too low.
+                            Example:
+                              --low fan1=2000,1000
+                            will give a warning if the value of the fan1 sensor drops
+                            below 2000 RPMs and a critical status if it drops below
+                            1000 RPMs
+
+  -h, --high                specifies a check for a sensor value which is too high.
+                            Example:
+                              --high temp1=50,60
+                            will give a warning if the value of the temp1 sensor reaches
+                            50 degrees and a critical status if it reaches 60 degrees
+
+  -r, --range               specifies a check for a sensor value which should stay in a given
+                            range.
+                            Example:
+                              --range v1=1,2,12
+                            will give a warning if the value of the sensor gets outside the 11-13 range (12+-1)
+                            and a critical status if the value is outside the 10-14 range (12+-2)
+
+  --rename                  renames a sensor in the performance output (useful if you want to have common
+                            names for similar sensors across different machines)
+                            Example:
+                              --rename cputemp=temp1
+
+  --sanitize                sanitize sensor names (e.g., removing spaces)
+
+  --list                    list all available sensors
+
+  --nosensors               disable checks on check lm_sensors
+
+  --nodrives                disable checks on drive temperatures
+
+  -d, --drives              enable checks on drive temperature
+
+  --hddtemp_bin             manually specifies the location of the hddtemp binary
+
+  --sensors_bin             manually specified the location of the sensors binary
+
+  -v, --verbose             verbose output
+
+  --version                 prints $prog_name's version and exits
+
+Deprecated options:
 
   -c, --check               specifies a sensor along with warn and crit values
                             -c fan1=1000,2000        checks if fan1 is above 1000 or 2000
@@ -45,33 +90,16 @@ print "usage:
                             - by escaping the space --check sda\ Temp=50,60
                             - by quoting the name --check 'sda Temp'=50,60
                             - by substituting the space by an underscore --check sda_Temp=50,60
-
-  -d, --drive               check drive temperature
-
-  -l, --list                list sensors
-
-  --hddtemp_bin             specifies the location of the hddtemp binary
-
-  --sensors_bin             specified the location of the sensors binary
-
-  --nosensors               do not check lm_sensors
-
-  --nodrives                do not check drive temperature
-
-  --rename                  renames a sensor in the performance output (useful if you want to have common
-                            names for similar sensors across machines)
-                            example:
-                            --rename cputemp=temp1
-
-  --sanitize                sanitize sensor names (e.g., removing spaces)
-
-  -v, --verbose             verbose output
-
-  --version                 prints $prog_name's version and exits\n";
-
+";
+  
   exit(3);
 }
 
+################################################################################
+# retrieves the path of an executable file using the 'which' utility
+# params:
+#   - executable name
+# returns
 sub get_path {
 
     my $prog = shift;
@@ -252,13 +280,16 @@ Getopt::Long::Configure ("bundling");
 $result = GetOptions (
     "check|c=s"     => \%checks,
     "drives!"       => \$drives,
-    "help|?|h"      => sub { usage() },
     "hddtemp_bin=s" => \$hddtemp_bin,
+    "help|?"        => sub { usage() },
+    "high|h"        => \%highs,
+    "list|l"        => \$list,
+    "low|l"         => \%lows,
+    "range|r=s"     => \%ranges,
     "rename|r=s"    => \%rename,
     "sanitize"      => \$sanitize,
     "sensors!"      => \$sensors,
     "sensors_bin=s" => \$sensors_bin,
-    "list|l"        => \$list,
     "verbose|v+"    => \$verbose,
     "version"       => sub { print "check_lm_sensors version $VERSION\n"; exit 3;}
 );
@@ -269,6 +300,11 @@ if (!$result) {
 
 if (!(defined $list) && !(defined %checks)) {
     die "at least one check has to be specified";
+}
+
+# convert old options
+if (defined %checks && $verbose) {
+    print "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
 }
 
 if ($drives) {
