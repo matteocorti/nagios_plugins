@@ -8,7 +8,8 @@ use warnings;
 
 use File::Temp;
 use Getopt::Long;
-
+use Data::Random;
+    
 my $VERSION    = "1.0";
 
 my $prog_name  = "WRITEABLE";
@@ -78,7 +79,7 @@ foreach my $dir (@dir) {
         print "Checking $dir\n";
     }
 
-    # check permissions
+    # 1) check FS permissions
     
     if (!-d $dir) {
         push @criticals, "'$dir' is not a directory";
@@ -87,7 +88,7 @@ foreach my $dir (@dir) {
         push @criticals, "'$dir' is not writable";
     }
 
-    # try to create a temporary file
+    # 2) try to create a temporary file
     
     my $tmp = new File::Temp(
         TEMPLATE => 'writetest-XXXXX',
@@ -98,6 +99,25 @@ foreach my $dir (@dir) {
     if ($verbose) {
         print "Creating $tmp\n";
     }
+
+    # 3) try to write to the file
+
+    my @random_chars = Data::Random::rand_chars( set => 'all', size => 1024 );
+    
+    print $tmp @random_chars;
+
+    # 4) read the content back and check it
+    
+    if (!open(IN, $tmp)) {
+        push @criticals, "Cannot read temporary file in $dir";
+        next;
+    }
+
+    while(<IN>) {
+        print $_;
+    }
+
+
     
 }
 
