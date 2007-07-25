@@ -1,0 +1,142 @@
+#!/usr/bin/perl
+
+# ETH Zurich / Informatikdienste
+# Matteo Corti <matteo.corti@gmail.com>
+
+use strict;
+use warnings;
+
+use File::Temp;
+use Getopt::Long;
+
+my $VERSION    = "1.0";
+
+my $prog_name  = "WRITEABLE";
+
+##############################################################################
+# subroutines
+
+################################
+# prints the usage of the plugin
+sub usage {
+  my $msg = shift;
+
+  if (defined $msg) {
+      print "$msg\n";
+  }
+
+  print "
+usage: check_writeable --dir DIRECTORY
+
+  -?, --help      help
+  -d, --dir       directory to check
+  -v, --verbose   verbose output
+  --version       prints $prog_name version and exits
+
+";
+  
+  exit(3);
+}
+
+##############################################################################
+# main
+#
+
+my $result;
+my @dir;
+my $verbose;
+
+
+my @criticals;
+my @warnings;
+my @unknowns;
+
+########################
+# Command line arguments
+
+Getopt::Long::Configure ("bundling");
+$result = GetOptions (
+    "dir|d=s"       => \@dir,
+    "help|?"        => sub { usage() },
+    "verbose|v+"    => \$verbose,
+    "version"       => sub { print "check_writeable version $VERSION\n"; exit 3;}
+);
+
+if (!$result) {
+  usage();
+}
+
+if (! @dir) {
+    die "at least one directory has to be specified";
+}
+
+File::Temp->safe_level( File::Temp::HIGH );
+
+foreach my $dir (@dir) {
+
+    if ($verbose) {
+        print "Checking $dir\n";
+    }
+
+    # check permissions
+    
+    if (!-d $dir) {
+        push @criticals, "'$dir' is not a directory";
+        next;
+    } elsif (!-w $dir || !-W $dir) {
+        push @criticals, "'$dir' is not writable";
+    }
+
+    # try to create a temporary file
+    
+    my $tmp = new File::Temp(
+        TEMPLATE => 'writetest-XXXXX',
+        DIR      => $dir,
+        CLEANUP => 1            
+    );
+    
+    if ($verbose) {
+        print "Creating $tmp\n";
+    }
+    
+}
+
+my $desc;
+my $tmp;
+foreach $tmp (@criticals, @warnings, @unknowns) {
+    if (!defined $desc) {
+        $desc = $tmp;
+    } else {
+        $desc = $desc . " " . $tmp;
+    }
+}
+
+if (@criticals) {
+    print "$prog_name CRITICAL - $desc\n";
+    exit(2);
+}
+
+if (@warnings) {
+    print "$prog_name WARNING - $desc\n";
+    exit(1);
+}
+
+if (@unknowns) {
+    print "$prog_name UNKNOWN - $desc\n";
+    exit(1);
+}
+
+foreach $tmp (@dir) {
+    if (!defined $desc) {
+        $desc = "'$tmp'";
+    } else {
+        $desc = $desc . " " . "'$tmp'";
+    }
+}
+
+print "$prog_name OK - $desc\n";
+exit(0);
+
+1;
+
+__END__
