@@ -48,9 +48,7 @@ my @dir;
 my $verbose;
 
 
-my @criticals;
-my @warnings;
-my @unknowns;
+my @errors;
 
 ########################
 # Command line arguments
@@ -82,10 +80,11 @@ foreach my $dir (@dir) {
     # 1) check FS permissions
     
     if (!-d $dir) {
-        push @criticals, "'$dir' is not a directory";
+        push @errors, "'$dir' is not a directory";
         next;
     } elsif (!-w $dir || !-W $dir) {
-        push @criticals, "'$dir' is not writable";
+        push @errors, "'$dir' is not writable";
+        next;
     }
 
     # 2) try to create a temporary file
@@ -102,59 +101,37 @@ foreach my $dir (@dir) {
 
     # 3) try to write to the file
 
-    my @random_chars = Data::Random::rand_chars( set => 'all', size => 1024 );
+    my $random_chars = join('',Data::Random::rand_chars( set => 'all', size => 32 ));
     
-    print $tmp @random_chars;
+    print $tmp $random_chars;
 
-    # 4) read the content back and check it
+    close $tmp;
     
-    if (!open(IN, $tmp)) {
-        push @criticals, "Cannot read temporary file in $dir";
+    # 4) read the content back and check it
+
+    if (!open(IN, $tmp->filename)) {
+        push @errors, "Cannot read temporary file in $dir";
         next;
     }
 
     while(<IN>) {
-        print $_;
+        if ($_ ne $random_chars) {
+            push @errors, "R/W error on temporary file in $dir";
+        }
+        last;
     }
 
-
+    close IN;
     
 }
 
-my $desc;
-my $tmp;
-foreach $tmp (@criticals, @warnings, @unknowns) {
-    if (!defined $desc) {
-        $desc = $tmp;
-    } else {
-        $desc = $desc . " " . $tmp;
-    }
-}
-
-if (@criticals) {
-    print "$prog_name CRITICAL - $desc\n";
+if (@errors) {
+    print "$prog_name CRITICAL - ".join(" ",@errors)."\n";
     exit(2);
 }
 
-if (@warnings) {
-    print "$prog_name WARNING - $desc\n";
-    exit(1);
-}
+print "$prog_name OK - ".join(" ", @dir),"\n";
 
-if (@unknowns) {
-    print "$prog_name UNKNOWN - $desc\n";
-    exit(1);
-}
-
-foreach $tmp (@dir) {
-    if (!defined $desc) {
-        $desc = "'$tmp'";
-    } else {
-        $desc = $desc . " " . "'$tmp'";
-    }
-}
-
-print "$prog_name OK - $desc\n";
 exit(0);
 
 1;

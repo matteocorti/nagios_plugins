@@ -27,8 +27,11 @@ touch ChangeLog
 touch NEWS
 touch README
 touch README
+touch TODO
 touch $1
 chmod +x $1
+
+echo $1 > NAME
 
 echo "creating files"
 

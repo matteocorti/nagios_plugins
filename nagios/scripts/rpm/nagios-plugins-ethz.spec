@@ -1,4 +1,4 @@
-%define version 1.1
+%define version 1.2
 %define release 1
 %define name    nagios-plugins-ethz
 
@@ -24,6 +24,7 @@ Requires: check_afs_vol
 Requires: check_afs_offline_volumes
 Requires: nagios-plugins-various
 Requires: check_lm_sensors
+Requires: check_writable
 
 %description
 An empty package to force the installation of all the ETHZ Nagios plugins
@@ -43,6 +44,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Thu Jul 26 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-0
+- +check_writable
+
 * Fri Jun 15 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1-1
 - +check_lm_sensors
 
