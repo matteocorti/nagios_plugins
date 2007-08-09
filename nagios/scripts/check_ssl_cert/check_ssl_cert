@@ -1,7 +1,23 @@
 #!/bin/bash
+#
+# (c) Matteo Corti, ETH Zurich, 2007
+#
+# check_ssl_cert
+#
+# Checks an X.509 certificate:
+# - checks if the server is running and delivers a valid certificate
+# - checks if the CA matches a given pattern
+# - checks the validity
 
 VERSION=0.9
 
+################################################################################
+# Functions
+
+################################################################################
+# Prints usage information
+# Params
+#   $1 error message (optional)
 function usage {
 
     if [ -n "$1" ] ; then
@@ -26,18 +42,31 @@ function usage {
 
 }
 
+################################################################################
+# Exits with a critical message
+# Params
+#   $1 error message
 function critical {
     echo "SSL CERT CRITICAL|$1"
     exit 2
 }
 
+################################################################################
+# Exits with a warning message
+# Param
+#   $1 warning message
 function warning {
     echo "SSL CERT WARN|$1"
     exit 1
 }
 
+################################################################################
+# Formats a time in seconds using days minutes and seconds
+# Params
+#   $1 time in seconds
 function format_days {
-    SECONDS=$((3600*2+60*0+0))
+
+    SECONDS=$1
 
     if [ $((SECONDS/86400)) -gt 0 ] ; then
         STR="$((SECONDS/86400))d"
@@ -60,6 +89,30 @@ function format_days {
         
 }
 
+################################################################################
+# Checks if a given program is available and executable
+# Params
+#   $1 program name
+function check_prog {
+
+    PROG=`which $1`
+
+    if [ -z "$PROG" ] ; then
+        critical "cannot find $1"
+    fi
+
+    if [ ! -x "$PROG" ] ; then
+        critical "$PROG is not executable"
+    fi
+        
+    echo $PROG
+
+}
+
+################################################################################
+# Main
+################################################################################
+
 # process command line options
 PORT=443
 while getopts "vh?H:Vp:d:i:" opt; do
@@ -75,13 +128,30 @@ while getopts "vh?H:Vp:d:i:" opt; do
 done
 shift $(($OPTIND - 1))
 
+################################################################################
 # sanity checks
+
+###############
+# Check options
 if [ -z "${HOST}" ] ; then
     usage "No host specified"
 fi
 
+#######################
+# Check needed programs
+
+check_prog nmap
+NMAP=$?
+
+check_prog openssl
+OPENSSL=$?
+
+################################################################################
 # check if the port is open
 if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
+
+    ################################################################################
+    # fetch the X.509 certificate
 
     CERT="/tmp/check_certs-out.$$"
     ERROR="/tmp/check_certs-errors.$$"
@@ -94,14 +164,23 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
         return
     fi
 
+    ################################################################################
+    # parse the X.509 certificate
+
     CA=`openssl x509 -in ${CERT} -issuer -noout | sed -e "s/.*\/O=//" | sed -r "s/\/[A-Z]+=.*//"`
     DATE=`openssl x509 -in ${CERT} -enddate -noout | sed "s/notAfter\=//"`
+
+    ################################################################################
+    # check the issuer
 
     if [ -n "$ISSUER" ] ; then
         if ! echo $CA | grep -q "^$ISSUER$" ; then
             critical "invalid CA ($CA)"
         fi
     fi
+
+    ################################################################################
+    # check the validity
 
     if [ -n "$DAYS" ] ; then
 
@@ -124,10 +203,16 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
           
     fi
 
+    ################################################################################
+    # clean up
     rm -f ${CERT} ${ERROR}
 
     echo "SSL CERT OK|$CA valid until $DATE"
+    
     exit 0
+    
 else
+
     critical "$HOST:$PORT closed"
+
 fi
