@@ -9,7 +9,7 @@
 # - checks if the CA matches a given pattern
 # - checks the validity
 
-VERSION=0.9
+VERSION=1.1.0
 
 ################################################################################
 # Functions
@@ -28,9 +28,11 @@ function usage {
     echo "Usage: check_ssl_cert -H server [-hvw?] [-p port]"
     echo
     echo "   -d days    minimum number of days a certificate has to be valid"
+    echo "   -e address pattern to match the email address contained in the certificate"
     echo "   -h, -?     this help message"
     echo "   -H host    server"
     echo "   -i issuer  pattern to match the issuer of the certificate"
+    echo "   -o org     pattern to match the organization of the certificate"
     echo "   -p port    TCP port"
     echo "   -v         verbose output"
     echo "   -V         version"
@@ -42,12 +44,20 @@ function usage {
 
 }
 
+function cleanup {
+
+    if [ -f $CERT  ] ; then rm $CERT;  fi
+    if [ -f $ERROR ] ; then rm $ERROR; fi
+
+}
+
 ################################################################################
 # Exits with a critical message
 # Params
 #   $1 error message
 function critical {
-    echo "SSL CERT CRITICAL|$1"
+    echo "SSL CERT CRITICAL - $1"
+    cleanup;
     exit 2
 }
 
@@ -56,7 +66,8 @@ function critical {
 # Param
 #   $1 warning message
 function warning {
-    echo "SSL CERT WARN|$1"
+    echo "SSL CERT WARN - $1"
+    cleanup;
     exit 1
 }
 
@@ -69,21 +80,21 @@ function format_days {
     SECONDS=$1
 
     if [ $((SECONDS/86400)) -gt 0 ] ; then
-        STR="$((SECONDS/86400))d"
+        STR="$((SECONDS/86400)) days"
         SECONDS=$((SECONDS-(SECONDS/86400)*86400))
     fi
 
     if [ $((SECONDS/3600)) -gt 0 ] ; then
-        STR="$STR$((SECONDS/3600))h"
+        STR="$STR $((SECONDS/3600)) hours"
         SECONDS=$((SECONDS-(SECONDS/3600)*3600))
     fi
 
     if [ $((SECONDS/60)) -gt 0 ] ; then
-        STR="$STR$((SECONDS/60))m"
+        STR="$STR $((SECONDS/60)) minutes"
         SECONDS=$((SECONDS-(SECONDS/60)*60))
     fi
 
-    STR="$STR${SECONDS}s"
+    STR="$STR ${SECONDS} seconds"
 
     echo $STR
         
@@ -104,8 +115,6 @@ function check_prog {
     if [ ! -x "$PROG" ] ; then
         critical "$PROG is not executable"
     fi
-        
-    echo $PROG
 
 }
 
@@ -115,15 +124,17 @@ function check_prog {
 
 # process command line options
 PORT=443
-while getopts "vh?H:Vp:d:i:" opt; do
+while getopts "vh?H:Vp:d:i:o:e:" opt; do
     case $opt in
-        d )      DAYS=$OPTARG;   ;;
-        h | \? ) usage ; exit 3; ;;
-        i )      ISSUER=$OPTARG; ;;
-        v )      VERBOSE=1;      ;;
+        d )      DAYS=$OPTARG;        ;;
+        e )      ADDR=$OPTARG;        ;;
+        h | \? ) usage ; exit 3;      ;;
+        i )      ISSUER=$OPTARG;      ;;
+        o )      ORGANIZATION=$OPTARG ;;
+        v )      VERBOSE=1;           ;;
         V )      echo "check_ssl_cert version ${VERSION}"; exit 3; ;;
-        H )      HOST=$OPTARG; ;;
-        p )      PORT=$OPTARG;   ;;
+        H )      HOST=$OPTARG;        ;;
+        p )      PORT=$OPTARG;        ;;
     esac
 done
 shift $(($OPTIND - 1))
@@ -141,14 +152,14 @@ fi
 # Check needed programs
 
 check_prog nmap
-NMAP=$?
+NMAP=$PROG
 
 check_prog openssl
-OPENSSL=$?
+OPENSSL=$PROG
 
 ################################################################################
 # check if the port is open
-if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
+if $NMAP $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
 
     ################################################################################
     # fetch the X.509 certificate
@@ -156,7 +167,7 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
     CERT="/tmp/check_certs-out.$$"
     ERROR="/tmp/check_certs-errors.$$"
 
-    echo | openssl s_client -connect $HOST:$PORT 2> ${ERROR} 1> ${CERT}
+    echo 'Q' | $OPENSSL s_client -connect $HOST:$PORT 2> ${ERROR} 1> ${CERT}
 
     if grep -q "Connection refused" ${ERROR} ; then
         rm -f ${CERT} ${ERROR}
@@ -167,15 +178,15 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
     ################################################################################
     # parse the X.509 certificate
 
-    CA=`openssl x509 -in ${CERT} -issuer -noout | sed -e "s/.*\/O=//" | sed -r "s/\/[A-Z]+=.*//"`
-    DATE=`openssl x509 -in ${CERT} -enddate -noout | sed "s/notAfter\=//"`
+    CA=`$OPENSSL x509 -in ${CERT} -issuer -noout | sed -e "s/.*\/O=//" | sed -r "s/\/[A-Z]+=.*//"`
+    DATE=`$OPENSSL x509 -in ${CERT} -enddate -noout | sed "s/notAfter\=//"`
 
     ################################################################################
     # check the issuer
 
     if [ -n "$ISSUER" ] ; then
         if ! echo $CA | grep -q "^$ISSUER$" ; then
-            critical "invalid CA ($CA)"
+            critical "invalid CA ($ISSUER does not match $CA)"
         fi
     fi
 
@@ -192,11 +203,11 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
         DAYS=$((DAYS * 86400))
 
         if [ $DIFF -le 0 ] ; then
-            critical "certificate is expired"
+            critical "certificate is expired (was valid until $DATE)"
         fi
 
         if [ $DIFF -le $DAYS ] ; then
-            MESSAGE=`format_days $DAYS`
+            MESSAGE=`format_days $DIFF`
             MESSAGE=`echo "certificate is exipring in" $MESSAGE`
             warning "$MESSAGE"
         fi
@@ -204,11 +215,39 @@ if nmap $HOST -P0 -sT -p $PORT 2>&1 | grep -q open ; then
     fi
 
     ################################################################################
+    # check the organization
+
+    if [ -n "$ORGANIZATION" ] ; then
+
+        ORG=`$OPENSSL x509 -in ${CERT} -subject -noout | sed -e "s/.*\/O=//" | sed -e "s/\/.*//"`
+
+        if ! echo $ORG | grep -q "^$ORGANIZATION" ; then
+            critical "invalid organization ($ORGANIZATION does not match $ORG)"
+        fi
+
+    fi
+
+    ################################################################################
+    # check the organization
+
+    if [ -n "$ADDR" ] ; then
+
+        EMAIL=`$OPENSSL x509 -in ${CERT} -email -noout`
+
+        if ! echo $EMAIL | grep -q "^$ADDR" ; then
+            critical "invalid email ($ADDR does not match $EMAIL)"
+        fi
+
+    fi
+    
+    ################################################################################
     # clean up
     rm -f ${CERT} ${ERROR}
 
-    echo "SSL CERT OK|$CA valid until $DATE"
+    echo "SSL CERT OK - X.509 certificate from $CA valid until $DATE"
     
+    cleanup;
+
     exit 0
     
 else
