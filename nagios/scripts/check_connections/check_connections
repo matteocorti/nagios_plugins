@@ -1,15 +1,25 @@
 #!/usr/bin/perl
 
-use strict;
-use Getopt::Long;
+# RCS information (required by Perl::Critic)
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
 
-my $VERSION     = "1.2";
+use strict;
+use warnings;
+
+use Getopt::Long;
+use English '-no_match_vars';
+use version;
+
+our $VERSION     = '1.2';
 
 my $critical   = 0;
-my $help       = '';
+my $help       = q{};
 my $result;
 my $status     = 0;
-my $status_msg = '';
+my $status_msg = q{};
 my $warning    = 0;
 
 ##############################################################################
@@ -18,7 +28,8 @@ my $warning    = 0;
 ################################
 # prints the usage of the plugin
 sub usage {
-  my $msg = shift;
+
+    my $msg = shift;
 
   if (defined $msg) {
     print "$msg\n";
@@ -30,7 +41,9 @@ usage:
   -w warn      warning
   --version    version
 EOT
-  exit(3);
+
+  exit 3;
+
 }
 
 ##############################################################################
@@ -41,10 +54,10 @@ EOT
 # Command line arguments
 
 $result = GetOptions (
-    "critical=i"  => \$critical,
-    "warning=i"   => \$warning,
-    "help"        => \$help,
-    "version"     => sub { print "check_dir version $VERSION\n"; exit 3;}
+    'critical=i'  => \$critical,
+    'warning=i'   => \$warning,
+    'help'        => \$help,
+    'version'     => sub { print "check_dir version $VERSION\n"; exit 3;}
 );
 
 if (!$result) {
@@ -52,49 +65,53 @@ if (!$result) {
 }
 
 if ($help)                { usage(); }
-if ($critical <= 0)       { usage("Could not parse \"critical\""); }
-if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
-if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if ($critical <= 0)       { usage('Could not parse "critical"'); }
+if ($warning  <= 0)       { usage('Could not parse "warning"'); }
+if ($critical < $warning) { usage('"critical" has to be greater than "warning"'); }
 
 my $command = 'netstat -an | grep ^tcp';
 my $output;
 my %states;
 
-my $pid = open($output, "$command 2>&1 |") or
-    die("Cannot execute $command");
+my $pid = open $output, '<', "$command 2>&1 |" or
+    croak "Cannot execute $command";
 
 while (<$output>) {
-    chomp;    
-    /tcp.*\s([A-Z_]+)/;
-    $states{$1}++;
+    chomp;
+    if (/tcp.*\s([A-Z_]+)/mx) {
+        $states{$1}++;
+    }
+    else {
+        croak "Error: cannot parse netstat output: $OS_ERROR\n";
+    }
 }
 
 my $total;
-my $status = '';
+my $status = q{};
 
 while ( my ($state,$count) = each %states ) {
     $total += $count;
-    $status = $status . " " . "$state=$count;;;;";
+    $status = $status . q{ } . "$state=$count;;;;";
 }
 
 $status = ": $total connections"
-    . " |"
+    . ' |'
     . " TOTAL=$total;$warning;$critical;;"
     . $status
     . "\n";
 
 close $output or
-    die("Couldn't close: $!");
+    croak "Couldn't close: $!";
 
 if ($total < $warning) {
-    print "CONNECTIONS OK".$status;
+    print 'CONNECTIONS OK'.$status;
     exit 0;
 } else {
   if ($total < $critical) {
-    print "CONNECTIONS WARNING".$status;
+    print 'CONNECTIONS WARNING'.$status;
     exit 1;
   } else {
-    print "CONNECTIONS CRITICAL".$status;
+    print 'CONNECTIONS CRITICAL'.$status;
     exit 2;
   }
 }
