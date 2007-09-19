@@ -1,30 +1,40 @@
 #!/usr/bin/perl
 
-use strict;
-use Getopt::Long;
+# RCS information (required by Perl::Critic)
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
 
-my $hostname   = '';
+use strict;
+use warnings;
+
+use Getopt::Long;
+use English '-no_match_vars';
+use version; our $VERSION='1.0';
+
+my $hostname   = q{};
 my $vos        = '/usr/sbin/vos';
-my $verbose    = '';
-my $help       = '';
+my $verbose    = q{};
+my $help       = q{};
 my $warning    = 0;
 my $critical   = 0;
 my $result     = 0;
 my $status     = 0;
-my $status_msg = '';
+my $status_msg = q{};
 
-my $VERSION="1.0";
 
 ##############################################################################
 
 ################################
 # prints the usage of the plugin
 sub usage {
-  my $msg = shift;
 
-  if (defined $msg) {
-    print "$msg\n";
-  }
+    my $msg = shift;
+
+    if (defined $msg) {
+        print "$msg\n";
+    }
 
   print << "EOT";
 usage:
@@ -33,7 +43,11 @@ usage:
   --version               version
   -v                      verbose
 EOT
-  unknown();
+  
+    unknown();
+
+    return;
+
 }
 
 #################################################
@@ -46,22 +60,22 @@ sub unknown {
     print "UNKNOWN: $msg\n";
   }
 
-  exit(3);
+  exit 3;
 
 }
 
 ##############################################################################
 
-Getopt::Long::Configure ("bundling", "no_ignorecase");
+Getopt::Long::Configure ('bundling', 'no_ignorecase');
 
 ########################
 # Command line arguments
 
-$result = GetOptions ("hostname|H=s" => \$hostname,
-                      "help|h"       => \$help,
-                      "verbose|v+"   => \$verbose,
-                      "vos"          => \$vos,
-                      "version"      => sub { print "check_dir version $VERSION\n"; exit 3;} );
+$result = GetOptions ('hostname|H=s' => \$hostname,
+                      'help|h'       => \$help,
+                      'verbose|v+'   => \$verbose,
+                      'vos'          => \$vos,
+                      'version'      => sub { print "check_dir version $VERSION\n"; exit 3;} );
 
 if (!$result) {
   usage();
@@ -71,13 +85,19 @@ if ($help)                { usage(); }
 if (!$hostname)           { usage(); }
 
 # execute vos listvol
-my $pid = open(OUT, "$vos listvol $hostname 2>/dev/null | grep 'Could not attach' |");
-while (<OUT>) {
+my $OUT_FH;
+my $pid = open
+    $OUT_FH,
+    '<',
+    "$vos listvol $hostname 2>/dev/null | grep 'Could not attach' |";
+
+while (<$OUT_FH>) {
   chomp;
   $status_msg = $status_msg . $_;
   $status     = 2;
 }
 
+close $OUT_FH or croak "Error: cannot close filehandle on command: $OS_ERROR";
 
 if ($status == 0) {
   print "AFS_VOL OK\n";
