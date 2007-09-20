@@ -1,4 +1,4 @@
-%define version 1.2
+%define version 1.4
 %define release 1
 %define name    nagios-plugins-ethz
 
@@ -13,18 +13,20 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
 BuildArch: noarch
 
-Requires: check_topology
-Requires: check_tcptraffic
+Requires: check_afs_offline_volumes
+Requires: check_afs_vol
+Requires: check_connections
 Requires: check_cpu
 Requires: check_dir
 Requires: check_diskio
-Requires: check_updates
-Requires: check_connections
-Requires: check_afs_vol
-Requires: check_afs_offline_volumes
-Requires: nagios-plugins-various
 Requires: check_lm_sensors
+Requires: check_nagios_latency
+Requires: check_ssl_cert
+Requires: check_tcptraffic
+Requires: check_topology
+Requires: check_updates
 Requires: check_writable
+Requires: nagios-plugins-various
 
 %description
 An empty package to force the installation of all the ETHZ Nagios plugins
@@ -44,6 +46,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Fri Aug 10 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-1
+- +check_ssl_cert
+
 * Thu Jul 26 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-0
 - +check_writable
 

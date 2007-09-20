@@ -36,5 +36,7 @@ echo $1 > NAME
 echo "creating files"
 
 echo "Matteo Corti <matteo.corti@id.ethz.ch>" > AUTHORS
-echo "0.1" > VERSION
-
+echo "0.9" > VERSION
+cp ../common/template.spec $NAME.spec
+sed -i -e "s/@VERSION@/0.9/" $NAME.spec
+sed -i -e "s/@NAME@/$NAME/"  $NAME.spec
