@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# (c) Matteo Corti, ETH Zurich, 2007
+#
+# check_nagios_latency
+#
+# Checks the Nagios latency
+
+VERSION=0.9.0
+
+################################################################################
+# Functions
+
+################################################################################
+# Prints usage information
+# Params
+#   $1 error message (optional)
+function usage {
+
+    if [ -n "$1" ] ; then
+        echo "Error: $1" 1>&2
+    fi
+    
+    echo
+    echo "Usage: check_nagios_latency [-hvV?] -w warning -c critical"
+    echo
+    echo "   -c         critical threshold"
+    echo "   -w         warning threshold"
+    echo "   -h, -?     this help message"
+    echo "   -v         verbose output"
+    echo "   -V         version"
+    echo
+    echo "Report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>"
+    echo
+
+    exit 3
+
+}
+
+################################################################################
+# Checks if a given program is available and executable
+# Params
+#   $1 program name
+function check_prog {
+
+    PROG=`which $1`
+
+    if [ -z "$PROG" ] ; then
+        critical "cannot find $1"
+    fi
+
+    if [ ! -x "$PROG" ] ; then
+        critical "$PROG is not executable"
+    fi
+
+}
+
+################################################################################
+# Main
+################################################################################
+
+# process command line options
+while getopts "vh?Vc:w:" opt; do
+    case $opt in
+        c )      CRITICAL=$OPTARG; ;;
+        h | \? ) usage ; exit 3;   ;;
+        V )      echo "check_nagios_latency version ${VERSION}"; exit 3; ;;
+        v )      VERBOSE=1;        ;;
+        w )      WARNING=$OPTARG;  ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+################################################################################
+# sanity checks
+
+###############
+# Check options
+if [ -z "${CRITICAL}" ] ; then
+    usage "No critical threshold specified"
+fi
+if [ -z "${WARNING}" ] ; then
+    usage "No warning threshold specified"
+fi
+
+######################
+# Check number formats
+
+if ! echo $WARNING | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
+    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    exit 3
+fi
+
+if ! echo $CRITICAL | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
+    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    exit 3
+fi
+
+#######################
+# Check needed programs
+
+check_prog nagiostats
+NMAP=$PROG
+
+LATENCY=`$PROG | grep "Active Service Latency" |cut -f3 -d'/' | awk '{print $1}' | tr -d '\n'`;
+
+if [ -n ${VERBOSE} ] ; then echo "latency: ${LATENCY}"; fi
+
+####################
+# Perform the checks
+
+PERF="Latency=${LATENCY};${WARNING};${CRITICAL};;"
+
+COMPARISON=`echo "if($LATENCY>$CRITICAL) 1 else 0;" | bc`
+if [ $COMPARISON -eq 1 ] ; then
+    echo "LATENCY CRITICAL ${LATENCY}s | $PERF"
+    exit 2
+fi
+
+COMPARISON=`echo "if($LATENCY>$WARNING) 1 else 0;" | bc`
+if [ $COMPARISON -eq 1 ] ; then
+    echo "LATENCY WARNING ${LATENCY}s | $PERF"
+    exit 1
+fi
+
+echo "LATENCY OK ${LATENCY}s| $PERF"
+exit 0;

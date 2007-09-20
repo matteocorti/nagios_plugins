@@ -1,0 +1,17 @@
+Check the latency of Nagios
+
+Usage
+=====
+
+check_nagios_latency [-hvV?] -w warning -c critical
+
+   -c         critical threshold
+   -w         warning threshold
+   -h, -?     this help message
+   -v         verbose output
+   -V         version
+
+Example
+=======
+
+./check_nagios_latency -w 0.4 -c 0.5
