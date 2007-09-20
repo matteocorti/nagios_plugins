@@ -1,4 +1,5 @@
-2007-09-20  root  <matteo.corti@id.ethz.ch>
+2007-09-20  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_nagios_latency: Initial implementation
-
+	* check_nagios_latency: Fix in the verbose output
+	* check_nagios_latency: Fix in the nagiostats existance check

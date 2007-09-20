@@ -6,7 +6,7 @@
 #
 # Checks the Nagios latency
 
-VERSION=0.9.0
+VERSION=0.9.2
 
 ################################################################################
 # Functions
@@ -46,11 +46,12 @@ function check_prog {
     PROG=`which $1`
 
     if [ -z "$PROG" ] ; then
-        critical "cannot find $1"
+        echo "LATENCY CRITICAL - cannot find $1"
+        exit 2
     fi
 
     if [ ! -x "$PROG" ] ; then
-        critical "$PROG is not executable"
+        echo "LATENCY CRICTICAL - $PROG is not executable"
     fi
 
 }
@@ -104,7 +105,7 @@ NMAP=$PROG
 
 LATENCY=`$PROG | grep "Active Service Latency" |cut -f3 -d'/' | awk '{print $1}' | tr -d '\n'`;
 
-if [ -n ${VERBOSE} ] ; then echo "latency: ${LATENCY}"; fi
+if [ -n "${VERBOSE}" ] ; then echo "latency: ${LATENCY}"; fi
 
 ####################
 # Perform the checks

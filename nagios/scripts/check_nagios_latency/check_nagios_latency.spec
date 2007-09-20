@@ -1,4 +1,4 @@
-%define version 0.9.0
+%define version 0.9.2
 %define release 0
 %define name    check_nagios_latency
 %define _prefix /usr/lib/nagios/plugins/contrib
