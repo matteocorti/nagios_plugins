@@ -14,7 +14,7 @@ use threads;
 use threads::shared;
 
 my $NAME       = 'TOPOLOGY';
-my $VERSION    = '1.0';
+my $VERSION    = '1.0.0';
 my $THREADS    = 10;
 
 ################################################################################

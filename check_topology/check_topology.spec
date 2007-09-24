@@ -1,5 +1,5 @@
-%define version 1.0
-%define release 1
+%define version 1.0.0
+%define release 0
 %define name    check_topology
 %define _prefix /usr/lib/nagios/plugins/contrib
 
