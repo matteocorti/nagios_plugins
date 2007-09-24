@@ -1,2 +1,6 @@
 [/]
 corti = rw
+
+#trac TRAC_ADMIN = corti
+#trac TRAC_ADMIN = bircher
+#trac TRAC_ADMIN = plorenz
