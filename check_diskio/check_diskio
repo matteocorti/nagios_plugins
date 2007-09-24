@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use POSIX "uname";
 
-my $VERSION    = "1.4";
+my $VERSION    = '1.4.0';
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
