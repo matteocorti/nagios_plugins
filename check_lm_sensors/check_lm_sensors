@@ -3,15 +3,15 @@
 use strict;
 use Getopt::Long;
 
-my $VERSION    = "2.0";
+my $VERSION    = '2.0.0';
 
-my $prog_name  = "LM_SENSORS";
+my $prog_name  = 'LM_SENSORS';
 
 my $hddtemp_bin;
 my $sensors_bin;
 
 my $drives     = 1;
-my $help       = '';
+my $help       = q{};
 my $list;
 my $result;
 my $sanitize;
