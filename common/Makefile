@@ -16,7 +16,7 @@ install:
 
 version_check:
 	VERSION=`cat VERSION`
-	grep -q "VERSION=$(VERSION)" $(PLUGIN)
+	grep -q "VERSION\ *=\ *[\'\"]*$(VERSION)" $(PLUGIN)
 	grep -q "^%define\ version\ $(VERSION)" $(PLUGIN).spec
 
 clean:

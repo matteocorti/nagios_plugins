@@ -1,4 +1,4 @@
-%define version 1.1
+%define version 1.1.0
 %define release 0
 %define name    check_tcptraffic
 %define _prefix /usr/lib/nagios/plugins/contrib

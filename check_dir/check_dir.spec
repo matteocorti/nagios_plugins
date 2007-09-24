@@ -3,7 +3,7 @@
 %define name    check_dir
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   Checks Nagios latency
+Summary:   Nagios plugin to monitor the number of files in one or more directories.
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -15,7 +15,7 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 %description
-Checks Nagios latency
+Nagios plugin to monitor the number of files in one or more directories.
 
 %prep
 %setup -q

@@ -3,7 +3,7 @@
 %define name    check_diskio
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   Checks Nagios latency
+Summary:   Nagios plugin to monitor the amount of disk I/O
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -15,7 +15,7 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 %description
-Checks Nagios latency
+Nagios plugin to monitor the amount of disk I/O
 
 %prep
 %setup -q
