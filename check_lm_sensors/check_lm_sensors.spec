@@ -1,5 +1,5 @@
 %define version 3.0.0
-%define release 1
+%define release 2
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -16,6 +16,7 @@ BuildArch: noarch
 
 Requires: hddtemp
 Requires: perl
+Requires: perl-Nagios-Plugin
 
 %description
 check_lm_sensors is a Nagios plugin to monitor the values of on board sensors and hard
@@ -38,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_lm_sensors
 
 %changelog
+* Wed Oct  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-2
+- added the perl-Nagios-Plugin dependency
+
 * Wed Oct  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-1
 - included the updated ChangeLog and NEWS files
 
