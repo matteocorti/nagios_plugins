@@ -13,33 +13,62 @@ use Getopt::Long;
 use Carp;
 use English qw(-no_match_vars);
 
-use utils qw(%ERRORS);
+use Nagios::Plugin;
 
-use version; our $VERSION = '2.1.0';
+use version; our $VERSION = '3.0.0';
 
-my $prog_name = 'LM_SENSORS';
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+# 
+use vars qw(
+            $verbosity
+            $prog_name
+            $plugin
+            $hddtemp_bin
+            $sensors_bin            
+            $drives
+            $help
+            $list
+            $result
+            $sanitize
+            $sensors
+            %rename
+            %sensor_values
+            @drives
+            %highs
+            %lows
+            %ranges
+            $space
+            $status
+            $desc
+            $criticals
+            $warnings
+            $unknowns
+            $name
+            $limits
+            $converted_name
+            %checks
+        );
 
-my $hddtemp_bin;
-my $sensors_bin;
 
-my $drives = 1;
-my $help   = q{};
-my $list;
-my $result;
-my $sanitize;
-my $sensors   = 1;
-my $verbosity = 0;
-my %rename;
-my %sensor_values;
-my @drives;
-
-# command line options
-my %highs;
-my %lows;
-my %ranges;
-
-# deprecated options
-my %checks;
+# initialization
+$criticals = q{};
+$desc      = q{};
+$drives    = 1;
+$help      = q{};
+$plugin    = Nagios::Plugin->new( shortname => $prog_name );
+$prog_name = 'LM_SENSORS';
+$sensors   = 1;
+$space     = q{};
+$status    = q{};
+$unknowns  = q{};
+$verbosity = 0;
+$warnings  = q{};
 
 ##############################################################################
 # subroutines
@@ -56,9 +85,13 @@ my %checks;
 sub verbose {
 
     # arguments
-    my $message = shift;
-    my $level   = shift;
+    my $message   = shift;
+    my $level     = shift;
 
+    if ( !defined $message) {
+        $plugin->nagios_exit(UNKNOWN, q{Internal error: not enough parameters for 'verbose'});
+    }
+    
     if ( !defined $level ) {
         $level = 0;
     }
@@ -73,7 +106,7 @@ sub verbose {
 
 ##############################################################################
 # Usage     : usage() or usage("error message");
-# Purpose   : prints the usage of the plugin and exits with unkown status
+# Purpose   : prints the usage of the plugin and exits with unknown status
 # Returns   : n/a
 # Arguments : message : message string
 # Throws    : n/a
@@ -153,7 +186,7 @@ Sensors with a space in the name can be specified
 
 EOT
 
-    exit $ERRORS{UNKOWN};
+    $plugin->nagios_exit( UNKNOWN, 'Invalid arguments');
 
 }
 
@@ -173,7 +206,7 @@ sub get_path {
     my $path;
 
     my $pid = open $output, q{-|}, "$command 2>&1"
-      or unkown("Cannot execute $command");
+      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command" );
 
     while (<$output>) {
         chomp;
@@ -183,7 +216,8 @@ sub get_path {
     }
 
     close $output
-        or unknown("Error while executing $command: $OS_ERROR\n");
+        or $plugin->nagios_exit( UNKNOWN, "Error while executing $command: $OS_ERROR\n");
+    
     return $path;
 
 }
@@ -227,7 +261,7 @@ sub parse_drives {
             my $output;
 
             my $pid = open $output, q{-|}, "$command 2>&1"
-                or unkown("Cannot execute $command: $OS_ERROR");
+                or unknown("Cannot execute $command: $OS_ERROR");
 
             while (<$output>) {
                 chomp;
@@ -266,7 +300,7 @@ sub parse_drives {
         }
 
         close $IN
-            or unkown("Cannot close input: $OS_ERROR\n");
+            or unknown("Cannot close input: $OS_ERROR\n");
 
     }
     else {
@@ -295,7 +329,7 @@ sub parse_sensors {
         my $output;
 
         my $pid = open $output, q{-|}, "$command 2>&1"
-          or unkown("Cannot execute $command: $OS_ERROR");
+          or unknown("Cannot execute $command: $OS_ERROR");
 
         while (<$output>) {
             chomp;
@@ -314,7 +348,7 @@ sub parse_sensors {
         $command = "$sensors_bin -A | grep \:";
 
         $pid = open $output, q{-|}, "$command 2>&1"
-          or unkown("Cannot execute $command");
+          or unknown("Cannot execute $command");
 
         while (<$output>) {
             chomp;
@@ -368,10 +402,10 @@ $result = GetOptions(
     'hddtemp_bin=s' => \$hddtemp_bin,
     'help|?'        => sub { usage() },
     'high|h=s'      => \%highs,
-    'list|l'        => \$list,
+    'list'          => \$list,
     'low|l=s'       => \%lows,
     'range|r=s'     => \%ranges,
-    'rename|r=s'    => \%rename,
+    'rename=s'      => \%rename,
     'sanitize'      => \$sanitize,
     'sensors!'      => \$sensors,
     'sensors_bin=s' => \$sensors_bin,
@@ -389,7 +423,7 @@ if (   !( defined $list )
     && !( %ranges )
     && !( %lows ) )
 {
-    unkown('at least one check has to be specified');
+    $plugin->nagios_exit( UNKNOWN, 'at least one check has to be specified');
 }
 
 # convert old options
@@ -425,17 +459,6 @@ if ($sensors) {
 
 ################
 # perform checks
-
-my $space     = q{};
-my $status    = q{};
-my $desc      = q{};
-my $criticals = q{};
-my $warnings  = q{};
-my $unknowns  = q{};
-
-my $name;
-my $limits;
-my $converted_name;
 
 # old style checks
 while ( ( $name, $limits ) = each %checks ) {
@@ -588,20 +611,16 @@ while ( ( $name, $limits ) = each %ranges ) {
 # build the status string
 
 if ( $criticals ne q{} ) {
-    print "$prog_name CRITICAL - $desc|$status\n";
-    exit $ERRORS{CRITICAL};
+    $plugin->nagios_exit(CRITICAL, "$desc|$status");
 }
 
 if ( $warnings ne q{} ) {
-    print "$prog_name WARNING - $desc|$status\n";
-    exit $ERRORS{WARNING};
+    $plugin->nagios_exit(WARNING, "$desc|$status");    
 }
 
 if ( $unknowns ne q{} ) {
-    print "$prog_name UNKNOWN - $desc|$status\n";
-    exit $ERRORS{UNKOWN};
+    $plugin->nagios_exit(UNKNOWN, "$desc|$status");    
 }
 
-print "$prog_name OK - $desc|$status\n";
+$plugin->nagios_exit(OK, "$desc|$status");    
 
-exit $ERRORS{OK};
