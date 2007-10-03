@@ -1,4 +1,7 @@
-2007-07-10 (Version 2.0)
+2007-10-03 (Version 3.0.0)
+* the plugin is now compatible with embedded perl
+
+2007-07-10 (Version 2.0.0)
 * added --low, --high and --range options
 * deprecated the --check option
 * added the sensor(s) output to the status string

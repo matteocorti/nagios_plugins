@@ -1,5 +1,5 @@
-%define version 2.0.0
-%define release 2
+%define version 3.0.0
+%define release 1
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -38,6 +38,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_lm_sensors
 
 %changelog
+* Wed Oct  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-1
+- included the updated ChangeLog and NEWS files
+
+* Wed Oct  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-0
+- Upgraded to 3.0.0
+
 * Tue Jul 10 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0-1
 - updated to 2.0
 
