@@ -1,22 +1,34 @@
 #!/usr/bin/perl
 
+# RCS information (required by Perl::Critic)
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
+
 use strict;
+use warnings;
+
 use Getopt::Long;
+use Carp;
+use English qw(-no_match_vars);
 
-my $VERSION    = '2.0.0';
+use utils qw(%ERRORS);
 
-my $prog_name  = 'LM_SENSORS';
+use version; our $VERSION = '2.1.0';
+
+my $prog_name = 'LM_SENSORS';
 
 my $hddtemp_bin;
 my $sensors_bin;
 
-my $drives     = 1;
-my $help       = q{};
+my $drives = 1;
+my $help   = q{};
 my $list;
 my $result;
 my $sanitize;
-my $sensors    = 1;
-my $verbose;
+my $sensors   = 1;
+my $verbosity = 0;
 my %rename;
 my %sensor_values;
 my @drives;
@@ -32,16 +44,51 @@ my %checks;
 ##############################################################################
 # subroutines
 
-################################
-# prints the usage of the plugin
-sub usage {
-  my $msg = shift;
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
 
-  if (defined $msg) {
-    print "$msg\n";
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
 }
 
-print "usage:
+##############################################################################
+# Usage     : usage() or usage("error message");
+# Purpose   : prints the usage of the plugin and exits with unkown status
+# Returns   : n/a
+# Arguments : message : message string
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+    my $msg = shift;
+
+    if ( defined $msg ) {
+        print "$msg\n";
+    }
+
+    print << 'EOT';
+
+usage:
 
   -?, --help      help
 
@@ -88,7 +135,7 @@ print "usage:
 
   -v, --verbose   verbose output
 
-  --version       prints $prog_name's version and exits
+  --version       prints the version and exits
 
 Deprecated options:
 
@@ -103,188 +150,207 @@ Sensors with a space in the name can be specified
 * by substituting the space with an underscore: --high sda_Temp=50,60
 * by using the --sanitize option to remove the space
     --sanitize --high sdaTemp=50,60
-";
-  
-  exit(3);
+
+EOT
+
+    exit $ERRORS{UNKOWN};
+
 }
 
-################################################################################
-# retrieves the path of an executable file using the 'which' utility
-# params:
-#   - executable name
-# returns
-#   - the path of program (if found)
+##############################################################################
+# Usage     : get_path('program_name');
+# Purpose   : retrieves the path of an executable file using the 'which' utility
+# Returns   : the path of the program (if found)
+# Arguments : the program name
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub get_path {
 
-    my $prog = shift;
+    my $prog    = shift;
     my $command = "which $prog";
     my $output;
     my $path;
-    
-    my $pid = open($output, "$command 2>&1 |") or
-        die("Cannot execute $command");
+
+    my $pid = open $output, q{-|}, "$command 2>&1"
+      or unkown("Cannot execute $command");
 
     while (<$output>) {
         chomp;
-        if (! /^which:/) {
+        if ( !/^which:/mx ) {
             $path = $_;
         }
     }
 
-    close $output;
+    close $output
+        or unknown("Error while executing $command: $OS_ERROR\n");
     return $path;
 
-}    
+}
 
-################################################################################
-# parses /proc/partitions to find available drives and
-# tries to get the temperature
+##############################################################################
+# Usage     : parse_drives()
+# Purpose   : parses /proc/partitions to find available drives and tries to
+#             get their temperature
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub parse_drives {
 
-    if (-x $hddtemp_bin) {
+    my $IN;
 
-        open(IN, '/proc/partitions') or
-            unknown("Cannot open /proc/partitions");
+    if ( -x $hddtemp_bin ) {
 
-        while(<IN>) {
+        open $IN, '<', '/proc/partitions'
+            or unknown('Cannot open /proc/partitions');
+
+        while (<$IN>) {
 
             chomp;
 
-            my (
-                $major,
-                $minor,
-                $blocs,
-                $name
-            ) = split;
+            my ( $major, $minor, $blocs, $name ) = split;
 
-            if ($major eq 'major' || $major eq '') {
+            if ( !defined $major || $major eq 'major' || $major eq q{} ) {
                 next;
             }
 
-            if ($name =~ /[0-9]$/) {
+            if ( $name =~ /[0-9]$/mx ) {
                 next;
             }
 
-            if ($verbose > 1) {
-                print "  checking disk /dev/$name\n";
-            }
+            verbose "  checking disk /dev/$name\n", 1;
 
             my $command = "$hddtemp_bin -n /dev/$name";
 
             my $output;
 
-            my $pid = open($output, "$command 2>&1 |") or
-                die("Cannot execute $command");
+            my $pid = open $output, q{-|}, "$command 2>&1"
+                or unkown("Cannot execute $command: $OS_ERROR");
 
             while (<$output>) {
                 chomp;
 
-                if ($_ =~ /^[0-9]+$/) {
+                if ( $_ =~ /^[0-9]+$/mx ) {
 
                     if ($sanitize) {
-                        $name = $name.'Temp';
-                    } else {
+                        $name = $name . 'Temp';
+                    }
+                    else {
                         $name = "$name Temp";
                     }
 
                     # check if the sensor has to be renamed
-                    if ($rename{$name}) {
+                    if ( $rename{$name} ) {
                         $name = $rename{$name};
                     }
 
                     $sensor_values{$name} = $_;
 
-                    if ($verbose || $list) {
-                        print "found temperature for drive $name ($name = $_)\n";
+                    if ( $verbosity || $list ) {
+                        print
+                            "found temperature for drive $name ($name = $_)\n";
                     }
 
-                } else {
-                    if ($verbose) {
-                        print "warning: temperature for /dev/$name not available\n";
-                    }
+                }
+                else {
+                    verbose "warning: temperature for /dev/$name not available\n";
                 }
 
             }
 
-            close($output);
+            close $output
+                or unknown("Error while executing $command: $OS_ERROR\n");
 
         }
 
-        close(IN);
+        close $IN
+            or unkown("Cannot close input: $OS_ERROR\n");
 
-    } else {
-        if ($verbose) {
-            print "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
-        }
     }
+    else {
+        verbose "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
+    }
+
+    return;
 
 }
 
-################################################################################
-# retrieves the values of the available sensors
+##############################################################################
+# Usage     : parse_sensors()
+# Purpose   : retrieves the values of the available sensors
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub parse_sensors {
 
-    if (-x $sensors_bin) {
+    if ( -x $sensors_bin ) {
 
         # check if there are configured sensors
 
         my $command = "$sensors_bin";
         my $output;
 
-        my $pid = open($output, "$command 2>&1 |") or
-            die("Cannot execute $command");
+        my $pid = open $output, q{-|}, "$command 2>&1"
+          or unkown("Cannot execute $command: $OS_ERROR");
 
         while (<$output>) {
             chomp;
-            if (/^No\ sensors found/ ||
-                /^Can\'t/) {
-                if ($verbose) {
-                    print "warning: no sensors found\n";
-                }
+            if (   /^No\ sensors\ found/mx
+                || /^Can\'t/mx )
+            {
+                verbose "warning: no sensors found\n";
                 return;
             }
             last;
         }
 
-        close $output;
+        close $output
+            or unknown("Error while executing $command: $OS_ERROR\n");
 
         $command = "$sensors_bin -A | grep \:";
-        $output;
 
-        my $pid = open($output, "$command 2>&1 |") or
-            die("Cannot execute $command");
+        $pid = open $output, q{-|}, "$command 2>&1"
+          or unkown("Cannot execute $command");
 
         while (<$output>) {
             chomp;
 
-            /(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /;
+            if (/(.*):\s+\+?([0-9\-\.]*)\ ?([^\ ]*)\ /mx) {
 
-            my $name  = $1;
-            my $value = $2;
+                my $name  = $1;
+                my $value = $2;
 
-            if ($sanitize) {
-                $name =~ s/\ //g;
-            }
+                if ($sanitize) {
+                    $name =~ s/\ //gmx;
+                }
 
-            if ($rename{$name}) {
-                $name = $rename{$name};
-            }
-            
-            $sensor_values{$name} = $value;
+                if ( $rename{$name} ) {
+                    $name = $rename{$name};
+                }
 
-            if ($verbose || $list) {
-                print "found sensor $name ($value)\n";
+                $sensor_values{$name} = $value;
+
+                if ( $verbosity || $list ) {
+                    print "found sensor $name ($value)\n";
+                }
+
             }
 
         }
 
-        close $output;
+        close $output
+            or unknown("Error while executing $command: $OS_ERROR\n");
 
-    } else {
-        if ($verbose) {
-            print "warning: $sensors_bin not found: HDD temperatures not checked\n";
-        }
     }
+    else {
+        verbose "warning: $sensors_bin not found: HDD temperatures not checked\n";
+    }
+
+    return;
 
 }
 
@@ -295,68 +361,64 @@ sub parse_sensors {
 ########################
 # Command line arguments
 
-Getopt::Long::Configure ("bundling");
-$result = GetOptions (
-    "check|c=s"     => \%checks,
-    "drives!"       => \$drives,
-    "hddtemp_bin=s" => \$hddtemp_bin,
-    "help|?"        => sub { usage() },
-    "high|h=s"      => \%highs,
-    "list|l"        => \$list,
-    "low|l=s"       => \%lows,
-    "range|r=s"     => \%ranges,
-    "rename|r=s"    => \%rename,
-    "sanitize"      => \$sanitize,
-    "sensors!"      => \$sensors,
-    "sensors_bin=s" => \$sensors_bin,
-    "verbose|v+"    => \$verbose,
-    "version"       => sub { print "check_lm_sensors version $VERSION\n"; exit 3;}
+Getopt::Long::Configure('bundling');
+$result = GetOptions(
+    'check|c=s'     => \%checks,
+    'drives!'       => \$drives,
+    'hddtemp_bin=s' => \$hddtemp_bin,
+    'help|?'        => sub { usage() },
+    'high|h=s'      => \%highs,
+    'list|l'        => \$list,
+    'low|l=s'       => \%lows,
+    'range|r=s'     => \%ranges,
+    'rename|r=s'    => \%rename,
+    'sanitize'      => \$sanitize,
+    'sensors!'      => \$sensors,
+    'sensors_bin=s' => \$sensors_bin,
+    'verbose|v+'    => \$verbosity,
+    'version' => sub { print "check_lm_sensors version $VERSION\n"; exit 3; }
 );
 
-if (!$result) {
-  usage();
+if ( !$result ) {
+    usage();
 }
 
-if (!(defined $list)   &&
-    !(defined %checks) &&
-    !(defined %highs)  &&
-    !(defined %lows)   &&
-    !(defined %ranges)) {
-    die "at least one check has to be specified";
+if (   !( defined $list )
+    && !( %checks )
+    && !( %highs )
+    && !( %ranges )
+    && !( %lows ) )
+{
+    unkown('at least one check has to be specified');
 }
 
 # convert old options
-if (defined %checks && $verbose) {
-    print "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
+if ( %checks ) {
+    verbose "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
 }
 
 if ($drives) {
-    if (!$hddtemp_bin) {
+    if ( !$hddtemp_bin ) {
         $hddtemp_bin = get_path('hddtemp');
     }
-    if (!$hddtemp_bin) {
-        if ($verbose) {
-            print "warning: hddtemp not found: HDD temperatures not checked\n";
-        }
-    } else {
-        if ($verbose) {
-            print "hddtemp found at $hddtemp_bin\n";
-        }
+    if ( !$hddtemp_bin ) {
+        verbose "warning: hddtemp not found: HDD temperatures not checked\n";
+    }
+    else {
+        verbose "hddtemp found at $hddtemp_bin\n";
         parse_drives();
     }
 }
 
-
 if ($sensors) {
-    if (!$sensors_bin) {
+    if ( !$sensors_bin ) {
         $sensors_bin = get_path('sensors');
     }
-    if (!$sensors_bin && $verbose) {
-        print "warning: sensors not found: lm_sensors not checked\n";
-    } else {
-        if ($verbose) {
-            print "sensors found at $sensors_bin\n";
-        }
+    if ( !$sensors_bin) {
+        verbose "warning: sensors not found: lm_sensors not checked\n";
+    }
+    else {
+        verbose "sensors found at $sensors_bin\n";
         parse_sensors();
     }
 }
@@ -364,181 +426,182 @@ if ($sensors) {
 ################
 # perform checks
 
-my $space     = '';
-my $status;
-my $desc;
-my $criticals = '';
-my $warnings  = '';
-my $unknowns  = '';
+my $space     = q{};
+my $status    = q{};
+my $desc      = q{};
+my $criticals = q{};
+my $warnings  = q{};
+my $unknowns  = q{};
 
 my $name;
 my $limits;
 my $converted_name;
 
 # old style checks
-while ( ($name,$limits) = each %checks ) {
+while ( ( $name, $limits ) = each %checks ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /g;
+    $converted_name =~ s/_/\ /gmx;
 
-    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
     }
-    if (!$sensor_values{$name}) {
+    if ( !$sensor_values{$name} ) {
         $unknowns = $unknowns . " $name";
         next;
     }
 
-    my ($warn, $crit, $ref) = split /,/,$limits;
+    my ( $warn, $crit, $ref ) = split /,/mx, $limits;
 
     my $value = $sensor_values{$name};
     my $diff  = $value;
-    
+
     if ($ref) {
-        $diff = abs($value-$ref);
+        $diff = abs ($value - $ref) ;
     }
-    
-    if ($diff > $crit) {
-        $criticals = $criticals . " $name=".$sensor_values{$name};
-    } elsif ($diff > $warn) {
-        $warnings = $warnings   . " $name=".$sensor_values{$name};
+
+    if ( $diff > $crit ) {
+        $criticals = $criticals . " $name=" . $sensor_values{$name};
+    }
+    elsif ( $diff > $warn ) {
+        $warnings = $warnings . " $name=" . $sensor_values{$name};
     }
 
     if ($space) {
-        $status = $status . " ";
-        $desc   = $desc   . " ";
+        $status = $status . q{ };
+        $desc   = $desc . q{ };
     }
     $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc   . "$name=$value";
-    $space = 1;
+    $desc   = $desc . "$name=$value";
+    $space  = 1;
 
 }
 
 # lows
-while ( ($name,$limits) = each %lows ) {
+while ( ( $name, $limits ) = each %lows ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /g;
+    $converted_name =~ s/_/\ /gmx;
 
-    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
     }
-    if (!$sensor_values{$name}) {
+    if ( !$sensor_values{$name} ) {
         $unknowns = $unknowns . " $name";
         next;
     }
 
-    my ($warn, $crit) = split /,/,$limits;
+    my ( $warn, $crit ) = split /,/mx, $limits;
 
     my $value = $sensor_values{$name};
 
-    if ($value < $crit) {
-        $criticals = $criticals . " $name=".$sensor_values{$name};
-    } elsif ($value < $warn) {
-        $warnings = $warnings   . " $name=".$sensor_values{$name};
+    if ( $value < $crit ) {
+        $criticals = $criticals . " $name=" . $sensor_values{$name};
+    }
+    elsif ( $value < $warn ) {
+        $warnings = $warnings . " $name=" . $sensor_values{$name};
     }
 
     if ($space) {
-        $status = $status . " ";
+        $status = $status . q{ };
     }
     $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc   . "$name=$value";
-    $space = 1;
+    $desc   = $desc . "$name=$value";
+    $space  = 1;
 
 }
 
 # highs
-while ( ($name,$limits) = each %highs ) {
+while ( ( $name, $limits ) = each %highs ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /g;
+    $converted_name =~ s/_/\ /gmx;
 
-    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
     }
-    if (!$sensor_values{$name}) {
+    if ( !$sensor_values{$name} ) {
         $unknowns = $unknowns . " $name";
         next;
     }
 
-    my ($warn, $crit) = split /,/,$limits;
+    my ( $warn, $crit ) = split /,/mx, $limits;
 
     my $value = $sensor_values{$name};
 
-    if ($value > $crit) {
-        $criticals = $criticals . " $name=".$sensor_values{$name};
-    } elsif ($value > $warn) {
-        $warnings = $warnings   . " $name=".$sensor_values{$name};
+    if ( $value > $crit ) {
+        $criticals = $criticals . " $name=" . $sensor_values{$name};
+    }
+    elsif ( $value > $warn ) {
+        $warnings = $warnings . " $name=" . $sensor_values{$name};
     }
 
     if ($space) {
-        $status = $status . " ";
-        $desc   = $desc   . " ";
+        $status = $status . q{ };
+        $desc   = $desc . q{ };
     }
     $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc   . "$name=$value";
-    $space = 1;
+    $desc   = $desc . "$name=$value";
+    $space  = 1;
 
 }
 
 # ranges
-while ( ($name,$limits) = each %ranges ) {
+while ( ( $name, $limits ) = each %ranges ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /g;
+    $converted_name =~ s/_/\ /gmx;
 
-    if (!$sensor_values{$name} && $sensor_values{$converted_name}) {
+    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
     }
-    if (!$sensor_values{$name}) {
+    if ( !$sensor_values{$name} ) {
         $unknowns = $unknowns . " $name";
         next;
     }
 
-    my ($warn, $crit, $ref) = split /,/,$limits;
+    my ( $warn, $crit, $ref ) = split /,/mx, $limits;
 
     my $value = $sensor_values{$name};
     my $diff  = $value;
-    
-    $diff = abs($value-$ref);
-    
-    if ($diff > $crit) {
-        $criticals = $criticals . " $name=".$sensor_values{$name};
-    } elsif ($diff > $warn) {
-        $warnings = $warnings   . " $name=".$sensor_values{$name};
+
+    $diff = abs( $value - $ref );
+
+    if ( $diff > $crit ) {
+        $criticals = $criticals . " $name=" . $sensor_values{$name};
+    }
+    elsif ( $diff > $warn ) {
+        $warnings = $warnings . " $name=" . $sensor_values{$name};
     }
 
     if ($space) {
-        $status = $status . " ";
-        $desc   = $desc   . " ";
+        $status = $status . q{ };
+        $desc   = $desc . q{ };
     }
     $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc   . "$name=$value";
-    $space = 1;
+    $desc   = $desc . "$name=$value";
+    $space  = 1;
 
 }
 
 #########################
 # build the status string
 
-if ($criticals ne '') {
+if ( $criticals ne q{} ) {
     print "$prog_name CRITICAL - $desc|$status\n";
-    exit(2);
+    exit $ERRORS{CRITICAL};
 }
 
-if ($warnings ne '') {
+if ( $warnings ne q{} ) {
     print "$prog_name WARNING - $desc|$status\n";
-    exit(1);
+    exit $ERRORS{WARNING};
 }
 
-if ($unknowns ne '') {
+if ( $unknowns ne q{} ) {
     print "$prog_name UNKNOWN - $desc|$status\n";
-    exit(1);
+    exit $ERRORS{UNKOWN};
 }
 
 print "$prog_name OK - $desc|$status\n";
-exit(0);
 
-1;
-
-__END__
+exit $ERRORS{OK};
