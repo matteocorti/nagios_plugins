@@ -15,7 +15,7 @@ use English qw(-no_match_vars);
 
 use Nagios::Plugin;
 
-use version; our $VERSION = '3.0.0';
+use version; our $VERSION = '3.0.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -61,8 +61,8 @@ $criticals = q{};
 $desc      = q{};
 $drives    = 1;
 $help      = q{};
-$plugin    = Nagios::Plugin->new( shortname => $prog_name );
 $prog_name = 'LM_SENSORS';
+$plugin    = Nagios::Plugin->new( shortname => $prog_name );
 $sensors   = 1;
 $space     = q{};
 $status    = q{};

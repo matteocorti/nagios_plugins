@@ -1,5 +1,5 @@
-%define version 3.0.0
-%define release 2
+%define version 3.0.1
+%define release 0
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -39,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_lm_sensors
 
 %changelog
+* Thu Oct  4 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.1-0
+- packaged version 3.0.1
+
 * Wed Oct  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-2
 - added the perl-Nagios-Plugin dependency
 
