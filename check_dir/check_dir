@@ -9,10 +9,15 @@
 use strict;
 use warnings;
 
-use version; our $VERSION='1.2.0';
-
 use Getopt::Long;
+use Carp;
+use English qw(-no_match_vars);
+
+use Nagios::Plugin;
+use Nagios::Plugin::Threshold;
 use File::stat;
+
+use version; our $VERSION = '3.0.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -21,33 +26,78 @@ use File::stat;
 #            in the subroutines!
 #
 # All variables are therefore declared as package variables...
-# 
+#
 use vars qw(
-            $dirname,
-            @dirnames,
-            $verbose,
-            $help,
-            $n,
-            $warning,
-            $recursive,
-            $critical,
-            $result,
-            $status,
-            $status_msg,
-        )
+  $critical
+  $help
+  $n
+  $plugin
+  $prog_name
+  $recursive
+  $result
+  $status
+  $threshold
+  $verbosity
+  $warning
+  @dirnames
+);
+
+# initialization
+$plugin     = Nagios::Plugin->new( shortname => $prog_name );
+$prog_name  = 'LM_SENSORS';
+$verbosity  = 0;
+$status     = 0;
 
 ##############################################################################
+# subroutines
 
-################################
-# prints the usage of the plugin
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message   = shift;
+    my $level     = shift;
+
+    if ( !defined $message) {
+        $plugin->nagios_exit(UNKNOWN, q{Internal error: not enough parameters for 'verbose'});
+    }
+    
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : usage() or usage("some error string")
+# Purpose   : prints the usage of the plugin
+# Returns   : n/a
+# Arguments : msg: optional error message
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub usage {
-  my $msg = shift;
+    my $msg = shift;
 
-  if (defined $msg) {
-    print "$msg\n";
-  }
+    if ( defined $msg ) {
+        print "$msg\n";
+    }
 
-  print << "EOT";
+    print << "EOT";
 usage:
   -d dirname   directory
   -r           recursive
@@ -56,129 +106,153 @@ usage:
   --version    version
   -v           verbose
 EOT
-  unknown();
-}
-
-#################################################
-# prints an "unknown" error message (exit code 3)
-sub unknown {
-
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "DIR UNKNOWN: $msg\n";
-  }
-
-  exit(3);
-
-}
-
-sub check_dir {
-
-  my $dirname = shift;
-  my $file;
-  my $info;
-  my @files;
-
-  ###############################
-  # check if the directory exists
-
-  if (! -d $dirname) {
-    unknown("Folder $dirname does not exist.");
-  }
-
-  ####################################
-  # check if the directory is readable
-
-  $info = stat($dirname) or unknown("can't read stat for $dirname: $!");
-
-  if (!(($info->mode & 005) || ($info->uid == $<))) {
-    if ($verbose > 0) {
-      print "skipping $dirname: Permission denied\n";
-    }
-    return;
-  }
-
-  #######################
-  # get directory listing
-
-  opendir(DIR, $dirname) or unknown("can't open $dirname: $!");
-
-  @files = readdir(DIR);
-  @files = sort grep(!/^\./, @files);
-
-  close(DIR);
-
-  $n = @files;
-
-  #################
-  # Additional info
-  if ($verbose > 0) {
-    print "Directory'$dirname' has $n files\n";
-  }
-
-  #################
-  # Output (status)
-
-  if ($n >= $critical) {
-    $status_msg = "$dirname has $n files";
-    $status     = 2;
-  } else {
-    if ($n >= $warning && $status < 2) {
-      $status_msg = "$dirname has $n files";
-      $status     = 1;
-    }
-  }
-
-  ###########
-  # Recursive
-  if ($recursive) {
-    foreach $file (@files) {
-      if (-d "$dirname/$file") {
-        check_dir("$dirname/$file");
-      }
-    }
-  }
-
+    exit 3;
 }
 
 ##############################################################################
+# Usage     : check_dir("directory_name")
+# Purpose   : checks the number of files in the given directory
+# Returns   : n/a
+# Arguments : dirname: the name of the directory to check
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub check_dir {
+
+    my $dirname = shift;
+    my $info;
+    my @files;
+    my $DIR;
+
+    ###############################
+    # check if the directory exists
+
+    if ( !-d $dirname ) {
+        $plugin->nagios_exit( UNKNOWN, "Folder $dirname does not exist." );
+    }
+
+    ####################################
+    # check if the directory is readable
+
+    $info = stat $dirname
+      or $plugin->nagios_exit( UNKNOWN, "Can't read stat for $dirname: $OS_ERROR" );
+
+    if ( !( ( $info->mode & oct 5 ) || ( $info->uid == $REAL_USER_ID ) ) ) {
+        verbose "skipping $dirname: Permission denied\n";
+        return;
+    }
+
+    #######################
+    # get directory listing
+
+    verbose "Opening $dirname\n", 1;
+    
+    opendir $DIR, $dirname or
+        $plugin->nagios_exit( UNKNOWN, "Can't open $dirname: $OS_ERROR");
+
+    @files = readdir $DIR;
+    @files = sort grep { !/^\./mx } @files ;
+
+    closedir $DIR
+        or $plugin->nagios_exit( UNKNOWN, "Error closing $dirname: $OS_ERROR" );
+
+    $n = @files;
+
+    #################
+    # Additional info
+    verbose "Directory '$dirname' has $n files\n";
+
+    #################
+    # Output (status)
+
+    $plugin->add_perfdata(
+        label     => $dirname,
+        value     => $n,
+        uom       => "files",
+        threshold => $threshold,
+    );
+
+    if ( $n >= $critical ) {
+        $status     = 2;
+    }
+    else {
+        if ( $n >= $warning && $status < 2 ) {
+            $status     = 1;
+        }
+    }
+
+    ###########
+    # Recursive
+    if ($recursive) {
+        foreach my $file (@files) {
+            if ( -d "$dirname/$file" ) {
+                check_dir("$dirname/$file");
+            }
+        }
+    }
+
+    return;
+}
+
+##############################################################################
+# main
 
 ########################
 # Command line arguments
 
-$result = GetOptions ("dir=s"      => \@dirnames,
-                      "critical=i" => \$critical,
-                      "warining=i" => \$warning,
-                      "help"       => \$help,
-                      "recursive"  => \$recursive,
-                      "verbose|v+"   => \$verbose,
-                      "version"    => sub { print "check_dir version $VERSION\n"; exit 3;} );
+$result = GetOptions(
+    'dir=s'      => \@dirnames,
+    'critical=i' => \$critical,
+    'warining=i' => \$warning,
+    'help'       => \$help,
+    'recursive'  => \$recursive,
+    'verbose|v+' => \$verbosity,
+    'version'    => sub { print "check_dir version $VERSION\n"; exit 3; }
+);
 
-if (!$result) {
-  usage();
+#############################
+# Sanity checks: command line
+
+if ( !$result ) {
+    usage();
 }
 
-if ($help)                { usage(); }
-if ($critical <= 0)       { usage("Could not parse \"critical\""); }
-if ($warning  <= 0)       { usage("Could not parse \"warning\""); }
-if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if ( $help )          { usage(); }
+if ( !defined $critical || $critical <= 0 ) {
+    usage('Could not parse "critical"');
+}
+if ( !defined $critical || $warning  <= 0 ) {
+    usage('Could not parse "warning"');
+}
+if ( $critical < $warning ) {
+    usage('"critical" has to be greater than "warning"');
+}
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $warning,
+    critical => $critical,
+);
+
+##########################
+# Sanity checks: directory
+
+foreach my $dirname (@dirnames) {
+    if (! -d $dirname) {
+        $plugin->nagios_exit(UNKNOWN, "Error: $dirname is not a directory");
+    }
+    if (! -r $dirname) {
+        $plugin->nagios_exit(UNKNOWN, "Error: $dirname is not readable");
+    }
+    if (! -x $dirname) {
+        $plugin->nagios_exit(UNKNOWN, "Error: $dirname is not executable");
+    }
+}
 
 #############
-# process dir
+# Process dir
 
-foreach $dirname (@dirnames) {
-  check_dir($dirname);
+foreach my $dirname (@dirnames) {
+    check_dir($dirname);
 }
 
-if ($status == 0) {
-  print "DIR OK\n";
-  exit 0;
-} else {
-  if ($status == 1) {
-    print "DIR WARNING - $status_msg\n";
-  } else {
-    print "DIR CRITICAL - $status_msg\n";
-  }
-  exit $status;
-}
+$plugin->nagios_exit( $status );
