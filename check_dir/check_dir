@@ -1,22 +1,40 @@
 #!/usr/bin/perl
 
+# RCS information (required by Perl::Critic)
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
+
 use strict;
+use warnings;
+
+use version; our $VERSION='1.2.0';
+
 use Getopt::Long;
 use File::stat;
 
-my $dirname    = '';
-my @dirnames;
-my $verbose    = '';
-my $help       = '';
-my $n          = 0;
-my $warning    = 0;
-my $recursive  = 0;
-my $critical   = 0;
-my $result     = 0;
-my $status     = 0;
-my $status_msg = '';
-
-my $VERSION='1.2.0';
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+# 
+use vars qw(
+            $dirname,
+            @dirnames,
+            $verbose,
+            $help,
+            $n,
+            $warning,
+            $recursive,
+            $critical,
+            $result,
+            $status,
+            $status_msg,
+        )
 
 ##############################################################################
 
