@@ -36,6 +36,7 @@ use vars qw(
   $recursive
   $result
   $status
+  $info_string
   $threshold
   $verbosity
   $warning
@@ -43,13 +44,36 @@ use vars qw(
 );
 
 # initialization
-$plugin     = Nagios::Plugin->new( shortname => $prog_name );
-$prog_name  = 'LM_SENSORS';
-$verbosity  = 0;
-$status     = 0;
+$plugin      = Nagios::Plugin->new(
+    shortname => $prog_name
+);
+$prog_name   = 'LM_SENSORS';
+$verbosity   = 0;
+$status      = 0;
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : max($i, $j)
+# Purpose   : returns the maximum of two integers
+# Returns   : the maximum of two integers
+# Arguments : the integers to compare
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub max {
+
+    my ($i, $j) = @_;
+
+    if ($i > $j) {
+        return $i;
+    }
+    else {
+        return $j;
+    }
+    
+}
 
 ##############################################################################
 # Usage     : verbose("some message string", $optional_verbosity_level);
@@ -168,18 +192,18 @@ sub check_dir {
     $plugin->add_perfdata(
         label     => $dirname,
         value     => $n,
-        uom       => "files",
+        uom       => q{},
         threshold => $threshold,
     );
 
-    if ( $n >= $critical ) {
-        $status     = 2;
+    if ( defined $info_string ) {
+        $info_string = "$info_string, $dirname=$n";
     }
     else {
-        if ( $n >= $warning && $status < 2 ) {
-            $status     = 1;
-        }
+        $info_string = "$dirname=$n";
     }
+
+    $status = max($status, $plugin->check_threshold($n));
 
     ###########
     # Recursive
@@ -255,4 +279,4 @@ foreach my $dirname (@dirnames) {
     check_dir($dirname);
 }
 
-$plugin->nagios_exit( $status );
+$plugin->nagios_exit( $status, $info_string );
