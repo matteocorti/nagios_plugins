@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use POSIX "uname";
 
-my $VERSION    = '1.4.0';
+my $VERSION    = '1.5.0';
 
 my $tmp        = '/tmp/check_diskio_status';
 my $name       = "DISKIO";
@@ -281,9 +281,19 @@ my $time;
 my $s_read;
 my $s_write;
 
-if ($version eq "2.6") {
+# true if a /proc/diskstats file is available and readable
+my $proc_diskstats_available = 0;
+
+if (-f '/proc/diskstats' &&
+    -r '/proc/diskstats') {
+
+    $proc_diskstats_available = 1;
+
+}
+
+if ($version eq "2.6" && $proc_diskstats_available) {
   ($s_read, $s_write) = read_26($device);
-}  elsif ($version eq "2.4") {
+}  else {
   ($s_read, $s_write) = read_24($device);
 }
 
