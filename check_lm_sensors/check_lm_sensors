@@ -20,8 +20,8 @@ use version; our $VERSION = '3.0.1';
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
 #            declared subroutines would therefore be inner subroutines
-#            This will cause all the global lexical variables not to stay shared
-#            in the subroutines!
+#            This will cause all the global lexical variables not to stay
+#            shared in the subroutines!
 #
 # All variables are therefore declared as package variables...
 # 
@@ -89,7 +89,10 @@ sub verbose {
     my $level     = shift;
 
     if ( !defined $message) {
-        $plugin->nagios_exit(UNKNOWN, q{Internal error: not enough parameters for 'verbose'});
+        $plugin->nagios_exit(
+            UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'}
+        );
     }
     
     if ( !defined $level ) {
@@ -147,8 +150,8 @@ usage:
                   outside the 10-14 range (12+-2)
 
   --rename        renames a sensor in the performance output (useful if you
-                  want to have common names for similar sensors across different
-                  machines)
+                  want to have common names for similar sensors across
+                  different machines)
                   Example:
                     --rename cputemp=temp1
 
@@ -192,7 +195,8 @@ EOT
 
 ##############################################################################
 # Usage     : get_path('program_name');
-# Purpose   : retrieves the path of an executable file using the 'which' utility
+# Purpose   : retrieves the path of an executable file using the
+#             'which' utility
 # Returns   : the path of the program (if found)
 # Arguments : the program name
 # Throws    : n/a
@@ -206,7 +210,7 @@ sub get_path {
     my $path;
 
     my $pid = open $output, q{-|}, "$command 2>&1"
-      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command" );
+      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
     while (<$output>) {
         chomp;
@@ -215,8 +219,15 @@ sub get_path {
         }
     }
 
-    close $output
-        or $plugin->nagios_exit( UNKNOWN, "Error while executing $command: $OS_ERROR\n");
+    if (!(close $output) &&
+            ($OS_ERROR != 0) ) {
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit(
+            UNKNOWN,
+            "Error while closing pipe to $command: $OS_ERROR\n"
+        );
+    }
     
     return $path;
 
@@ -289,7 +300,8 @@ sub parse_drives {
 
                 }
                 else {
-                    verbose "warning: temperature for /dev/$name not available\n";
+                    verbose
+                        "warning: temperature for /dev/$name not available\n";
                 }
 
             }
@@ -304,7 +316,8 @@ sub parse_drives {
 
     }
     else {
-        verbose "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
+        verbose
+            "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
     }
 
     return;
@@ -381,7 +394,8 @@ sub parse_sensors {
 
     }
     else {
-        verbose "warning: $sensors_bin not found: HDD temperatures not checked\n";
+        verbose
+            "warning: $sensors_bin not found: HDD temperatures not checked\n";
     }
 
     return;
@@ -428,7 +442,8 @@ if (   !( defined $list )
 
 # convert old options
 if ( %checks ) {
-    verbose "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
+    verbose
+        "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
 }
 
 if ($drives) {
