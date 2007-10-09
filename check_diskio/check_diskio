@@ -18,9 +18,41 @@ my $status     = 0;
 my $status_msg = '';
 my $warning    = 0;
 my $silent     = '';
+my $verbosity  = 0;
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message   = shift;
+    my $level     = shift;
+
+    if ( !defined $message) {
+        unknown(q{Internal error: not enough parameters for 'verbose'});
+    }
+    
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
 
 ################################
 # prints the usage of the plugin
@@ -96,6 +128,8 @@ sub read_26 {
 
   my $device = shift;
 
+  verbose "reading data from /proc/diskstats\n";
+  
   open(IN, '/proc/diskstats') or
     unknown("Cannot open /proc/diskstats");
 
@@ -162,6 +196,8 @@ sub read_24 {
 
   my $device = shift;
 
+  verbose "reading data from /proc/partitions\n";
+  
   open(IN,"/proc/partitions") or
     unknown("Cannot open /proc/partitions");
 
@@ -169,56 +205,46 @@ sub read_24 {
 
     chomp;
 
-    # kernel version 2.6
+    # kernel version 2.4
 
-    # /proc/diskstats format
+    # /proc/partitions format
     #
     # major         Major number
     # minor         Minor number
-    # blocks        Blocks
     # name          Name
-    # reads         This is the total number of reads completed successfully.
-    # merge_read    Reads and writes which are adjacent to each other may be merged for
-    #               efficiency.  Thus two 4K reads may become one 8K read before it is
-    #               ultimately handed to the disk, and so it will be counted (and queued)
-    #               as only one I/O.  This field lets you know how often this was done.
-    # s_read        This is the total number of sectors read successfully.
-    # ms_read       This is the total number of milliseconds spent by all reads.
-    # writes        This is the total number of writes completed successfully.
-    # merge_write   Reads and writes which are adjacent to each other may be merged for
-    #               efficiency.  Thus two 4K reads may become one 8K read before it is
-    #               ultimately handed to the disk, and so it will be counted (and queued)
-    #               as only one I/O.  This field lets you know how often this was done.
-    # s_write       This is the total number of sectors written successfully.
-    # ms_write      This is the total number of milliseconds spent by all writes.
-    # ios           The only field that should go to zero. Incremented as requests are
-    #               given to appropriate request_queue_t and decremented as they finish.
-    # ms_io         This field is increases so long as field 9 is nonzero.
-    # ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
-    #               merge, or read f these stats by the number of I/Os in progress
-    #               times the number of milliseconds spent doing I/O since the
-    #               last update of this field.  This can provide an easy measure of both
-    #               I/O completion time and the backlog that may be accumulating.
+    # rio           Number of read IO requests completed
+    # rmerge        Number of submitted read requests that were merged into existing requests.
+    # rsect         Number of read IO sectors submitted
+    # ruse          Total length of time all completed read requests have taken to date, in milliseconds
+    # wio           Number of write IO requests completed
+    # wmerge        Number of submitted write requests that were merged into existing requests.
+    # wsect         Number of write IO sectors submitted
+    # wuse          Total length of time all completed write requests have taken to date, in milliseconds
+    # running       Instantaneous count of IOs currently in flight
+    # use           How many milliseconds there has been at least one IO in flight
+    # aveq          The sum of how long all requests have spent in flight, in milliseconds
 
-    my ($major,
+    my (
+        $major,
         $minor,
         $blocks,
         $name,
-        $reads,
-        $merge_read,
-        $s_read,
-        $ms_read,
-        $writes,
-        $merge_write,
-        $s_write,
-        $ms_write,
-        $ios,
-        $ms_io,
-        $ms_weighted) = split;
+        $rio,
+        $rmerge,
+        $rsect,
+        $ruse,
+        $wio,
+        $wmerge,
+        $wsect,
+        $wuse,
+        $running,
+        $use,
+        $aveq,
+    ) = split;
 
     if ($name eq $device) {
       close(IN);
-      return ($s_read, $s_write);
+      return ($rsect, $wsect);
     }
 
   }
@@ -236,13 +262,14 @@ sub read_24 {
 # Command line arguments
 
 $result = GetOptions (
-    "critical=i"  => \$critical,
-    "device=s"    => \$device,
-    "help"        => \$help,
-    "reset"       => \$reset,
-    "silent"      => \$silent,
-    "warning=i"   => \$warning,
-    "version"     => sub { print "check_diskio version $VERSION\n"; exit 3;}
+    'critical=i'  => \$critical,
+    'device=s'    => \$device,
+    'help'        => \$help,
+    'reset'       => \$reset,
+    'silent'      => \$silent,
+    'warning=i'   => \$warning,
+    'verbose|v'   => \$verbosity,
+    'version'     => sub { print "check_diskio version $VERSION\n"; exit 3;}
 );
 
 if (!$result) {
@@ -250,7 +277,6 @@ if (!$result) {
 }
 
 my $version = kernel_version;
-
 
 if ($help)                            { usage(); }
 if (!$silent && $critical <= 0)       { usage("Could not parse \"critical\"");  }
@@ -287,14 +313,16 @@ my $proc_diskstats_available = 0;
 if (-f '/proc/diskstats' &&
     -r '/proc/diskstats') {
 
+    verbose "/proc/diskstats is available\n";
+    
     $proc_diskstats_available = 1;
 
 }
 
 if ($version eq "2.6" && $proc_diskstats_available) {
-  ($s_read, $s_write) = read_26($device);
+    ($s_read, $s_write) = read_26($device);
 }  else {
-  ($s_read, $s_write) = read_24($device);
+    ($s_read, $s_write) = read_24($device);
 }
 
 # get the time difference
