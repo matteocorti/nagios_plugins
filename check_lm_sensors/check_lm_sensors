@@ -248,6 +248,8 @@ sub parse_drives {
 
     if ( -x $hddtemp_bin ) {
 
+        verbose "Looking for drives in /proc/partitions\n";
+        
         open $IN, '<', '/proc/partitions'
             or unknown('Cannot open /proc/partitions');
 
