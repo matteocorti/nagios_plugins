@@ -1,6 +1,10 @@
+2007-10-12  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_dir: substituted the usage subroutine with pod2usage
+
 2007-10-05  Matteo Corti  <matteo.corti@id.ethz.ch>
 
-	* VERSION: 2.0.0
+	* VERSION: 2.0.0 (next milestone)
 	* check_dir: Uses Nagios::Plugin
 	* check_dir: compatible with ePN
 

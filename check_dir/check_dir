@@ -18,6 +18,7 @@ use English qw(-no_match_vars);
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use File::stat;
+use Pod::Usage qw(pod2usage);
 
 use version; our $VERSION = '2.0.0';
 
@@ -106,33 +107,6 @@ sub verbose {
 
     return;
 
-}
-
-##############################################################################
-# Usage     : usage() or usage("some error string")
-# Purpose   : prints the usage of the plugin
-# Returns   : n/a
-# Arguments : msg: optional error message
-# Throws    : n/a
-# Comments  : n/a
-# See also  : n/a
-sub usage {
-    my $msg = shift;
-
-    if ( defined $msg ) {
-        print "$msg\n";
-    }
-
-    print << "EOT";
-usage:
-  -d dirname   directory
-  -r           recursive
-  -c crit      critical
-  -w warn      warning
-  --version    version
-  -v           verbose
-EOT
-    exit 3;
 }
 
 ##############################################################################
@@ -240,18 +214,18 @@ $result = GetOptions(
 # Sanity checks: command line
 
 if ( !$result ) {
-    usage();
+    pod2usage();
 }
 
-if ( $help )          { usage(); }
+if ( $help )          { pod2usage(); }
 if ( !defined $critical || $critical <= 0 ) {
-    usage('Could not parse "critical"');
+    pod2usage( -message => 'Could not parse "critical"');
 }
 if ( !defined $critical || $warning  <= 0 ) {
-    usage('Could not parse "warning"');
+    pod2usage( -message => 'Could not parse "warning"');
 }
 if ( $critical < $warning ) {
-    usage('"critical" has to be greater than "warning"');
+    pod2usage( -message => '"critical" has to be greater than "warning"');
 }
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
@@ -287,9 +261,11 @@ $plugin->nagios_exit( $status, $info_string );
 
 __END__
 
+=pod
+
 =head1 NAME
 
-check_dir is a Nagios plugin to monitor the number of files in one or
+C<check_dir> - a Nagios plugin to monitor the number of files in one or
 more directories.
 
 =head1 DESCRIPTION
@@ -301,9 +277,19 @@ more directories.
 
 Version 2.0.0
 
-=head1 USAGE
+=head1 SYNOPSIS
 
-check_dir --dir=dirname --critical=critical --warning=warning [OPTIONS]
+ check_dir  --dir=dirname --critical=critical --warning=warning
+            [--recursive] [--verbose]
+            [--version|--help]
+
+ Options:
+  -d dirname   specify directory
+  -r           perform recursive traversal
+  -c crit      specify the critical number of files
+  -w warn      specify warning threshold for the number of files
+  --version    print version number
+  -v           be more verbose
 
 =head1 REQUIRED ARGUMENTS
 
@@ -320,7 +306,6 @@ check_dir --dir=dirname --critical=critical --warning=warning [OPTIONS]
     --help,-h,-?        this help screen
 
     --recursive,-r      include subdirectories
-
     
     --verbose,-v       increase verbosity
 
