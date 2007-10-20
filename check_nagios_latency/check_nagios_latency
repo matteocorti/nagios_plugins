@@ -15,7 +15,7 @@ VERSION=0.9.2
 # Prints usage information
 # Params
 #   $1 error message (optional)
-function usage {
+usage() {
 
     if [ -n "$1" ] ; then
         echo "Error: $1" 1>&2
@@ -41,7 +41,7 @@ function usage {
 # Checks if a given program is available and executable
 # Params
 #   $1 program name
-function check_prog {
+check_prog() {
 
     PROG=`which $1`
 
