@@ -3,7 +3,7 @@
 VOS=/usr/sbin/vos
 VERSION=0.9
 
-function usage {
+usage() {
 
     if [ -n "$1" ] ; then
         echo "Error: $1" 1>&2
