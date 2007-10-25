@@ -1,6 +1,9 @@
-#!/usr/bin/perl
+#!perl
 
 # RCS information (required by Perl::Critic)
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
 #   $Id$
 #   $Revision$
 #   $HeadURL$
