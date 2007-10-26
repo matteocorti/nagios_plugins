@@ -333,7 +333,7 @@ in case of an unkown problem
 
 =head1 DEPENDENCIES
 
-dprofpp_grapher depends on
+check_dir depends on
 
 =over 4
 
