@@ -22,7 +22,5 @@ requires 'version'                   => 0;
 install_script  'check_dir';
 
 WriteMakefile(
-    INSTALLDIRS    => 'site',
-    INSTALLSITEBIN => '/usr/lib/nagios/plugins/contrib',
-    INSTALLSCRIPT  => '/usr/lib/nagios/plugins/contrib',        
+    INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
 );
