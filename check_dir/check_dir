@@ -38,7 +38,6 @@ use vars qw(
   $help
   $n
   $plugin
-  $prog_name
   $recursive
   $result
   $status
@@ -51,9 +50,8 @@ use vars qw(
 
 # initialization
 $plugin      = Nagios::Plugin->new(
-    shortname => $prog_name
+    shortname => 'CHECK_DIR'
 );
-$prog_name   = 'LM_SENSORS';
 $verbosity   = 0;
 $status      = 0;
 
