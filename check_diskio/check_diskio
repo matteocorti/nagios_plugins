@@ -1,24 +1,65 @@
-#!/usr/bin/perl
+#!perl
 
+# check_tcptraffic is a Nagios plugin to monitor the amount of disk
+# I/O in sectors on Linux 2.6 and 2.4 systems
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
+
+use 5.008;
 use strict;
+use warnings;
+use Carp;
+
+use version; our $VERSION = '2.0.0';
+
+use English qw(-no_match_vars);
 use Getopt::Long;
-use POSIX "uname";
+use List::MoreUtils qw(any);
+use List::Util qw(first);
+use Nagios::Plugin::Threshold;
+use Nagios::Plugin;
+use Number::Format qw(format_number);
+use POSIX qw(uname);
+use Pod::Usage qw(pod2usage);
 
-my $VERSION    = '1.5.0';
-
-my $tmp        = '/tmp/check_diskio_status';
-my $name       = "DISKIO";
-
-my $critical   = 0;
-my $help       = '';
-my $device     = '';
-my $reset      = '';
-my $result;
-my $status     = 0;
-my $status_msg = '';
-my $warning    = 0;
-my $silent     = '';
-my $verbosity  = 0;
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+  $critical
+  $device
+  $help
+  $plugin
+  $reset
+  $result
+  $silent
+  $status
+  $status_msg
+  $threshold
+  $tmp
+  $verbosity
+  $warning
+);
 
 ##############################################################################
 # subroutines
@@ -35,13 +76,14 @@ my $verbosity  = 0;
 sub verbose {
 
     # arguments
-    my $message   = shift;
-    my $level     = shift;
+    my $message = shift;
+    my $level   = shift;
 
-    if ( !defined $message) {
-        unknown(q{Internal error: not enough parameters for 'verbose'});
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
     }
-    
+
     if ( !defined $level ) {
         $level = 0;
     }
@@ -54,267 +96,364 @@ sub verbose {
 
 }
 
-################################
-# prints the usage of the plugin
-sub usage {
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "$msg\n";
-  }
-
-  print << "EOT";
-usage:
-  -c crit, --critical=crit      critical
-  -d device, --device=device    device name
-  -r, --reset                   reset the counter
-  -s, --silent                  no warnings or critials
-  -v, --version                 version
-  -w warn, --warning warn       warning
-
-  either -c and -w or -s have to be specified
-EOT
-  exit(3);
-}
-
-#################################################
-# prints an "unknown" error message (exit code 3)
-sub unknown {
-
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "$name UNKNOWN: $msg\n";
-  }
-
-  exit(3);
-
-}
-
-#################################################
-# writes the time and transmit data to
-# the temporary file
+##############################################################################
+# Usage     : write_timer($in, $out)
+# Purpose   : writes the time and I/O data to the temporary file
+# Returns   : n/a
+# Arguments : $in     : input
+#             $output : output
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub write_timer {
 
-    my $in  = shift;
-    my $out = shift;
+    my $in   = shift;
+    my $out  = shift;
+    my $time = time;
 
-    open(TMP, "> $tmp") or
-        unknown("Cannot initialize timer");
-    print TMP time . " $in $out\n";
-    close TMP or
-        unknown("Cannot close timer");
+    my $TMP_FH;
+
+    verbose 'writing data: '
+      . format_number( $in,   0, 0, ) . q{/}
+      . format_number( $out,  0, 0, ) . q{ @ }
+      . format_number( $time, 0, 0, )
+      . "\n", 1;
+
+    open $TMP_FH, q{>}, $tmp
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot initialize timer ($tmp): $OS_ERROR" );
+    print {$TMP_FH} $time . " $in $out\n";
+    close $TMP_FH
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+
+    return;
+
 }
 
-#################################################
-# detects the Linux kernel version
+##############################################################################
+# Usage     : ($time, $in, $out) = read_timer()
+# Purpose   : reads the time and I/O data from the temporary file
+# Returns   : ($time, $in, $out) time difference, input and output data
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub read_timer {
+
+    my $TMP_FH;
+    my $time;
+    my $in;
+    my $out;
+    my $diff;
+
+    open $TMP_FH, q{<}, $tmp
+      or $plugin->nagios_exit( UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
+
+    while (<$TMP_FH>) {
+        chomp;
+        ( $time, $in, $out ) = split;
+        $diff = time - $time;
+    }
+
+    close $TMP_FH
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+
+    verbose 'reading data: '
+      . format_number( $in,   0, 0, ) . q{/}
+      . format_number( $out,  0, 0, ) . q{ @ }
+      . format_number( $time, 0, 0, )
+      . ' (diff '
+      . format_number( $diff, 0, 0, )
+      . ")\n", 1;
+
+    return ( $diff, $in, $out );
+
+}
+
+##############################################################################
+# Usage     : $version = kernel_version();
+# Purpose   : detects the Linux kernel version
+# Returns   : kernel version (w/o minor number)
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub kernel_version {
 
-  my ($sysname, $nodename, $release, $version, $machine ) = uname;
-  if ($release =~ /^2.4/) {
-    return "2.4";
-  }
-  if ($release =~ /^2.6/) {
-    return "2.6";
-  }
+    my ( $sysname, $nodename, $release, $version, $machine ) = uname;
+    if ( $release =~ /^2.4/mx ) {
+        return '2.4';
+    }
+    if ( $release =~ /^2.6/mx ) {
+        return '2.6';
+    }
 
-  unknown "kernel version ($release)";
+    $plugin->nagios_exit( UNKNOWN,
+        "Error: unsupported kernel version ($release)" );
+
+    return;
 
 }
 
-#################################################
-# reads kernel 2.6 disk stats
+##############################################################################
+# Usage     : read_26($device)
+# Purpose   : reads kernel 2.6 disk stats
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub read_26 {
 
-  my $device = shift;
+    my $device = shift;
 
-  verbose "reading data from /proc/diskstats\n";
-  
-  open(IN, '/proc/diskstats') or
-    unknown("Cannot open /proc/diskstats");
+    my $IN_FH;
 
-  while(<IN>) {
+    verbose "reading data from /proc/diskstats\n";
 
-    chomp;
+    open $IN_FH, q{<}, '/proc/diskstats'
+      or $plugin->nagios_exit( UNKNOWN, 'Error: cannot open /proc/diskstats' );
 
-    # kernel version 2.6
+    while (<$IN_FH>) {
 
-    # /proc/diskstats format
-    #
-    # major         Major number
-    # minor         Minor number
-    # name          Name
-    # reads         This is the total number of reads completed successfully.
-    # merged        Reads and writes which are adjacent to each other may be merged for
-    #               efficiency.  Thus two 4K reads may become one 8K read before it is
-    #               ultimately handed to the disk, and so it will be counted (and queued)
-    #               as only one I/O.  This field lets you know how often this was done.
-    # s_read        This is the total number of sectors read successfully.
-    # ms_read       This is the total number of milliseconds spent by all reads.
-    # writes        This is the total number of writes completed successfully.
-    # s_write       This is the total number of sectors written successfully.
-    # ms_write      This is the total number of milliseconds spent by all writes.
-    # ios           The only field that should go to zero. Incremented as requests are
-    #               given to appropriate request_queue_t and decremented as they finish.
-    # ms_io         This field is increases so long as field 9 is nonzero.
-    # ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
-    #               merge, or read f these stats by the number of I/Os in progress
-    #               times the number of milliseconds spent doing I/O since the
-    #               last update of this field.  This can provide an easy measure of both
-    #               I/O completion time and the backlog that may be accumulating.
+        chomp;
 
-    my ($major,
-        $minor,
-        $name,
-        $reads,
-        $merge_read,
-        $s_read,
-        $ms_read,
-        $writes,
-        $merge_write,
-        $s_write,
-        $ms_write,
-        $ios,
-        $ms_io,
-        $ms_weighted) = split;
+        # kernel version 2.6
 
-    if ($name eq $device) {
-      close(IN);
-      return ($s_read, $s_write);
+        # /proc/diskstats format
+        #
+        # major         Major number
+        # minor         Minor number
+        # name          Name
+        # reads         This is the total number of reads completed successfully.
+        # merged        Reads and writes which are adjacent to each other may be merged for
+        #               efficiency.  Thus two 4K reads may become one 8K read before it is
+        #               ultimately handed to the disk, and so it will be counted (and queued)
+        #               as only one I/O.  This field lets you know how often this was done.
+        # s_read        This is the total number of sectors read successfully.
+        # ms_read       This is the total number of milliseconds spent by all reads.
+        # writes        This is the total number of writes completed successfully.
+        # s_write       This is the total number of sectors written successfully.
+        # ms_write      This is the total number of milliseconds spent by all writes.
+        # ios           The only field that should go to zero. Incremented as requests are
+        #               given to appropriate request_queue_t and decremented as they finish.
+        # ms_io         This field is increases so long as field 9 is nonzero.
+        # ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
+        #               merge, or read f these stats by the number of I/Os in progress
+        #               times the number of milliseconds spent doing I/O since the
+        #               last update of this field.  This can provide an easy measure of both
+        #               I/O completion time and the backlog that may be accumulating.
+
+        my (
+            $major,       $minor,   $name,     $reads,
+            $merge_read,  $s_read,  $ms_read,  $writes,
+            $merge_write, $s_write, $ms_write, $ios,
+            $ms_io,       $ms_weighted
+        ) = split;
+
+        if ( $name eq $device ) {
+            close $IN_FH
+              or $plugin->nagios_exit( UNKNOWN,
+                "Error closing /proc/diskstats: $OS_ERROR" );
+            return ( $s_read, $s_write );
+        }
+
     }
 
-  }
+    close $IN_FH
+      or $plugin->nagios_exit( UNKNOWN,
+        "Error closing /proc/diskstats: $OS_ERROR" );
 
-  close(IN);
-  unknown("Device $device not found");
+    $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+
+    return
 
 }
 
-#################################################
-# reads kernel 2.4 disk stats
+##############################################################################
+# Usage     : read_24($device)
+# Purpose   : reads kernel 2.4 disk stats
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub read_24 {
 
-  my $device = shift;
+    my $device = shift;
 
-  verbose "reading data from /proc/partitions\n";
-  
-  open(IN,"/proc/partitions") or
-    unknown("Cannot open /proc/partitions");
+    my $IN_FH;
 
-  while(<IN>) {
+    verbose "reading data from /proc/partitions\n";
 
-    chomp;
+    open $IN_FH, q{<}, '/proc/partitions'
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot open /proc/partitions: $OS_ERROR" );
 
-    # kernel version 2.4
+    while (<$IN_FH>) {
 
-    # /proc/partitions format
-    #
-    # major         Major number
-    # minor         Minor number
-    # name          Name
-    # rio           Number of read IO requests completed
-    # rmerge        Number of submitted read requests that were merged
-    #               into existing requests.
-    # rsect         Number of read IO sectors submitted
-    # ruse          Total length of time all completed read requests have
-    #               taken to date, in milliseconds
-    # wio           Number of write IO requests completed
-    # wmerge        Number of submitted write requests that were merged
-    #               into existing requests.
-    # wsect         Number of write IO sectors submitted
-    # wuse          Total length of time all completed write requests have
-    #               taken to date, in milliseconds
-    # running       Instantaneous count of IOs currently in flight
-    # use           How many milliseconds there has been at least one
-    #               IO in flight
-    # aveq          The sum of how long all requests have spent in flight,
-    #               in milliseconds
+        chomp;
 
-    my (
-        $major,
-        $minor,
-        $blocks,
-        $name,
-        $rio,
-        $rmerge,
-        $rsect,
-        $ruse,
-        $wio,
-        $wmerge,
-        $wsect,
-        $wuse,
-        $running,
-        $use,
-        $aveq,
-    ) = split;
+        # kernel version 2.4
 
-    if (defined $name && $name ne 'name') {
-        verbose "Information found for '$name'\n", 1;
+        # /proc/partitions format
+        #
+        # major         Major number
+        # minor         Minor number
+        # name          Name
+        # rio           Number of read IO requests completed
+        # rmerge        Number of submitted read requests that were merged
+        #               into existing requests.
+        # rsect         Number of read IO sectors submitted
+        # ruse          Total length of time all completed read requests have
+        #               taken to date, in milliseconds
+        # wio           Number of write IO requests completed
+        # wmerge        Number of submitted write requests that were merged
+        #               into existing requests.
+        # wsect         Number of write IO sectors submitted
+        # wuse          Total length of time all completed write requests have
+        #               taken to date, in milliseconds
+        # running       Instantaneous count of IOs currently in flight
+        # use           How many milliseconds there has been at least one
+        #               IO in flight
+        # aveq          The sum of how long all requests have spent in flight,
+        #               in milliseconds
+
+        my (
+            $major,  $minor, $blocks,  $name, $rio,
+            $rmerge, $rsect, $ruse,    $wio,  $wmerge,
+            $wsect,  $wuse,  $running, $use,  $aveq,
+        ) = split;
+
+        if ( defined $name && $name ne 'name' ) {
+            verbose "Information found for '$name'\n", 1;
+        }
+
+        if ( $name =~ /^ide.*bus([0-9]).*target([0-9]).*lun([0-9])/mx ) {
+
+            # we try to get the corresponding device
+
+            my $bus    = $1;
+            my $target = $2;
+            my $lun    = $3;
+
+            verbose "Mapping $name";
+
+            verbose " to \n";
+        }
+
+        if ( $name eq $device ) {
+            close $IN_FH
+              or $plugin->nagios_exit( UNKNOWN,
+                "Error closing /proc/partitions: $OS_ERROR" );
+            return ( $rsect, $wsect );
+        }
+
     }
 
-    if ($name =~ /^ide.*bus([0-9]).*target([0-9]).*lun([0-9])/mx) {
-        
-        # we try to get the corresponding device
+    close $IN_FH
+      or $plugin->nagios_exit( UNKNOWN,
+        "Error closing /proc/partitions: $OS_ERROR" );
+    $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
 
-        my $bus    = $1;
-        my $target = $2;
-        my $lun    = $3;
-        
-        verbose "Mapping $name";
+    return;
 
-        verbose " to \n";
+}
+
+##############################################################################
+# Usage     : returns the user
+# Purpose   : retrieve the user runnging the process
+# Returns   : username
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub whoami {
+    my $output;
+    my $pid = open $output, q{-|}, 'whoami'
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    while (<$output>) {
+        chomp;
+        return $_;
     }
-    
-    if ($name eq $device) {
-      close(IN);
-      return ($rsect, $wsect);
-    }
-
-  }
-
-  close(IN);
-  unknown("Device $device not found");
-
+    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    return;
 }
 
 ##############################################################################
 # main
 #
 
+################
+# initialization
+$critical   = 0;
+$device     = q{};
+$help       = q{};
+$plugin     = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
+$reset      = q{};
+$silent     = q{};
+$status     = 0;
+$status_msg = q{};
+$verbosity  = 0;
+$verbosity  = 0;
+$warning    = 0;
+
 ########################
 # Command line arguments
 
-$result = GetOptions (
-    'critical=i'  => \$critical,
-    'device=s'    => \$device,
-    'help'        => \$help,
-    'reset'       => \$reset,
-    'silent'      => \$silent,
-    'warning=i'   => \$warning,
-    'verbose|v+'  => \$verbosity,
-    'version'     => sub { print "check_diskio version $VERSION\n"; exit 3;}
+$result = GetOptions(
+    'critical=i' => \$critical,
+    'device=s'   => \$device,
+    'help'       => \$help,
+    'reset'      => \$reset,
+    'silent'     => \$silent,
+    'warning=i'  => \$warning,
+    'verbose|v+' => \$verbosity,
+    'version'    => sub { print "check_diskio version $VERSION\n"; exit 3; }
 );
 
-if (!$result) {
-  usage();
+if ( !$result || $help ) {
+    pod2usage();
 }
 
-my $version = kernel_version;
+###############
+# Sanity checks
 
-if ($help)                            { usage(); }
-if (!$silent && $critical <= 0)       { usage("Could not parse \"critical\"");  }
-if (!$device)                         { usage("Could not parse \"device\"");    }
-if (!$silent && $warning  <= 0)       { usage("Could not parse \"warning\"");   }
-if (!$silent && $critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if ( !$silent && ( !defined $critical || $critical <= 0 ) ) {
+    pod2usage( -message => 'Could not parse "critical"' );
+}
+if ( !$silent && ( !defined $warning || $warning <= 0 ) ) {
+    pod2usage( -message => 'Could not parse "critical"' );
+}
+if ( !$silent && ( $critical < $warning ) ) {
+    pod2usage( -message => '"critical" has to be greater than "warning"' );
+}
+if ( !$device ) {
+    pod2usage( -message => q{Could not parse "device"} );
+}
+
+################
+# Initialization
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $warning,
+    critical => $critical,
+);
+
+my $version = kernel_version();
+
+$tmp = '/tmp/check_diskio_status-' . whoami();
 
 # strip /dev/
-$device =~ s/^\/dev\///;
+$device =~ s/^\/dev\///mx;
 
 # we need one temporary file per device
-my ($controller, $disk) = split(/\//,$device);
-if (!$disk) {
+my ( $controller, $disk ) = split /\//mx, $device;
+if ( !$disk ) {
     $tmp = $tmp . "-$controller";
-} else {
+}
+else {
     $tmp = $tmp . "-$disk";
 }
 
@@ -322,7 +461,7 @@ if (!$disk) {
 # Check the proc entry
 
 my $diff;
-my $found  = 0;
+my $found = 0;
 my $in;
 my $out;
 my $time;
@@ -333,88 +472,284 @@ my $s_write;
 # true if a /proc/diskstats file is available and readable
 my $proc_diskstats_available = 0;
 
-if (-f '/proc/diskstats' &&
-    -r '/proc/diskstats') {
+my $TMP_FH;
+
+if (   -f '/proc/diskstats'
+    && -r '/proc/diskstats' )
+{
 
     verbose "/proc/diskstats is available\n";
-    
+
     $proc_diskstats_available = 1;
 
 }
 
-if ($version eq "2.6" && $proc_diskstats_available) {
-    ($s_read, $s_write) = read_26($device);
-}  else {
-    ($s_read, $s_write) = read_24($device);
+if ( $version eq '2.6' && $proc_diskstats_available ) {
+    ( $s_read, $s_write ) = read_26($device);
+}
+else {
+    ( $s_read, $s_write ) = read_24($device);
 }
 
-# get the time difference
-if ($reset || !open(TMP, $tmp)) {
-  write_timer($s_write, $s_read);
-  unknown("Initializing timer");
+verbose 'current data: '
+  . format_number( $s_read,  0, 0 ) . q{/}
+  . format_number( $s_write, 0, 0 )
+  . "\n", 1;
+
+if ( !-f $tmp ) {
+    verbose "temporary file not available resetting and waiting\n";
+    write_timer( $s_write, $s_read );
+    sleep 1;
+    if ( $version eq '2.6' && $proc_diskstats_available ) {
+        ( $s_read, $s_write ) = read_26($device);
+    }
+    else {
+        ( $s_read, $s_write ) = read_24($device);
+    }
 }
 
-while (<TMP>) {
-  chomp;
-  ($time, $in, $out) = split;
-  $diff = time - $time;
+( $diff, $in, $out ) = read_timer();
+
+if ( $diff < 1 ) {
+
+    # wait a little bit
+    sleep 1;
+    ( $diff, $in, $out ) = read_timer();
 }
 
-close(TMP);
+write_timer( $s_write, $s_read );
 
-write_timer($s_write, $s_read);
+verbose "time difference: $diff\n", 1;
 
-if ($diff == 0) {
-  # round up
-  $diff = 1;
+if ( $diff == 0 ) {
+
+    # round up
+    $diff = 1;
 }
 
 my $diskio_w;
 my $diskio_r;
 
 # check for overflows (2^32 sectors)
-if ($s_write < $in) {
+if ( $s_write < $in ) {
+
     # overflow
-    $diskio_w = 4294967296 - $in + $s_write;
-} else {
+    $diskio_w = 4_294_967_296 - $in + $s_write;
+}
+else {
     $diskio_w = $s_write - $in;
 }
-if ($s_read < $out) {
+
+if ( $s_read < $out ) {
+
     # overflow
-    $diskio_r = 4294967296 - $out + $s_read;
-} else {
+    $diskio_r = 4_294_967_296 - $out + $s_read;
+}
+else {
     $diskio_r = $s_read - $out;
 }
 
-$diskio_w = int($diskio_w/ $diff);
-$diskio_r = int($diskio_r/ $diff);
+$diskio_w = int( $diskio_w / $diff );
+$diskio_r = int( $diskio_r / $diff );
 
-my $diskio   = $diskio_w + $diskio_r;
+my $diskio = $diskio_w + $diskio_r;
+
+$plugin->add_perfdata(
+    label     => 'WRITE',
+    value     => $diskio_w,
+    uom       => q{sectors/s},
+    threshold => $threshold,
+);
+
+$plugin->add_perfdata(
+    label     => 'READ',
+    value     => $diskio_w,
+    uom       => q{sectors/s},
+    threshold => $threshold,
+);
+
+$plugin->add_perfdata(
+    label     => 'TOTAL',
+    value     => $diskio,
+    uom       => q{sectors/s},
+    threshold => $threshold,
+);
 
 if ($silent) {
-    print "$name OK $diskio sectors/s|TOTAL=$diskio;;;;"
-        ." WRITE=$diskio_w;;;;"
-        ." READ=$diskio_r;;;;"
-        ." TIME=$diff;;;;\n";
-    exit 0;
-} else {
-    my $performance = "TOTAL=$diskio;$warning;$critical;;"
-        ." WRITE=$diskio_w;;;;"
-        ." READ=$diskio_r;;;;"
-        ." TIME=$diff;;;;";
-    
-    if ($diskio < $warning) {
-        print "$name OK $diskio sectors/s|$performance\n";
-        exit 0;
-    } else {
-        if ($diskio < $critical) {
-            print "$name WARNING $diskio sectors/s|$performance\n";
-            exit 1;
-        } else {
-            print "$name CRITICAL $diskio sectors/s|$performance\n";
-            exit 2;
-        }
-    }
+    $plugin->nagios_exit( OK, "$device OK" );
+}
+else {
+    $plugin->nagios_exit( $plugin->check_threshold($diskio),
+        "$device $diskio sectors/s" );
 }
 
-warning("Implementation error");
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<check_diskio> - a Nagios plugin to monitor the amount of disk I/O in sectors
+on Linux 2.6 and 2.4 systems
+
+
+=head1 DESCRIPTION
+
+check_diskio is a Nagios plugin to monitor the amount of disk I/O in sectors
+on Linux 2.6 and 2.4 systems
+
+=head1 VERSION
+
+Version 2.0.0
+
+=head1 SYNOPSIS
+
+ check_diskio --device=devicename --critical=critical --warning=warning
+            [--reset] [--verbose] [--silent]
+            [--version|--help]
+
+ Options:
+  --device=name,-d name         device name
+  --critical=value,-c value     critical number of sectors/s
+  --warning=value,-w value      number of sectors/s which generates a warning
+  --reset,-r                    reset the counter
+  --silent,-s                   no warnings or critials are issued
+  --version,-V                  print version
+  --verbose,-v                  verbose output
+  --help,-h,-?                  this help message
+
+=head1 REQUIRED ARGUMENTS
+
+--device, --critical and --warning
+
+=head1 OPTIONS
+
+  --device=name,-d name         device name
+
+  --critical=value,-c value     critical number of sectors/s
+
+  --warning=value,-w value      number of sectors/s which generates a warning
+
+  --reset,-r                    reset the counter
+
+  --silent,-s                   no warnings or critials are issued
+
+  --version,-V                  print version
+
+  --verbose,-v                  verbose output
+
+  --help,-h,-?                  this help message
+
+
+=head1 EXAMPLE
+
+check_diskio --warning=102400 --critical=122880 --device=hda
+
+check_diskio checks if the I/O for /dev/hda will stay below the given
+critical and warning values
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_diskio depends on
+
+=over 4
+
+=item * Carp
+
+=item * English
+
+=item * Getopt::Long
+
+=item * List::MoreUtils
+
+=item * List::Util
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * POSIX
+
+=item * Pod::Usage
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
+
+Many thanks to
+
+=over 4
+
+=item * Jeff Potter for pointing out an overflow problem
+
+=item * Wilco for the RAID patch
+
+=back
+
