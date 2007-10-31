@@ -284,13 +284,15 @@ Version 2.0.1
             [--recursive] [--verbose]
             [--version|--help]
 
+ Mandatory arguments:
+  --dir,-d        dirname    specify directory (can be repeated)
+  --critical,-c   critical   specify the critical number of files
+  --warning,-w    warning    specify warning threshold for the number of files
+
  Options:
-  -d dirname   specify directory
-  -r           perform recursive traversal
-  -c crit      specify the critical number of files
-  -w warn      specify warning threshold for the number of files
-  --version    print version number
-  -v           be more verbose
+  --recursive,-r             perform recursive traversal
+  --version,V                print version number
+  --verbose,-v               be more verbose (can be repeated)
 
 =head1 REQUIRED ARGUMENTS
 
@@ -298,19 +300,19 @@ Version 2.0.1
 
 =head1 OPTIONS
 
-    --dir,-d            directory to check
+    --dir,-d            directory to check (mandatory, can be repeated)
 
-    --critical,-c       critical number of files
+    --critical,-c       critical number of files (mandatory)
 
-    --warning,-w        warning level (number of files)
+    --warning,-w        warning threshold for the number of files (mandatory)
 
     --help,-h,-?        this help screen
 
     --recursive,-r      include subdirectories
     
-    --verbose,-v       increase verbosity
+    --verbose,-v        increase verbosity (can be repeated)
 
-    --version,-V       prints version information
+    --version,-V        prints version information
 
 =head1 EXAMPLE
 
