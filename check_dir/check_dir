@@ -23,7 +23,7 @@ use Nagios::Plugin::Threshold;
 use File::stat;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.0.0';
+use version; our $VERSION = '2.0.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -180,7 +180,7 @@ sub check_dir {
         $info_string = "$dirname=$n";
     }
 
-    $status = max($status, $plugin->check_threshold($n));
+    $status = max($status, $threshold->get_status($n));
 
     ###########
     # Recursive
