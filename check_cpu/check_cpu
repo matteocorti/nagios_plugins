@@ -1,89 +1,178 @@
-#!/usr/bin/perl
+#!perl
 
+# check_cpu is a nagios plugin to monitor the CPU usage on Linux systems
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
+
+use 5.008;
 use strict;
-use Getopt::Long;
+use warnings;
+use Carp;
+
+use version; our $VERSION = '1.0.0';
+
+use English qw(-no_match_vars);
+use File::Temp;
 use File::Copy;
+use Getopt::Long;
+use Nagios::Plugin::Threshold;
+use Nagios::Plugin;
+use Pod::Usage qw(pod2usage);
 
-my $VERSION    = "0.9";
-
-my $tmp        = '/tmp/check_cpu_status';
-my $name       = "CPU";
-
-my $critical;
-my $help       = '';
-my $reset      = '';
-my $result;
-my $silent;
-my $status     = 0;
-my $status_msg = '';
-my $warning;
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+  $blocked
+  $cpu
+  $critical
+  $ctxt
+  $diff
+  $help
+  $irq
+  $new_procs
+  $nice
+  $plugin
+  $result
+  $running
+  $silent
+  $system
+  $threshold
+  $tmp
+  $user
+  $verbosity
+  $warning
+  %new
+  %old
+);
 
 ##############################################################################
 # subroutines
 
-################################
-# prints the usage of the plugin
-sub usage {
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "$msg\n";
-  }
-
-  print << "EOT";
-usage:
-  -c crit, --critical=crit      critical
-  -r, --reset                   reset the counter
-  -s, --silent                  do not issue warnings
-  -w warn, --warning warn       warning
-  -v, --version                 version
-EOT
-  exit(3);
+##############################################################################
+# Usage     : whoami()
+# Purpose   : retrieve the user runnging the process
+# Returns   : username
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub whoami {
+    my $output;
+    my $pid = open $output, q{-|}, 'whoami'
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    while (<$output>) {
+        chomp;
+        return $_;
+    }
+    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    return;
 }
 
-#################################################
-# prints an "unknown" error message (exit code 3)
-sub unknown {
-
-  my $msg = shift;
-
-  if (defined $msg) {
-    print "$name UNKNOWN: $msg\n";
-  }
-
-  exit(3);
-
-}
-
-#################################################
-# writes the time and transmit data to
-# the temporary file
+##############################################################################
+# Usage     : write_timer($file)
+# Purpose   : writes the time and transmit data to the temporary file
+# Returns   : n/a
+# Arguments : $file : file to write the timer to
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub write_timer {
 
+    my $file = shift;
+
     # copy the stats
-    copy('/proc/stat', $tmp) or unknown("Cannot copy /proc/stat to $tmp");
+    copy( '/proc/stat', $file )
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot copy /proc/stat to $file: $OS_ERROR" );
+
+    my $TMP;
 
     # add the time
-    open(TMP, ">> $tmp") or
-        unknown("Cannot initialize timer");
-    print TMP "time " . time."\n";
-    close TMP or
-        unknown("Cannot close timer");
+    open $TMP, q{>>}, $file
+      or $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
+    print {$TMP} 'time ' . time . "\n";
+    close $TMP
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+
+    return;
 
 }
 
-#################################################
-# reads stats
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : %data = read_timer($file)
+# Purpose   : reads the performance data from the given file
+# Returns   : hash table with the performance data
+# Arguments : $file : file containing the performance data
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub read_stats {
 
     my $file = shift;
     my %result;
-    
-    open(IN, $file) or
-    unknown("Cannot open $file");
+    my $IN;
 
-    while(<IN>) {
-        
+    verbose "reading $file\n";
+
+    open $IN, q{<}, $file
+      or $plugin->nagios_exit( UNKNOWN, "Cannot open $file" );
+
+    while (<$IN>) {
+
         # /proc/stat file format
         #
         # cpu   user nice system idle iowait irq softirq
@@ -94,53 +183,56 @@ sub read_stats {
         # processes  number_of_created_processes_and_threads
         # procs_running  running_processes
         # procs_blocked  blocked_processes
-        
+
         chomp;
-        if (/^cpu\ /) {
-            s/^cpu\ //;
+        if (/^cpu\ /mx) {
+            s/^cpu\ //mx;
             (
-                $result{cpu_user},
-                $result{cpu_nice},
-                $result{cpu_system},
-                $result{cpu_idle},
-                $result{cpu_iowait},
-                $result{cpu_irq},
+                $result{cpu_user}, $result{cpu_nice},   $result{cpu_system},
+                $result{cpu_idle}, $result{cpu_iowait}, $result{cpu_irq},
                 $result{cpu_softirq}
             ) = split;
 
             $result{cpu} =
-                $result{cpu_user}    + 
-                $result{cpu_nice}    +
-                $result{cpu_system}  +
-                $result{cpu_idle}    +
-                $result{cpu_iowait}  +
-                $result{cpu_irq}     +
-                $result{cpu_softirq};
-            
-        } elsif (/^intr /) {
-            s/^intr\ //;
-            ($result{irq}) = split;
-        } elsif (/^ctxt /) {
-            s/^ctxt\ //;
-            $result{ctxt}  = $_;
-        } elsif (/^processes /) {
-            s/^processes\ //;
-            $result{new_procs}  = $_;
-        } elsif (/^procs_running /) {
-            s/^procs_running\ //;
-            $result{running}  = $_;
-        } elsif (/^procs_blocked /) {
-            s/^procs_blocked\ //;
-            $result{blocked}  = $_;
-        } elsif (/^time /) {
-            s/^time\ //;
-            ($result{time}) = split;
+              $result{cpu_user} +
+              $result{cpu_nice} +
+              $result{cpu_system} +
+              $result{cpu_idle} +
+              $result{cpu_iowait} +
+              $result{cpu_irq} +
+              $result{cpu_softirq};
+
         }
-        
+        elsif (/^intr /mx) {
+            s/^intr\ //mx;
+            ( $result{irq} ) = split;
+        }
+        elsif (/^ctxt /mx) {
+            s/^ctxt\ //mx;
+            $result{ctxt} = $_;
+        }
+        elsif (/^processes /mx) {
+            s/^processes\ //mx;
+            $result{new_procs} = $_;
+        }
+        elsif (/^procs_running /mx) {
+            s/^procs_running\ //mx;
+            $result{running} = $_;
+        }
+        elsif (/^procs_blocked /mx) {
+            s/^procs_blocked\ //mx;
+            $result{blocked} = $_;
+        }
+        elsif (/^time /mx) {
+            s/^time\ //mx;
+            ( $result{time} ) = split;
+        }
+
     }
-    
-    close(IN);
-    
+
+    close $IN
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close $file: $OS_ERROR" );
+
     return %result;
 
 }
@@ -149,95 +241,282 @@ sub read_stats {
 # main
 #
 
+################
+# Initialization
+$tmp       = '/tmp/check_cpu_status-' . whoami();
+$plugin    = Nagios::Plugin->new( shortname => 'CHECK_CPU' );
+$verbosity = 0;
+
 ########################
 # Command line arguments
 
-$result = GetOptions (
-    "critical=i"  => \$critical,
-    "help"        => \$help,
-    "reset"       => \$reset,
-    "silent"      => \$silent,
-    "warning=i"   => \$warning,
-    "version"     => sub { print "check_cpu version $VERSION\n"; exit 3;}
+$result = GetOptions(
+    'critical=i' => \$critical,
+    'help|?|h'   => \$help,
+    'silent'     => \$silent,
+    'warning=i'  => \$warning,
+    'verbose|v+' => \$verbosity,
+    'version'    => sub { print "check_cpu version $VERSION\n"; exit 3; }
 );
 
-if (!$result) {
-  usage();
+###############
+# Sanity checks
+
+if ( !$result || $help ) {
+    pod2usage();
 }
 
-
-if ($help)                { usage(); }
-if (!$silent) {
-    if ($critical <= 0)       { usage("Could not parse \"critical\"");  }
-    if ($warning  <= 0)       { usage("Could not parse \"warning\"");   }
-    if ($critical < $warning) { usage("\"critical\" has to be greater than \"warning\""); }
+if ( !$silent ) {
+    if ( !defined $critical || $critical <= 0 ) {
+        pod2usage( -message => 'Could not parse "critical"' );
+    }
+    if ( !defined $warning || $warning <= 0 ) {
+        pod2usage( -message => 'Could not parse "warning"' );
+    }
+    if ( $critical < $warning ) {
+        pod2usage( -message => '"critical" has to be greater than "warning"' );
+    }
 }
 
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $warning,
+    critical => $critical,
+);
 
 ########################
 # Check the proc entry
 
-my $diff;
-my $found  = 0;
-my $time;
-
-my %new = read_stats('/proc/stat');
-
-# get the time difference
-if ($reset || !open(TMP, $tmp)) {
-  write_timer;
-  unknown("Initializing timer");
+if ( !-f $tmp ) {
+    verbose "temporary file ($tmp) not available resetting and waiting\n";
+    write_timer($tmp);
+    sleep 1;    # wait at least one second to gather some data
 }
+%old = read_stats($tmp);
 
-close(TMP);
-
-my %old = read_stats($tmp);
-
-write_timer();
+%new = read_stats('/proc/stat');
 
 $diff = time - $old{time};
 
-if ($diff == 0) {
-    unknown("check time < 1s");
+if ( $diff < 1 ) {
+
+    # wait a little bit
+    sleep 1;
+    %old = read_stats($tmp);
 }
+
+write_timer($tmp);
 
 # cpu = (new - old)(tot_new - tot_old)
-my $cpu       = sprintf("%.0f",(1-($new{cpu_idle} - $old{cpu_idle})  /($new{cpu}-$old{cpu}))*100);
-my $nice      = sprintf("%.0f",(($new{cpu_nice}   - $old{cpu_nice})  /($new{cpu}-$old{cpu}))*100);
-my $system    = sprintf("%.0f",(($new{cpu_system} - $old{cpu_system})/($new{cpu}-$old{cpu}))*100);
-my $user      = sprintf("%.0f",(($new{cpu_user}   - $old{cpu_user})  /($new{cpu}-$old{cpu}))*100);
-my $irq       = abs(int(($new{irq}       - $old{irq})/      $diff));
-my $ctxt      = abs(int(($new{ctxt}      - $old{ctxt})/     $diff));
-my $new_procs = abs(int(($new{new_procs} - $old{new_procs})/$diff));
-my $running   = $new{running};
-my $blocked   = $new{blocked};
+$cpu = sprintf '%.0f',
+  ( 1 - ( $new{cpu_idle} - $old{cpu_idle} ) / ( $new{cpu} - $old{cpu} ) ) * 100;
+$nice = sprintf '%.0f',
+  ( ( $new{cpu_nice} - $old{cpu_nice} ) / ( $new{cpu} - $old{cpu} ) ) * 100;
+$system = sprintf '%.0f',
+  ( ( $new{cpu_system} - $old{cpu_system} ) / ( $new{cpu} - $old{cpu} ) ) * 100;
+$user = sprintf '%.0f',
+  ( ( $new{cpu_user} - $old{cpu_user} ) / ( $new{cpu} - $old{cpu} ) ) * 100;
+$irq       = abs int( ( $new{irq} - $old{irq} ) / $diff );
+$ctxt      = abs int( ( $new{ctxt} - $old{ctxt} ) / $diff );
+$new_procs = abs int( ( $new{new_procs} - $old{new_procs} ) / $diff );
+$running = $new{running};
+$blocked = $new{blocked};
 
-my $performance = "CPU=$cpu;$warning;$critical;;"
-    ." NICE=$nice;;;;"
-    ." SYS=$system;;;;"
-    ." USER=$user;;;;"
-    ." IRQ=$irq;;;;"
-    ." CTXT=$ctxt;;;;"
-    ." NEW_PROCS=$new_procs;;;;"
-    ." RUNNING=$running;;;;"
-    ." BLOCKED=$blocked;;;;";
+$plugin->add_perfdata(
+    label     => 'CPU',
+    value     => $cpu,
+    uom       => q{%},
+    threshold => $threshold,
+);
 
-if (!$silent) {
-    if ($cpu < $warning) {
-        print "$name OK $cpu%|$performance\n";
-        exit 0;
-    } else {
-        if ($cpu < $critical) {
-            print "$name WARNING $cpu%|$performance\n";
-            exit 1;
-        } else {
-            print "$name CRITICAL $cpu%|$performance\n";
-            exit 2;
-        }
-    }
-} else {
-    print "$name $cpu%|$performance\n";
-    exit 0;
+$plugin->add_perfdata(
+    label => 'NICE',
+    value => $nice,
+    uom   => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'SYS',
+    value => $system,
+    uom   => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'USER',
+    value => $user,
+    uom   => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'IRQ',
+    value => $irq,
+);
+
+$plugin->add_perfdata(
+    label => 'CTXT',
+    value => $ctxt,
+);
+
+$plugin->add_perfdata(
+    label => 'NEW_PROCS',
+    value => $new_procs,
+);
+
+$plugin->add_perfdata(
+    label => 'RUNNING',
+    value => $running,
+);
+
+$plugin->add_perfdata(
+    label => 'BLOCKED',
+    value => $blocked,
+);
+
+if ( !$silent ) {
+    $plugin->nagios_exit( $threshold->get_status($cpu), "CPU $cpu%" );
+}
+else {
+    $plugin->nagios_exit( OK, "CPU $cpu%" );
 }
 
-warning("Implementation error");
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<check_cpu> is a nagios plugin to monitor the CPU usage on Linux systems
+
+=head1 DESCRIPTION
+
+C<check_cpu> is a nagios plugin to monitor the CPU usage on Linux systems
+
+=head1 VERSION
+
+Version 1.0.0
+
+=head1 SYNOPSIS
+
+ check_cpu --warning=W --critical=C [OPTIONS]
+
+ Options:
+  --critical,-c=crit            critical threshold
+  --help,-h,-?                  this help message
+  --silent,-s                   do not issue warnings
+  --warning,-w=warn             warning threshold
+  --version,-v                  version
+
+=head1 REQUIRED ARGUMENTS
+
+  --critical,-c=crit            critical threshold
+  --warning,-w=warn             warning threshold
+
+=head1 OPTIONS
+
+  --critical,-c=crit            critical threshold
+    
+  --help,-h,-?                  this help message
+    
+  --silent,-s                   do not issue warnings
+    
+  --warning,-w=warn             warning threshold
+    
+  --version,-v                  version
+
+=head1 EXAMPLE
+
+check_cpu --warning=90 --critical=95
+
+check_cpu warns if the cpu usage is higher than 90% or 95% respectively
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_cpu depends on
+
+=over 4
+
+=item * Carp
+
+=item * File::Copy
+
+=item * File::Temp
+
+=item * English
+
+=item * Getopt::Long
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * Pod::Usage
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
