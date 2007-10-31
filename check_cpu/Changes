@@ -1,0 +1,16 @@
+2007-10-31  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+        * Uses Nagios::Plugin
+        * Compatible with embedded Perl
+        * Fix to avoid permission conflict on temporary files
+        * Verbose output
+        * New packaging (uses EU::MM)        
+
+2007-04-17  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* --silent: does not generate warning and critical reports
+
+2007-03-27  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Initial test release
+
