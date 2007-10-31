@@ -32,7 +32,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root, 0644)
-%doc AUTHORS ChangeLog NEWS README INSTALL TODO COPYING VERSION
+%doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
 %attr(0755, root, root) %{_prefix}/%{name}
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
