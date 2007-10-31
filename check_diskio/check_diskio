@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '2.0.0';
+use version; our $VERSION = '2.0.1';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -579,7 +579,7 @@ if ($silent) {
     $plugin->nagios_exit( OK, "$device OK" );
 }
 else {
-    $plugin->nagios_exit( $plugin->check_threshold($diskio),
+    $plugin->nagios_exit( $threshold->get_status($diskio),
         "$device $diskio sectors/s" );
 }
 
