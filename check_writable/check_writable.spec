@@ -1,4 +1,4 @@
-%define version 1.0.0
+%define version 2.0.0
 %define release 0
 %define name    check_writable
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -45,6 +45,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_writable
 
 %changelog
+* Wed Oct 31 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.0-0
+- updated to 2.0.0
+
 * Mon Sep 24 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.0-0
 - first rpm package
 

@@ -1,1 +1,3 @@
-2007-07-26 Initial release (1.0)
+2007-10-31 Version 2.0.0: new packaging (based on ExtUtils::MakeMaker, compatible with embedded Perl, used Nagios::Plugin
+
+2007-07-26 Version 1.0.0: initial release
