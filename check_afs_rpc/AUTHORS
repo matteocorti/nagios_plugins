@@ -1,0 +1,10 @@
+Matteo Corti <matteo.corti@id.ethz.ch> ETH Zurich
+
+The original idea behind this script was from Neil Crellin.  It was updated
+by Quanah Gibson-Mount to work with Nagios, and then further updated by Russ
+Allbery <rra@stanford.edu> to support more standard options and to use a
+more uniform coding style.
+
+The script was then rewritten by Matteo Corti to be compatible with
+embedded Perl, to allow the specification of a different port and to
+integrate it with the Nagios::Plugin modules.

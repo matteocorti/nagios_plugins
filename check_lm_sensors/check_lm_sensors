@@ -411,7 +411,7 @@ sub parse_sensors {
 ########################
 # Command line arguments
 
-Getopt::Long::Configure('bundling');
+Getopt::Long::Configure('bundling', 'no_ignore_case');
 $result = GetOptions(
     'check|c=s'     => \%checks,
     'drives!'       => \$drives,
