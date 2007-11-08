@@ -1,4 +1,4 @@
-%define version 2.0.1
+%define version 2.0.2
 %define release 0
 %define name    check_diskio
 %define _prefix /usr/lib/nagios/plugins/contrib

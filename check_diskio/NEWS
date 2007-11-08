@@ -1,3 +1,5 @@
+2007-11-08 2.0.2: updated the install script with the Number::Format
+                  dependency
 2007-10-31 2.0.1: bug fix in the threshold check
 2007-10-30 2.0.0: new packaging and fixed a bug which created permission
                   conflicts on the temporary files when used by different
