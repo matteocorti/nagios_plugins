@@ -361,7 +361,7 @@ sub read_24 {
 }
 
 ##############################################################################
-# Usage     : returns the user
+# Usage     : whoami()
 # Purpose   : retrieve the user runnging the process
 # Returns   : username
 # Arguments : n/a
