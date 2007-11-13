@@ -10,6 +10,8 @@ all_from 'check_diskio';
 ##############################################################################
 # Specific dependencies
 
+include 'version';
+
 requires 'Carp'                      => 0;
 requires 'English'                   => 0;
 requires 'Getopt::Long'              => 0;
