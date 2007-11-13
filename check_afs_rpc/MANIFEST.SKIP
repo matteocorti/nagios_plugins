@@ -3,6 +3,7 @@
 ^Build$
 ^blib
 ~$
+\.tdy$
 \.bak$
 \.sw.$
 \.svn
