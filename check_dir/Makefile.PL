@@ -10,6 +10,8 @@ all_from 'check_dir';
 ##############################################################################
 # Specific dependencies
 
+include 'version';
+
 requires 'Carp'                      => 0;
 requires 'English'                   => 0;
 requires 'File::stat'                => 0;
