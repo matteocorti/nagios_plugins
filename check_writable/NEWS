@@ -1,3 +1,5 @@
+2007-11-13 Version 2.0.1: version.pm included in the distribution (required by Makefile.PL)
+
 2007-10-31 Version 2.0.0: new packaging (based on ExtUtils::MakeMaker, compatible with embedded Perl, used Nagios::Plugin
 
 2007-07-26 Version 1.0.0: initial release
