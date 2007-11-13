@@ -1,3 +1,7 @@
+2007-11-13  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Makefile.PL: included version.pm in the distribution
+
 2007-11-06  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* Initial release

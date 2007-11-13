@@ -52,12 +52,44 @@ use vars qw(
   $output
   $plugin
   $port
+  $verbosity
   $result
   $rxdebug_bin
   $threshold
   $timeout
   $warning
 );
+
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message   = shift;
+    my $level     = shift;
+
+    if ( !defined $message) {
+        $plugin->nagios_exit(UNKNOWN, q{Internal error: not enough parameters for 'verbose'});
+    }
+    
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
 
 ##############################################################################
 # Usage     : get_path('program_name');
@@ -111,6 +143,8 @@ sub get_path {
 $critical = 8;
 $warning  = 2;
 
+$verbosity = 0;
+
 # The default timeout in seconds (implemented by alarm) for rxdebug.
 $timeout = 60;
 
@@ -129,6 +163,7 @@ $result = GetOptions(
     'help|h|?'     => sub { pod2usage(); },
     'port|p=i',    => \$port,
     'timeout|t=i'  => \$timeout,
+    'verbose|v+'   => \$verbosity,
     'version|V'    => sub { print "check_afs_rpc version $VERSION\n"; exit 3; },
     'warning|w=i'  => \$warning
 );
@@ -168,12 +203,14 @@ alarm $timeout;
 
 $command = "$rxdebug_bin -noconn $hostname -port $port";
 
+verbose "Executing $command\n";
+
 open $output, q{-|}, "$command 2>&1"
   or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR", );
 
 undef $blocked;
 while (<$output>) {
-    if (/^(\d+) calls waiting for a thread/mx) {
+    if (/^(\d+)\ calls\ waiting\ for\ a\ thread/mx) {
         $blocked = $1;
         last;
     }
