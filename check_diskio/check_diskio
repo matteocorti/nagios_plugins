@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '2.0.2';
+use version; our $VERSION = '2.1.0';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -46,12 +46,14 @@ use Pod::Usage qw(pod2usage);
 # All variables are therefore declared as package variables...
 #
 use vars qw(
+  $format
   $critical
   $device
   $help
   $plugin
   $reset
   $result
+  $sector_size
   $silent
   $status
   $status_msg
@@ -387,26 +389,30 @@ sub whoami {
 
 ################
 # initialization
-$critical   = 0;
-$device     = q{};
-$help       = q{};
-$plugin     = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
-$reset      = q{};
-$silent     = q{};
-$status     = 0;
-$status_msg = q{};
-$verbosity  = 0;
-$verbosity  = 0;
-$warning    = 0;
+$critical    = 0;
+$device      = q{};
+$format      = q{s};
+$help        = q{};
+$plugin      = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
+$reset       = q{};
+$sector_size = 512;
+$silent      = q{};
+$status      = 0;
+$status_msg  = q{};
+$verbosity   = 0;
+$verbosity   = 0;
+$warning     = 0;
 
 ########################
 # Command line arguments
 
 $result = GetOptions(
     'critical=i' => \$critical,
+    'uom=s'      => \$format,
     'device=s'   => \$device,
     'help'       => \$help,
     'reset'      => \$reset,
+    'ssize'      => \$sector_size,
     'silent'     => \$silent,
     'warning=i'  => \$warning,
     'verbose|v+' => \$verbosity,
@@ -433,6 +439,58 @@ if ( !$device ) {
     pod2usage( -message => q{Could not parse "device"} );
 }
 
+#####
+# UOM
+
+my $multiplier;
+my $UOM;
+
+if ( $format eq 's' || $format =~ /^sector[s]$/ ) {
+    
+    #sectors
+    $multiplier = 1;
+    $UOM        = 'sectors/s';
+    
+} elsif ( $format eq 'b' || $format =~ /^bit[s]$/ ) {
+    
+    # bits
+    $multiplier = $sector_size * 8;
+    $UOM        = 'bps';
+
+} elsif ( $format eq 'B' || $format =~ /^byte[s]$/ ) {
+
+    # bytes
+    $multiplier = $sector_size;
+    $UOM        = 'Bps';
+
+} elsif ( $format eq 'K' || $format eq 'KB' ) {
+
+    # KB
+    $multiplier = $sector_size / 1_024;
+    $UOM        = 'KBps';
+    
+} elsif ( $format eq 'Kb' ) {
+
+    # Kb ( * 8 / 1024 )
+    $multiplier = $sector_size / 128;
+    $UOM        = 'Kbps';
+
+} elsif ( $format eq 'M' || $format eq 'MB' ) {
+
+    # MB ( / 1024 / 1024 )
+    $multiplier = $sector_size / 1_048_576;
+    $UOM        = 'MBps';
+    
+} elsif ( $format eq 'Mb' ) {
+
+    # Mb ( * 8 / 1024 / 1024 )
+    $multiplier = $sector_size / 131_072;
+    $UOM        = 'Mbps';
+    
+} else {
+    pod2usage( -message => "Uknown unit of measurement: $format" );
+}
+         
 ################
 # Initialization
 
@@ -552,26 +610,32 @@ else {
 $diskio_w = int( $diskio_w / $diff );
 $diskio_r = int( $diskio_r / $diff );
 
+$diskio_w = $diskio_w * $multiplier;
+$diskio_r = $diskio_r * $multiplier;
+    
 my $diskio = $diskio_w + $diskio_r;
+
+# no UOM according to the guidelines 
+#   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN203
 
 $plugin->add_perfdata(
     label     => 'WRITE',
-    value     => $diskio_w,
-    uom       => q{sectors/s},
+    value     => sprintf('%.0f', $diskio_w),
+    uom       => q{},
     threshold => $threshold,
 );
 
 $plugin->add_perfdata(
     label     => 'READ',
-    value     => $diskio_w,
-    uom       => q{sectors/s},
+    value     => sprintf('%.0f', $diskio_r),
+    uom       => q{},
     threshold => $threshold,
 );
 
 $plugin->add_perfdata(
     label     => 'TOTAL',
-    value     => $diskio,
-    uom       => q{sectors/s},
+    value     => sprintf('%.0f', $diskio),
+    uom       => q{},
     threshold => $threshold,
 );
 
@@ -580,7 +644,7 @@ if ($silent) {
 }
 else {
     $plugin->nagios_exit( $threshold->get_status($diskio),
-        "$device $diskio sectors/s" );
+        "$device ".sprintf('%.0f', $diskio)." $UOM" );
 }
 
 1;
@@ -602,23 +666,39 @@ on Linux 2.6 and 2.4 systems
 
 =head1 VERSION
 
-Version 2.0.0
+Version 2.1.0
 
 =head1 SYNOPSIS
 
  check_diskio --device=devicename --critical=critical --warning=warning
+            [--byte] [--ssize=size]
             [--reset] [--verbose] [--silent]
             [--version|--help]
 
- Options:
+ Required arguments:
   --device=name,-d name         device name
   --critical=value,-c value     critical number of sectors/s
   --warning=value,-w value      number of sectors/s which generates a warning
+
+ Options
+  --help,-h,-?                  this help message
   --reset,-r                    reset the counter
   --silent,-s                   no warnings or critials are issued
-  --version,-V                  print version
+  --ssize=size                  specify the sector size in bytes (default 512)
   --verbose,-v                  verbose output
-  --help,-h,-?                  this help message
+  --version,-V                  print version
+  --uom=unit                    unit of measurement:
+
+                                  unit              description
+                                  =============================================
+    
+                                  sector,sectors,s  sdectors/s
+                                  bit,bits,b        bps      bits per second
+                                  byte,bytes,B      Bps      bytes per second
+                                  Kb                Kbps     Kbits per second
+                                  KB,K              KBbps    Kbytes per second
+                                  Mb                Mbps     Mbits per second
+                                  MB,M              MBps     Mbytes per second
 
 =head1 REQUIRED ARGUMENTS
 
@@ -631,6 +711,21 @@ Version 2.0.0
   --critical=value,-c value     critical number of sectors/s
 
   --warning=value,-w value      number of sectors/s which generates a warning
+
+  --uom=unit                    unit of measurement
+
+                                  unit              description
+                                  =============================================
+    
+                                  sector,sectors,s  sdectors/s
+                                  bit,bits,b        bps      bits per second
+                                  byte,bytes,B      Bps      bytes per second
+                                  Kb                Kbps     Kbits per second
+                                  KB,K              KBbps    Kbytes per second
+                                  Mb                Mbps     Mbits per second
+                                  MB,M              MBps     Mbytes per second
+
+  --ssize=size                  sector size in bytes (default 512)
 
   --reset,-r                    reset the counter
 

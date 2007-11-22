@@ -1,16 +1,39 @@
-check_diskio is a Nagios plugin to monitor the amount of disk I/O in sectors
+check_diskio is a Nagios plugin to monitor the amount of disk I/O
 on Linux 2.6 and 2.4 systems
 
 Usage
 =====
 
-usage:
-  -c crit      critical
-  -w warn      warning
-  -d device    disk
-  -r           initialize
-  -s           silent (no warnings, does not require -c or -w)
-  -v           verbose
+  check_diskio --device=devicename --critical=critical --warning=warning
+             [--byte] [--ssize=size]
+             [--reset] [--verbose] [--silent]
+             [--version|--help]
+
+  Required arguments:
+   --device=name,-d name         device name
+   --critical=value,-c value     critical number of sectors/s
+   --warning=value,-w value      number of sectors/s which generates a warning
+
+  Options
+   --bytes,-b,-B                 express I/O in bytes/s
+   --help,-h,-?                  this help message
+   --reset,-r                    reset the counter
+   --silent,-s                   no warnings or critials are issued
+   --ssize=size                  specify the sector size (default 512)
+   --verbose,-v                  verbose output
+   --version,-V                  print version
+   --uom=unit                    unit of measurement:
+
+          unit              description
+          =============================================
+    
+          sector,sectors,s  sdectors/s
+          bit,bits,b        bps      bits per second
+          byte,bytes,B      Bps      bytes per second
+          Kb                Kbps     Kbits per second
+          KB,K              KBbps    Kbytes per second
+          Mb                Mbps     Mbits per second
+          MB,M              MBps     Mbytes per second
 
 --------------------------------------------------------------------------------
 Please report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>

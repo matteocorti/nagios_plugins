@@ -1,4 +1,4 @@
-%define version 2.0.2
+%define version 2.1.0
 %define release 0
 %define name    check_diskio
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -37,6 +37,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Thu Nov 22 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.0-0
+- upgraded to 2.1.0
+
 * Wed Oct 31 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.1-0
 - upgraded to 2.0.1 (bug fix)
 

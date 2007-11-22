@@ -1,3 +1,9 @@
+2007-11-22  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: fix the output for read used the value for write
+	* check_diskio: removed the UOM from the performance data
+	* check_diskio: output in bytes/s
+
 2007-11-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* Makefile.PL: included version.pm in the distribution

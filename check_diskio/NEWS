@@ -1,3 +1,6 @@
+2007-11-22 2.1.0: fixed a bug which made the read value the same as the write
+                  value, removed the UOM from the performance data and
+                  added a --uom option to specify the unit of measurement
 2007-11-08 2.0.2: updated the install script with the Number::Format
                   dependency
 2007-10-31 2.0.1: bug fix in the threshold check
