@@ -413,7 +413,7 @@ $result = GetOptions(
     'help'       => \$help,
     'reset'      => \$reset,
     'ssize'      => \$sector_size,
-    'silent'     => \$silent,
+    'silent|s'   => \$silent,
     'warning=i'  => \$warning,
     'verbose|v+' => \$verbosity,
     'version'    => sub { print "check_diskio version $VERSION\n"; exit 3; }
