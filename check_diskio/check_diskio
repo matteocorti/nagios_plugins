@@ -222,29 +222,29 @@ sub read_26 {
 
         # kernel version 2.6
 
-        # /proc/diskstats format
-        #
-        # major         Major number
-        # minor         Minor number
-        # name          Name
-        # reads         This is the total number of reads completed successfully.
-        # merged        Reads and writes which are adjacent to each other may be merged for
-        #               efficiency.  Thus two 4K reads may become one 8K read before it is
-        #               ultimately handed to the disk, and so it will be counted (and queued)
-        #               as only one I/O.  This field lets you know how often this was done.
-        # s_read        This is the total number of sectors read successfully.
-        # ms_read       This is the total number of milliseconds spent by all reads.
-        # writes        This is the total number of writes completed successfully.
-        # s_write       This is the total number of sectors written successfully.
-        # ms_write      This is the total number of milliseconds spent by all writes.
-        # ios           The only field that should go to zero. Incremented as requests are
-        #               given to appropriate request_queue_t and decremented as they finish.
-        # ms_io         This field is increases so long as field 9 is nonzero.
-        # ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
-        #               merge, or read f these stats by the number of I/Os in progress
-        #               times the number of milliseconds spent doing I/O since the
-        #               last update of this field.  This can provide an easy measure of both
-        #               I/O completion time and the backlog that may be accumulating.
+# /proc/diskstats format
+#
+# major         Major number
+# minor         Minor number
+# name          Name
+# reads         This is the total number of reads completed successfully.
+# merged        Reads and writes which are adjacent to each other may be merged for
+#               efficiency.  Thus two 4K reads may become one 8K read before it is
+#               ultimately handed to the disk, and so it will be counted (and queued)
+#               as only one I/O.  This field lets you know how often this was done.
+# s_read        This is the total number of sectors read successfully.
+# ms_read       This is the total number of milliseconds spent by all reads.
+# writes        This is the total number of writes completed successfully.
+# s_write       This is the total number of sectors written successfully.
+# ms_write      This is the total number of milliseconds spent by all writes.
+# ios           The only field that should go to zero. Incremented as requests are
+#               given to appropriate request_queue_t and decremented as they finish.
+# ms_io         This field is increases so long as field 9 is nonzero.
+# ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
+#               merge, or read f these stats by the number of I/Os in progress
+#               times the number of milliseconds spent doing I/O since the
+#               last update of this field.  This can provide an easy measure of both
+#               I/O completion time and the backlog that may be accumulating.
 
         my (
             $major,       $minor,   $name,     $reads,
@@ -446,51 +446,58 @@ my $multiplier;
 my $UOM;
 
 if ( $format eq 's' || $format =~ /^sector[s]$/ ) {
-    
+
     #sectors
     $multiplier = 1;
     $UOM        = 'sectors/s';
-    
-} elsif ( $format eq 'b' || $format =~ /^bit[s]$/ ) {
-    
+
+}
+elsif ( $format eq 'b' || $format =~ /^bit[s]$/ ) {
+
     # bits
     $multiplier = $sector_size * 8;
     $UOM        = 'bps';
 
-} elsif ( $format eq 'B' || $format =~ /^byte[s]$/ ) {
+}
+elsif ( $format eq 'B' || $format =~ /^byte[s]$/ ) {
 
     # bytes
     $multiplier = $sector_size;
     $UOM        = 'Bps';
 
-} elsif ( $format eq 'K' || $format eq 'KB' ) {
+}
+elsif ( $format eq 'K' || $format eq 'KB' ) {
 
     # KB
     $multiplier = $sector_size / 1_024;
     $UOM        = 'KBps';
-    
-} elsif ( $format eq 'Kb' ) {
+
+}
+elsif ( $format eq 'Kb' ) {
 
     # Kb ( * 8 / 1024 )
     $multiplier = $sector_size / 128;
     $UOM        = 'Kbps';
 
-} elsif ( $format eq 'M' || $format eq 'MB' ) {
+}
+elsif ( $format eq 'M' || $format eq 'MB' ) {
 
     # MB ( / 1024 / 1024 )
     $multiplier = $sector_size / 1_048_576;
     $UOM        = 'MBps';
-    
-} elsif ( $format eq 'Mb' ) {
+
+}
+elsif ( $format eq 'Mb' ) {
 
     # Mb ( * 8 / 1024 / 1024 )
     $multiplier = $sector_size / 131_072;
     $UOM        = 'Mbps';
-    
-} else {
+
+}
+else {
     pod2usage( -message => "Uknown unit of measurement: $format" );
 }
-         
+
 ################
 # Initialization
 
@@ -612,29 +619,29 @@ $diskio_r = int( $diskio_r / $diff );
 
 $diskio_w = $diskio_w * $multiplier;
 $diskio_r = $diskio_r * $multiplier;
-    
+
 my $diskio = $diskio_w + $diskio_r;
 
-# no UOM according to the guidelines 
+# no UOM according to the guidelines
 #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN203
 
 $plugin->add_perfdata(
     label     => 'WRITE',
-    value     => sprintf('%.0f', $diskio_w),
+    value     => sprintf( '%.0f', $diskio_w ),
     uom       => q{},
     threshold => $threshold,
 );
 
 $plugin->add_perfdata(
     label     => 'READ',
-    value     => sprintf('%.0f', $diskio_r),
+    value     => sprintf( '%.0f', $diskio_r ),
     uom       => q{},
     threshold => $threshold,
 );
 
 $plugin->add_perfdata(
     label     => 'TOTAL',
-    value     => sprintf('%.0f', $diskio),
+    value     => sprintf( '%.0f', $diskio ),
     uom       => q{},
     threshold => $threshold,
 );
@@ -644,7 +651,7 @@ if ($silent) {
 }
 else {
     $plugin->nagios_exit( $threshold->get_status($diskio),
-        "$device ".sprintf('%.0f', $diskio)." $UOM" );
+        "$device " . sprintf( '%.0f', $diskio ) . " $UOM" );
 }
 
 1;
@@ -691,7 +698,7 @@ Version 2.1.0
 
                                   unit              description
                                   =============================================
-    
+
                                   sector,sectors,s  sdectors/s
                                   bit,bits,b        bps      bits per second
                                   byte,bytes,B      Bps      bytes per second
@@ -716,7 +723,7 @@ Version 2.1.0
 
                                   unit              description
                                   =============================================
-    
+
                                   sector,sectors,s  sdectors/s
                                   bit,bits,b        bps      bits per second
                                   byte,bytes,B      Bps      bytes per second
