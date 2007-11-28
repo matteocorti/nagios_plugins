@@ -1,4 +1,4 @@
-%define version 0.9.2
+%define version 0.9.3
 %define release 0
 %define name    check_nagios_latency
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -34,5 +34,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_nagios_latency
 
 %changelog
+* Wed Nov 28 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.3-0
+- updated to 0.9.3 (added -n option)
+
 * Thu Sep 20 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
 - Initial beta release

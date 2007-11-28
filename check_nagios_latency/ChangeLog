@@ -1,3 +1,8 @@
+2007-11-28  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_nagios_latency: cleaned up using bashcritic
+	* check_nagios_latency: added the -n path option to specify the nagiostats path
+
 2007-09-20  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_nagios_latency: Initial implementation

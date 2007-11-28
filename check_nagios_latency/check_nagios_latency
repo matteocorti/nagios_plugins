@@ -6,7 +6,7 @@
 #
 # Checks the Nagios latency
 
-VERSION=0.9.2
+VERSION=0.9.3
 
 ################################################################################
 # Functions
@@ -22,12 +22,13 @@ usage() {
     fi
     
     echo
-    echo "Usage: check_nagios_latency [-hvV?] -w warning -c critical"
+    echo "Usage: check_nagios_latency [-hvV?] -w warning -c critical [-n path]"
     echo
     echo "   -c         critical threshold"
-    echo "   -w         warning threshold"
     echo "   -h, -?     this help message"
+    echo "   -n path    nagiostats path"
     echo "   -v         verbose output"
+    echo "   -w         warning threshold"
     echo "   -V         version"
     echo
     echo "Report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>"
@@ -43,7 +44,9 @@ usage() {
 #   $1 program name
 check_prog() {
 
-    PROG=`which $1`
+    if [ -z "$PROG" ] ; then
+        PROG=`which $1`
+    fi
 
     if [ -z "$PROG" ] ; then
         echo "LATENCY CRITICAL - cannot find $1"
@@ -52,6 +55,7 @@ check_prog() {
 
     if [ ! -x "$PROG" ] ; then
         echo "LATENCY CRICTICAL - $PROG is not executable"
+        exit 2
     fi
 
 }
@@ -61,13 +65,14 @@ check_prog() {
 ################################################################################
 
 # process command line options
-while getopts "vh?Vc:w:" opt; do
+while getopts "vh?Vc:w:n:" opt; do
     case $opt in
-        c )      CRITICAL=$OPTARG; ;;
-        h | \? ) usage ; exit 3;   ;;
+        c )      CRITICAL=$OPTARG;  ;;
+        h | \? ) usage ; exit 3;    ;;
+        n )      PROG=$OPTARG ;;
         V )      echo "check_nagios_latency version ${VERSION}"; exit 3; ;;
-        v )      VERBOSE=1;        ;;
-        w )      WARNING=$OPTARG;  ;;
+        v )      VERBOSE=1;         ;;
+        w )      WARNING=$OPTARG;   ;;
     esac
 done
 shift $(($OPTIND - 1))
@@ -101,7 +106,6 @@ fi
 # Check needed programs
 
 check_prog nagiostats
-NMAP=$PROG
 
 LATENCY=`$PROG | grep "Active Service Latency" |cut -f3 -d'/' | awk '{print $1}' | tr -d '\n'`;
 

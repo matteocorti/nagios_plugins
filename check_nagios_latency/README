@@ -6,10 +6,11 @@ Usage
 check_nagios_latency [-hvV?] -w warning -c critical
 
    -c         critical threshold
-   -w         warning threshold
    -h, -?     this help message
+   -n path    nagiostats path
    -v         verbose output
    -V         version
+   -w         warning threshold
 
 Example
 =======
