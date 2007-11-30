@@ -395,7 +395,7 @@ Version 2.0.0
   --critical,c  crit      critical
   --warning,w   warn      warning
   --interface,i iface     network interface
-  --speeed,s              speed (in Mbit/s)
+  --speed,s               speed (in Mbit/s)
 
  Options
   --help,-h,-?            this help message
@@ -419,7 +419,7 @@ Version 2.0.0
 
   --reset,r                     initialize counter
 
-  --speeed=value,-s value       speed (in Mbit/s)
+  --speed=value,-s value        speed (in Mbit/s)
 
   --version,V                   print version and exit
 
