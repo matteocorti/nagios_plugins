@@ -1,12 +1,20 @@
 check_tcptraffic is a Nagios plugin to monitor the amount of TCP traffic
 
-Usage check_tcptraffic [-v] [-r] -c crit -w warn -i iface
+Usage:
+     check_tcptraffic --critical=crit --warning=warn --interface=iface --speed=speed
+                      [--verbose] [--reset] [--help]
 
-  -c crit      critical
-  -w warn      warning
-  -i iface     network interface
-  -r           initialize
-  -v           verbose
+     Required arguments
+      --critical,c  crit      critical
+      --warning,w   warn      warning
+      --interface,i iface     network interface
+      --speeed,s              speed (in Mbit/s)
+
+     Options
+      --help,-h,-?            this help message
+      --reset,r               initialize counter
+      --version,V             print version and exit
+      --verbose,v             verbose
 
 check_tcptraffic uses the /proc/net/dev Linux entry to compute the
 amount of transferred bytes from the last plugin execution (temporary
