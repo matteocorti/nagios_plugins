@@ -1,4 +1,4 @@
-%define version 1.0.0
+%define version 1.0.1
 %define release 0
 %define name    check_vpp_logs
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -34,5 +34,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_vpp_logs
 
 %changelog
+* Mon Dec  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.1-0
+- Removed spurious output
+
 * Mon Dec  3 2007 Linux Webserver <matteo.corti@id.ethz.ch> - 1.0.0-0
 - Initial release

@@ -21,7 +21,7 @@
 #   $HeadURL$
 #   $Date$
 
-VERSION='1.0.0'
+VERSION='1.0.1'
 
 ################################################################################
 # Functions
@@ -104,8 +104,6 @@ LAST=`grep 'Updating server last job to ' $FILE | tail -n 1 | sed -e "s/\ Updati
 LAST_UNIX=`date -d "$LAST" +"%s"`
 
 (( DIFFERENCE = $CURRENT - $LAST_UNIX ))
-
-echo $DIFFERENCE
 
 ####################
 # Perform the checks
