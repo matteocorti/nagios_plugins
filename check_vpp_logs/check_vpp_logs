@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# (c) Matteo Corti, ETH Zurich, 2007
+#
+# checks vpp log files
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
+
+VERSION='1.0.0'
+
+################################################################################
+# Functions
+
+################################################################################
+# Prints usage information
+# Params
+#   $1 error message (optional)
+usage() {
+
+    if [ -n "$1" ] ; then
+        echo "Error: $1" 1>&2
+    fi
+    
+    echo
+    echo "Usage: check_vpp_logs [-hvV?] -w warning -c critical -f log_file"
+    echo
+    echo "   -c         critical threshold"
+    echo "   -h, -?     this help message"
+    echo "   -f file    log file"
+    echo "   -v         verbose output"
+    echo "   -w         warning threshold"
+    echo "   -V         version"
+    echo
+    echo "Report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>"
+    echo
+
+    exit 3
+
+}
+
+################################################################################
+# Main
+################################################################################
+
+# process command line options
+while getopts "vh?Vc:w:f:" opt; do
+    case $opt in
+        c )      CRITICAL=$OPTARG;  ;;
+        h | \? ) usage ; exit 3;    ;;
+        f )      FILE=$OPTARG       ;;
+        V )      echo "check_vpp_logs version ${VERSION}"; exit 3; ;;
+        v )      VERBOSE=1;         ;;
+        w )      WARNING=$OPTARG;   ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+################################################################################
+# sanity checks
+
+###############
+# Check options
+if [ -z "${CRITICAL}" ] ; then
+    usage "No critical threshold specified"
+fi
+if [ -z "${WARNING}" ] ; then
+    usage "No warning threshold specified"
+fi
+if [ -z "${FILE}" ] ; then
+    usage "No log file specified"
+fi
+
+######################
+# Check number formats
+
+if ! echo $WARNING | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
+    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    exit 3
+fi
+
+if ! echo $CRITICAL | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
+    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    exit 3
+fi
+
+CURRENT=`date +"%s"`
+
+LAST=`grep 'Updating server last job to ' $FILE | tail -n 1 | sed -e "s/\ Updating.*//"`
+LAST_UNIX=`date -d "$LAST" +"%s"`
+
+(( DIFFERENCE = $CURRENT - $LAST_UNIX ))
+
+echo $DIFFERENCE
+
+####################
+# Perform the checks
+
+PERF="Latency=${DIFFERENCE}s;${WARNING};${CRITICAL};;"
+
+LAST=`date -d "$LAST" +"%Y-%m-%dT%H:%M"`
+
+COMPARISON=`echo "if($DIFFERENCE>$CRITICAL) 1 else 0;" | bc`
+if [ $COMPARISON -eq 1 ] ; then
+    echo "VPP_LOG CRITICAL LAST UPDATE: $LAST | $PERF"
+    exit 2
+fi
+
+COMPARISON=`echo "if($DIFFERENCE>$WARNING) 1 else 0;" | bc`
+if [ $COMPARISON -eq 1 ] ; then
+    echo "VPP_LOG WARNING LAST UPDATE: $LAST | $PERF"
+    exit 1
+fi
+
+echo "VPP_LOG OK LAST UPDATE: $LAST | $PERF"
+exit 0;
