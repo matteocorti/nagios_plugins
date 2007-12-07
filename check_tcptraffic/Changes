@@ -1,3 +1,8 @@
+2007-12-07  root  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: single char command line options
+	* check_tcptraffic: fixed a problem on kernels that align values in the proc file
+
 2007-11-30  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: uname added to the tmp file name

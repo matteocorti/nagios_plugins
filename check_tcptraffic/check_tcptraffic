@@ -32,7 +32,7 @@ use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.0.0';
+use version; our $VERSION = '2.0.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -43,9 +43,7 @@ use version; our $VERSION = '2.0.0';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
-  $tmp
   $critical
-  $debug
   $help
   $interface
   $plugin
@@ -55,11 +53,15 @@ use vars qw(
   $speed
   $status
   $status_msg
+  $tmp
+  $verbosity
   $warning
 );
 
 ##############################################################################
 # subroutines
+
+use subs qw(verbose);
 
 ##############################################################################
 # Usage     : whoami()
@@ -142,27 +144,30 @@ sub read_proc {
       or $plugin->nagios_exit( UNKNOWN, "Cannot open $dev_file: $OS_ERROR" );
 
     while (<$IN>) {
-
+        
         chomp;
 
         if (/:/mx) {
 
-         # /proc/net/dev format
-         #
-         # bytes:      The total number of bytes of data transmitted or received
-         #             by the interface.
-         # packets:    The total number of packets of data transmitted or
-         #             received by the interface.
-         # errs:       The total number of transmit or receive errors detected
-         #             by the device driver.
-         # drop:       The total number of packets dropped by the device driver.
-         # fifo        The number of FIFO buffer errors.
-         # frame:      The number of packet framing errors.
-         # compressed: The number of compressed packets transmitted or received
-         #             by the device driver.
-         # multicast:  The number of multicast frames transmitted or received by
-         #             the device driver.
+            # /proc/net/dev format
+            #
+            # bytes:      The total number of bytes of data transmitted or received
+            #             by the interface.
+            # packets:    The total number of packets of data transmitted or
+            #             received by the interface.
+            # errs:       The total number of transmit or receive errors detected
+            #             by the device driver.
+            # drop:       The total number of packets dropped by the device driver.
+            # fifo        The number of FIFO buffer errors.
+            # frame:      The number of packet framing errors.
+            # compressed: The number of compressed packets transmitted or received
+            #             by the device driver.
+            # multicast:  The number of multicast frames transmitted or received by
+            #             the device driver.
 
+            # hack: some kernels now put some whitespace between the colon and bytes in
+            s/:\s+/:/mx;
+            
             my (
                 $combined,      $packets_in,   $errs_in,
                 $drop_in,       $fifo_in,      $frame_in,
@@ -171,11 +176,11 @@ sub read_proc {
                 $fifo_out,      $frame_out,    $compressed_out,
                 $multicast_out
             ) = split;
-
+            
             my ( $name, $bytes_in ) = split /:/mx, $combined;
 
             if ( $name eq $interface ) {
-
+                
                 $found = 1;
 
                 $data{combined}       = $combined;
@@ -236,6 +241,39 @@ sub read_proc {
 }
 
 ##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+
+##############################################################################
 # main
 #
 
@@ -250,20 +288,23 @@ $reset      = q{};
 $speed      = q{};
 $status     = 0;
 $status_msg = q{};
+$verbosity  = 0;
 $warning    = 0;
 
 ########################
 # Command line arguments
 
+Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
+
 $result = GetOptions(
-    'critical=i'  => \$critical,
-    'debug'       => \$debug,
-    'interface=s' => \$interface,
-    'help'        => \$help,
-    'reset'       => \$reset,
-    'speed=i'     => \$speed,
-    'warning=i'   => \$warning,
-    'version' => sub { print "check_tcptraffic version $VERSION\n"; exit 3; }
+    'critical|c=i'  => \$critical,
+    'interface|i=s' => \$interface,
+    'help'          => \$help,
+    'reset|r'       => \$reset,
+    'speed|s=i'     => \$speed,
+    'warning|w=i'   => \$warning,
+    'verbose|v+'    => \$verbosity,
+    'version|V'     => sub { print "check_tcptraffic version $VERSION\n"; exit 3; }
 );
 
 if ( !$result ) {
@@ -296,15 +337,19 @@ my %data = read_proc($interface);
 
 if ( $data{diff} > $max_check_time ) {
 
-    if ($debug) {
-        print
-          "$data{diff} > $max_check_time: sleeping 1s to gather data again\n";
-    }
+    verbose 'the time from last check ('
+        . $data{diff}
+        . 's) is greater than the maximum check time allowed with speed '
+        . $speed
+        . ' ('
+        . $max_check_time
+        . "s):\nsleeping 1s to gather data again\n";
 
     # time difference is > max_check_time
     # since the counter could overflow
     # we reeinitilize the timer and
     # we perform a 1s check
+
     write_timer( $data{bytes_in}, $data{bytes_out} );
 
     sleep 1;
@@ -317,6 +362,7 @@ if ( $data{diff} == 0 ) {
 
     # round up
     $data{diff} = 1;
+    
 }
 
 my $traffic_in  = abs( int( ( $data{bytes_in} - $data{in} ) / $data{diff} ) );
@@ -384,7 +430,7 @@ Since /proc/net/dev uses 32bit counters overflows are a problem
 
 =head1 VERSION
 
-Version 2.0.0
+Version 2.0.1
 
 =head1 SYNOPSIS
 

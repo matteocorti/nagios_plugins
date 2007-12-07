@@ -1,4 +1,4 @@
-%define version 2.0.0
+%define version 2.0.1
 %define release 0
 %define name    check_tcptraffic
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Fri Dec  7 2007 root <matteo.corti@id.ethz.ch> - 2.0.1-0
+- updated to 2.0.1 (bug fix)
+
 * Fri Nov 30 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.0-0
 - Major rewrite which is compatible with embedded perl and uses the Nagios::Plugin modules
 
