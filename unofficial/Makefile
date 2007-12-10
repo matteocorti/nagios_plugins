@@ -1,6 +1,6 @@
 PLUGIN=nagios-plugins-various
-FILES=check_afsspace  check_bos  check_cpu.pl  check_mailq  check_mem  check_rxdebug  check_udebug
-VERSION=1.0
+FILES=check_afsspace  check_bos  check_cpu.pl  check_mailq  check_mem  check_rxdebug  check_udebug check_procs
+VERSION=1.1
 DIST_DIR=$(PLUGIN)-$(VERSION)
 DIST_FILES=$(PLUGIN).spec ${FILES} Makefile
 
@@ -11,8 +11,8 @@ dist:
 	tar cfz $(DIST_DIR).tar.gz $(DIST_DIR)
 
 install:
-	mkdir -p $(DESTDIR)
-	install -m 755 $(FILES) $(DESTDIR)
+	mkdir -p  $(RPM_BUILD_ROOT)/usr/lib/nagios/plugins/contrib/
+	install -m 755 $(FILES)  $(RPM_BUILD_ROOT)/usr/lib/nagios/plugins/contrib/
 
 clean:
 	rm -f *~
