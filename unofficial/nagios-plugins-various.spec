@@ -1,5 +1,5 @@
 %define version 1.1
-%define release 0
+%define release 2
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
 %define _unpackaged_files_terminate_build 0 
@@ -25,6 +25,7 @@ check_mailq
 check_mem
 check_rxdebug
 check_udebu
+check_procs (patched to generate performance data)
 
 %prep
 %setup -q
