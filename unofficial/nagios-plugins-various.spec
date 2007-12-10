@@ -33,6 +33,12 @@ check_procs (patched to generate performance data)
 %build
 
 %install
+if grep -q 'Red Hat Enterprise Linux AS release 4' /etc/issue ; then
+        cp check_procs.rh4 check_procs
+elif grep -q 'Fedora release 8' /etc/issue ; then
+        cp check_procs.f8 check_procs
+fi
+        
 make DESTDIR=$RPM_BUILD_ROOT%{_prefix} install
 
 %clean
