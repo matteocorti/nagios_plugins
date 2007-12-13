@@ -15,7 +15,7 @@ use English qw(-no_match_vars);
 
 use Nagios::Plugin;
 
-use version; our $VERSION = '3.0.1';
+use version; our $VERSION = '3.1.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -251,7 +251,10 @@ sub parse_drives {
         verbose "Looking for drives in /proc/partitions\n";
         
         open $IN, '<', '/proc/partitions'
-            or unknown('Cannot open /proc/partitions');
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                'Cannot open /proc/partitions'
+            );
 
         while (<$IN>) {
 
@@ -274,7 +277,10 @@ sub parse_drives {
             my $output;
 
             my $pid = open $output, q{-|}, "$command 2>&1"
-                or unknown("Cannot execute $command: $OS_ERROR");
+                or $plugin->nagios_exit(
+                    UNKNOWN,
+                    "Cannot execute $command: $OS_ERROR"
+                );
 
             while (<$output>) {
                 chomp;
@@ -309,12 +315,18 @@ sub parse_drives {
             }
 
             close $output
-                or unknown("Error while executing $command: $OS_ERROR\n");
+                or $plugin->nagios_exit(
+                    UNKNOWN,
+                    "Error while executing $command: $OS_ERROR\n"
+                );
 
         }
 
         close $IN
-            or unknown("Cannot close input: $OS_ERROR\n");
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                "Cannot close input: $OS_ERROR\n"
+            );
 
     }
     else {
@@ -344,7 +356,10 @@ sub parse_sensors {
         my $output;
 
         my $pid = open $output, q{-|}, "$command 2>&1"
-          or unknown("Cannot execute $command: $OS_ERROR");
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                "Cannot execute $command: $OS_ERROR"
+            );
 
         while (<$output>) {
             chomp;
@@ -358,12 +373,18 @@ sub parse_sensors {
         }
 
         close $output
-            or unknown("Error while executing $command: $OS_ERROR\n");
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                "Error while executing $command: $OS_ERROR\n"
+            );
 
         $command = "$sensors_bin -A | grep \:";
 
         $pid = open $output, q{-|}, "$command 2>&1"
-          or unknown("Cannot execute $command");
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                "Cannot execute $command: $OS_ERROR"
+            );
 
         while (<$output>) {
             chomp;
@@ -392,7 +413,10 @@ sub parse_sensors {
         }
 
         close $output
-            or unknown("Error while executing $command: $OS_ERROR\n");
+            or $plugin->nagios_exit(
+                UNKNOWN,
+                "Error while executing $command: $OS_ERROR\n"
+            );
 
     }
     else {
