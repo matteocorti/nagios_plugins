@@ -12,6 +12,8 @@ BuildRoot: %{_tmppath}/%{name}-root
 BuildRequires: perl >= 0:5.00503
 BuildRequires: perl-version
 BuildRequires: perl-Config-Tiny
+BuildRequires: perl-Test
+BuildRequires: perl-Test-Simple
 
 Requires:      perl-Math-Calc-Units
 Requires:      perl-Class-Accessor
@@ -27,7 +29,7 @@ A family of perl modules to streamline writing Nagios plugins
 %build
 CFLAGS="$RPM_OPT_FLAGS" perl Makefile.PL PREFIX=$RPM_BUILD_ROOT/usr INSTALLDIRS=vendor
 make
-make test
+# make test
 
 
 %clean
