@@ -1,8 +1,8 @@
 %define _use_internal_dependency_generator 0
 
 Name: perl-Nagios-Plugin
-Version: 0.21
-Release: 2
+Version: 0.22
+Release: 0
 Summary: A family of perl modules to streamline writing Nagios plugins
 License: distributable
 Group: Development/Libraries
@@ -11,6 +11,7 @@ BuildRoot: %{_tmppath}/%{name}-root
 
 BuildRequires: perl >= 0:5.00503
 BuildRequires: perl-version
+BuildRequires: perl-Config-Tiny
 
 Requires:      perl-Math-Calc-Units
 Requires:      perl-Class-Accessor
@@ -53,6 +54,9 @@ fi
 %defattr(-,root,root)
 
 %changelog
+* Thu Dec 13 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.22-0
+- updated to 0.22
+
 * Wed Oct  3 2007 root <matteo.corti@id.ethz.ch> - 0.21-2
 - depends on perl-Class-Accessor
 
