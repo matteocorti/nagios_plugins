@@ -1,5 +1,5 @@
-%define version 1.4
-%define release 1
+%define version 1.5
+%define release 0
 %define name    nagios-plugins-ethz
 
 Summary:   An empty package to force the installation of all the ETHZ Nagios plugins
@@ -25,6 +25,7 @@ Requires: check_ssl_cert
 Requires: check_tcptraffic
 Requires: check_topology
 Requires: check_updates
+Requires: check_vpp_logs
 Requires: check_writable
 Requires: nagios-plugins-various
 
@@ -37,6 +38,8 @@ An empty package to force the installation of all the ETHZ Nagios plugins
 %build
 
 %install
+# rpmbuild requires an installation root even if we don't install anything
+mkdir %{_tmppath}/%{name}-%{version}-root
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -46,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Mon Dec  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.5-0
+- added check_vpp_logs
+
 * Fri Aug 10 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-1
 - +check_ssl_cert
 
