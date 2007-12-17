@@ -1,4 +1,4 @@
-%define version 1.1
+%define version 1.2
 %define release 2
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -15,12 +15,15 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
 BuildArch: i386
 
+Requires:  perl(Net::DHCP::Watch)
+
 %description
 A collection of various nagios plugins
 
 check_afsspace
 check_bos
 check_cpu.pl
+check_dhcp.pl
 check_mailq
 check_mem
 check_rxdebug
@@ -56,6 +59,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_procs
 
 %changelog
+* Mon Dec 17 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-1
+- check_dhcp requires Net::DHCP::Watch
+
+* Mon Dec 17 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-0
+- added check_dhcp.pl
+
 * Mon Dec 10 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1-0
 - added a patched version of check_procs (adds performance data)
 
