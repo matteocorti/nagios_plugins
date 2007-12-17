@@ -1,5 +1,5 @@
 %define version 1.2
-%define release 2
+%define release 5
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
 %define _unpackaged_files_terminate_build 0 
@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_afsspace
 %attr(0755, root, root) %{_prefix}/check_bos
 %attr(0755, root, root) %{_prefix}/check_cpu.pl
+%attr(4755, root, root) %{_prefix}/check_dhcp.pl
 %attr(0755, root, root) %{_prefix}/check_mailq
 %attr(0755, root, root) %{_prefix}/check_mem
 %attr(0755, root, root) %{_prefix}/check_rxdebug
