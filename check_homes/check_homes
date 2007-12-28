@@ -117,20 +117,25 @@ if ( !$result || $help ) {
 
 ##############################################################################
 # get the user list
-my %entries;
 
-my $output;
-my $pid = open $output, q{-|}, 'getent passwd'
+my @users;
+my $list;
+my $filename = '/home/n/conf/studmigr_1.txt';
+
+open $list, q{<}, $filename
   or
-  $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+  $plugin->nagios_exit( UNKNOWN, "Cannot open $filename: $OS_ERROR" );
 
-while (<$output>) {
+while(<$list>) {
+  s/\ .*//mx;
   chomp;
-  my ($user,$passwd,$uid,$gid,$gcos,$home,$shell) = split ':';
-  $entries{$user} = $home;
+  push @users, $_;
 }
 
-my @users        = keys %entries;
+close $list
+  or
+  $plugin->nagios_exit( UNKNOWN, "Cannot close $filename: $OS_ERROR" );
+
 my $users_number = @users;
 
 verbose "Retrieved $users_number users\n";
@@ -152,13 +157,39 @@ while ($i < $home_checks) {
 
   push @checked, $index;
 
-  verbose "  checking ".$users[$index]."'s home: ".$entries{$users[$index]}."\n", 1;
+  my $output;
+  my $pid = open $output, q{-|}, "getent passwd $users[$index]"
+    or 
+    $plugin->nagios_exit( UNKNOWN, "Cannot execute \"getent passwd $users[$index]\": $OS_ERROR" );     
 
-  `ls -d $entries{$users[$index]}`;
+  while (<$output>) {
+    my ($user,$passwd,$uid,$gid,$gcos,$home,$shell) = split ':';
+    if (! defined $user) {
+      $plugin->nagios_exit( UNKNOWN, "Cannot get home dir for $users[$index]" );     
+    }
+    verbose "  checking ".$user."'s home: $home\n", 1;
+
+    my $ls;
+    my $command = "ls -d $home";
+    open $ls, q{-|}, $command
+      or 
+      $plugin->nagios_exit( UNKNOWN, "Cannot execute \"$command\": $OS_ERROR" );     
+
+    while (<$ls>) {
+      chomp;
+      if ($_ ne $home) {
+	$plugin->nagios_exit( CRITICAL, "Error accessing $home: $_" );     
+      }
+    }
+
+    last;
+  }
 
   $i++;
   
 }
+
+$plugin->nagios_exit( OK, "Error accessing $home: $_" );     
 
 1;
 
