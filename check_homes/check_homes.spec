@@ -1,9 +1,9 @@
-%define version 0.9.7
+%define version 0.1.1
 %define release 0
-%define name    check_updates
+%define name    check_homes
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   A Nagios plugin to check if RedHat or Fedora system is up-to-date
+Summary:   A Nagios plugin to check if home directories can be mounted (internal only)
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -17,7 +17,7 @@ BuildArch: noarch
 Requires: perl
 
 %description
-A Nagios plugin to check if RedHat or Fedora system is up-to-date
+A Nagios plugin to check if home directories can be mounted (internal only)
 
 %prep
 %setup -q
@@ -39,23 +39,3 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
-* Thu Dec 13 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.7-0
-- performance data
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.6-0
-- corrected the plugin name
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.5-0
-- checks for root
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.4-0
-- removed sudo
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.3-0
-- New version: up2date requires sudo
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.2-0
-- Initial test package
-
-* Thu Nov 29 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.1-0
-- Initial test package

@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '0.1.0';
+use version; our $VERSION = '0.1.1';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -170,7 +170,7 @@ while ($i < $home_checks) {
     verbose "  checking ".$user."'s home: $home\n", 1;
 
     my $ls;
-    my $command = "ls -d $home";
+    my $command = "ls -d $home 2>&1 ";
     open $ls, q{-|}, $command
       or 
       $plugin->nagios_exit( UNKNOWN, "Cannot execute \"$command\": $OS_ERROR" );     
@@ -189,7 +189,7 @@ while ($i < $home_checks) {
   
 }
 
-$plugin->nagios_exit( OK, "Error accessing $home: $_" );     
+$plugin->nagios_exit( OK, "Checked $home_checks " . (($home_checks>1)?"homes":"home"));
 
 1;
 

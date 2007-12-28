@@ -4,8 +4,8 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name     'check_updates';
-all_from 'check_updates';
+name     'check_homes';
+all_from 'check_homes';
 
 ##############################################################################
 # Specific dependencies
@@ -19,12 +19,10 @@ requires 'List::MoreUtils'           => 0;
 requires 'List::Util'                => 0;
 requires 'Nagios::Plugin'            => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
-requires 'Number::Format'            => 0;
-requires 'POSIX'                     => 0;
 requires 'Pod::Usage'                => 0;
 requires 'version'                   => 0;
 
-install_script  'check_updates';
+install_script  'check_homes';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
