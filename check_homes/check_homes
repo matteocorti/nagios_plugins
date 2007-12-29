@@ -288,23 +288,23 @@ __END__
 
 =head1 NAME
 
-C<check_updates> - a Nagios plugin to check if RedHat or Fedora system
-is up-to-date
+C<check_homes> - An ETHZ specific test to check home directories of nethz users
 
 =head1 DESCRIPTION
 
-check_updates is a Nagios plugin to check if RedHat or Fedora system
-is up-to-date
+check_homes is an ETHZ specific Nagios plugin to test to check home
+directories of nethz users
 
 =head1 VERSION
 
-Version 0.9.7
+Version 0.1.4
 
 =head1 SYNOPSIS
 
- check_updates [--help] [--verbose] [--version]
+ check_homes [--help] [--verbose] [--version] [--checks value]
 
- Options    
+ Options
+  --checks,-c   value           the number of random home directories to check
   --help,-h,-?                  this help message
   --verbose,-v                  verbose output
   --version,-V                  print version
@@ -314,6 +314,8 @@ Version 0.9.7
 
 =head1 OPTIONS
 
+  --checks,-c   value           the number of random home directories to check
+
   --help,-h,-?                  this help message
 
   --version,-V                  print version
@@ -322,9 +324,9 @@ Version 0.9.7
 
 =head1 EXAMPLE
 
- check_updates
+ check_homes --check 20
 
-check_updates checks if the system is up-to-date
+Checks 20 randomly selected home directories
 
 =head1 DIAGNOSTICS
 
@@ -355,10 +357,6 @@ check_updates depends on
 =item * Nagios::Plugin
 
 =item * Nagios::Plugin::Threshold
-
-=item * Number::Format
-
-=item * POSIX
 
 =item * Pod::Usage
 
