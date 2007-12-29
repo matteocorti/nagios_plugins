@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '0.1.3';
+use version; our $VERSION = '0.1.4';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -103,7 +103,7 @@ sub whoami {
     while (<$output>) {
         chomp;
         return $_;
-      }
+    }
     $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
     return;
 }
@@ -121,20 +121,22 @@ sub check_user {
     my $user = shift;
     my $home = "/nas/$user";
 
-    verbose "checking ".$user."'s home: $home\n", 1;
+    verbose "checking $user's home: $home\n", 1;
 
     my $ls;
     my $command = "ls -d $home 2>&1 ";
     open $ls, q{-|}, $command
-      or 
-      $plugin->nagios_exit( UNKNOWN, "Cannot execute \"$command\": $OS_ERROR" );     
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot execute \"$command\": $OS_ERROR" );
 
     while (<$ls>) {
-      chomp;
-      if ($_ ne $home) {
-	push @errors, $user;
-      }
+        chomp;
+        if ( $_ ne $home ) {
+            push @errors, $user;
+        }
     }
+
+    return;
 
 }
 
@@ -147,7 +149,7 @@ sub check_user {
 $home_checks = 1;
 $help        = q{};
 $verbosity   = 0;
-$tmp         = '/tmp/check_homes_status-'.whoami();
+$tmp         = '/tmp/check_homes_status-' . whoami();
 $plugin      = Nagios::Plugin->new( shortname => 'CHECK_HOMES' );
 $threshold   = Nagios::Plugin::Threshold->set_thresholds(
     warning  => 0,
@@ -177,107 +179,105 @@ my $list;
 my $filename = '/home/n/conf/studmigr_1.txt';
 
 open $list, q{<}, $filename
-  or
-  $plugin->nagios_exit( UNKNOWN, "Cannot open $filename: $OS_ERROR" );
+  or $plugin->nagios_exit( UNKNOWN, "Cannot open $filename: $OS_ERROR" );
 
-while(<$list>) {
-  s/\ .*//mx;
-  chomp;
-  push @users, $_;
+while (<$list>) {
+    s/\ .*//mx;
+    chomp;
+    push @users, $_;
 }
 
 close $list
-  or
-  $plugin->nagios_exit( UNKNOWN, "Cannot close $filename: $OS_ERROR" );
+  or $plugin->nagios_exit( UNKNOWN, "Cannot close $filename: $OS_ERROR" );
 
 my $users_number = @users;
 
 verbose "Retrieved $users_number users\n";
 
-verbose "Selecting $home_checks random".(($home_checks>0)?"users":"user")."\n";
+verbose "Selecting $home_checks random"
+  . ( ( $home_checks > 0 ) ? 'users' : 'user' ) . "\n";
 
 srand;
 
 my $i = 0;
 my @to_check;
 
-while ($i < $home_checks) {
+while ( $i < $home_checks ) {
 
-  my $index = int rand $users_number;
+    my $index = int rand $users_number;
 
-  if (any { /$users[$index]/ } @to_check) {
-    redo;
-  }
+    if ( any { /$users[$index]/mx } @to_check ) {
+        redo;
+    }
 
-  verbose "  $users[$index]\n", 1;
-  push @to_check, $users[$index];
+    verbose "  $users[$index]\n", 1;
+    push @to_check, $users[$index];
 
-  $i++;
-  
+    $i++;
+
 }
 
 my $file;
 
-if (-f $tmp) {
+if ( -f $tmp ) {
 
-  verbose "Adding problematic users from last run\n";
+    verbose "Adding problematic users from last run\n";
 
-  open $file, q{<}, $tmp
-  or
-  $plugin->nagios_exit( UNKNOWN, "Cannot open $tmp: $OS_ERROR" );
+    open $file, q{<}, $tmp
+      or $plugin->nagios_exit( UNKNOWN, "Cannot open $tmp: $OS_ERROR" );
 
-while(<$file>) {
-  chomp;
-  verbose "  $_\n", 1;
-  push @to_check, $_;
-}
+    while (<$file>) {
+        chomp;
+        verbose "  $_\n", 1;
+        push @to_check, $_;
+    }
 
-close $file
-  or
-  $plugin->nagios_exit( UNKNOWN, "Cannot close $tmp: $OS_ERROR" );
+    close $file
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close $tmp: $OS_ERROR" );
 
 }
 
 for my $user (@to_check) {
-  check_user($user);
+    check_user($user);
 }
 
-        $plugin->add_perfdata(
-            label     => 'errors',
-            value     => scalar @errors,
-            uom       => q{},
-            threshold => $threshold,
-        );
+$plugin->add_perfdata(
+    label     => 'errors',
+    value     => scalar @errors,
+    uom       => q{},
+    threshold => $threshold,
+);
 
 if (@errors) {
-  my $error_string;
+    my $error_string;
 
-  # write the temporary error file
-  my $file;
-  open $file, q{>}, $tmp
-    or
-    $plugin->nagios_exit( WARNING, "Error opening $tmp: $OS_ERROR" );     
+    # write the temporary error file
+    my $file;
+    open $file, q{>}, $tmp
+      or $plugin->nagios_exit( WARNING, "Error opening $tmp: $OS_ERROR" );
 
-  for my $user (@errors) {
-    print { $file } "$user\n";
-  }
-
-  close $file
-    or
-    $plugin->nagios_exit( WARNING, "Error closing $tmp: $OS_ERROR" );     
-
-  # generate error message
-
-  for my $user (@errors) {
-    if (defined $error_string) {
-      $error_string = "$error_string, /nas/$user";
-    } else {
-      $error_string = "/nas/$user";
+    for my $user (@errors) {
+        print {$file} "$user\n";
     }
-  }
-  $plugin->nagios_exit( CRITICAL, "Error accessing $error_string" );     
-} else {
-  $plugin->nagios_exit( OK, "Checked $home_checks " . (($home_checks>1)?"homes":"home"));
+
+    close $file
+      or $plugin->nagios_exit( WARNING, "Error closing $tmp: $OS_ERROR" );
+
+    # generate error message
+
+    for my $user (@errors) {
+        if ( defined $error_string ) {
+            $error_string = "$error_string, /nas/$user";
+        }
+        else {
+            $error_string = "/nas/$user";
+        }
+    }
+    $plugin->nagios_exit( CRITICAL, "Error accessing $error_string" );
+}
+else {
+    $plugin->nagios_exit( OK,
+        "Checked $home_checks " . ( ( $home_checks > 1 ) ? 'homes' : 'home' ) );
 }
 
 1;
