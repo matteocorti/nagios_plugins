@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '0.1.2';
+use version; our $VERSION = '0.1.3';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -118,18 +118,9 @@ sub whoami {
 # See also  : n/a
 sub check_user {
 
-  my $arg = shift;
+    my $user = shift;
+    my $home = "/nas/$user";
 
-  my $output;
-  my $pid = open $output, q{-|}, "getent passwd $arg"
-    or 
-    $plugin->nagios_exit( UNKNOWN, "Cannot execute \"getent passwd $arg\": $OS_ERROR" );     
-
-  while (<$output>) {
-    my ($user,$passwd,$uid,$gid,$gcos,$home,$shell) = split ':';
-    if (! defined $user) {
-      $plugin->nagios_exit( UNKNOWN, "Cannot get home dir for $arg" );
-    }
     verbose "checking ".$user."'s home: $home\n", 1;
 
     my $ls;
@@ -144,9 +135,6 @@ sub check_user {
 	push @errors, $user;
       }
     }
-
-    last;
-  }
 
 }
 
@@ -282,9 +270,9 @@ if (@errors) {
 
   for my $user (@errors) {
     if (defined $error_string) {
-      $error_string = "$error_string, $user";
+      $error_string = "$error_string, /nas/$user";
     } else {
-      $error_string = $user;
+      $error_string = "/nas/$user";
     }
   }
   $plugin->nagios_exit( CRITICAL, "Error accessing $error_string" );     
