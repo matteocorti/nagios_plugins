@@ -1,4 +1,4 @@
-%define version 0.1.1
+%define version 0.1.2
 %define release 0
 %define name    check_homes
 %define _prefix /usr/lib/nagios/plugins/contrib
