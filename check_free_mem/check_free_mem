@@ -1,0 +1,334 @@
+#!perl
+
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_dir 856 2007-10-31 09:34:21Z corti $
+#   $Revision: 856 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_dir/check_dir $
+#   $Date: 2007-10-31 10:34:21 +0100 (Wed, 31 Oct 2007) $
+
+use strict;
+use warnings;
+
+use 5.008;
+
+use Getopt::Long;
+use Carp;
+use English qw(-no_match_vars);
+
+use Nagios::Plugin;
+use Nagios::Plugin::Threshold;
+use File::stat;
+use Pod::Usage qw(pod2usage);
+
+use version; our $VERSION = '0.9.0';
+
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+  $buffers
+  $cached
+  $critical
+  $free
+  $help
+  $plugin
+  $result
+  $shared
+  $threshold
+  $total
+  $used
+  $verbosity
+  $warning
+);
+
+##############################################################################
+# subroutines
+
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# main
+
+# initialization
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_FREE_MEM' );
+$verbosity = 0;
+
+########################
+# Command line arguments
+
+$result = GetOptions(
+    'critical=i' => \$critical,
+    'warining=i' => \$warning,
+    'help'       => \$help,
+    'verbose|v+' => \$verbosity,
+    'version'    => sub { print "check_free_mem version $VERSION\n"; exit 3; }
+);
+
+#############################
+# Sanity checks: command line
+
+if ( !$result ) {
+    pod2usage();
+}
+
+if ($help) { pod2usage(); }
+if (   !defined $critical
+    || !$critical =~ /[0-9]+/mx
+    || $critical < 0
+    || $critical > 100 )
+{
+    pod2usage( -message => 'Could not parse "critical"' );
+}
+if (   !defined $critical
+    || !$warning =~ /[0-9]+/mx
+    || $warning < 0
+    || $warning > 100 )
+{
+    pod2usage( -message => 'Could not parse "warning"' );
+}
+if ( $critical > $warning ) {
+    pod2usage( -message => '"critical" has to be smaller than "warning"' );
+}
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => 100 - $warning,
+    critical => 100 - $critical,
+);
+
+# get memory information from free
+
+my $command = 'free -b | grep ^Mem';
+my $output;
+
+my $pid = open $output, q{-|}, "$command 2>&1"
+  or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+
+my $dummy;
+while (<$output>) {
+    ( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split / +/;
+}
+
+$plugin->add_perfdata(
+    label => 'total',
+    value => $total,
+    uom   => 'B',
+);
+
+$plugin->add_perfdata(
+    label => 'used',
+    value => $used,
+    uom   => 'B',
+);
+
+$plugin->add_perfdata(
+    label => 'free',
+    value => $free,
+    uom   => 'B',
+);
+
+$plugin->add_perfdata(
+    label => 'buffers',
+    value => $buffers,
+    uom   => 'B',
+);
+
+$plugin->add_perfdata(
+    label => 'cached',
+    value => $cached,
+    uom   => 'B',
+);
+
+# adjust buffers and caches and compute percentage
+
+$free = ( $free + $buffers + $cached ) / $total * 100;
+
+$plugin->nagios_exit( $threshold->get_status($free),
+    'free ' . ( sprintf '%.2f', $free ) . q{%} );
+
+if ( !( close $output )
+    && ( $OS_ERROR != 0 ) )
+{
+
+    # close to a piped open return false if the command with non-zero
+    # status. In this case $! is set to 0
+    $plugin->nagios_exit( UNKNOWN,
+        "Error while closing pipe to $command: $OS_ERROR\n" );
+}
+
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<check_free_mem> - a Nagios plugin to check the amount of free real memory
+
+=head1 DESCRIPTION
+
+check_free_mem is a Nagios plugin to check the amount of free real memory
+
+=head1 VERSION
+
+Version 0.9.0
+
+=head1 SYNOPSIS
+
+ check_free_mem --critical=critical --warning=warning
+            [--verbose]
+            [--version|--help]
+
+ Mandatory arguments:
+  --critical,-c   critical   specify the minumal percentage free memory
+  --warning,-w    warning    specify warning threshold for the percentage of free memory
+
+ Options:
+  --version,V                print version number
+  --verbose,-v               be more verbose (can be repeated)
+
+=head1 REQUIRED ARGUMENTS
+
+--critical and --warning
+
+=head1 OPTIONS
+
+    --critical,-c       minumal percentage free memory (mandatory)
+
+    --warning,-w        warning threshold for the percentage of free memory (mandatory)
+
+    --help,-h,-?        this help screen
+
+    --verbose,-v        increase verbosity (can be repeated)
+
+    --version,-V        prints version information
+
+=head1 EXAMPLE
+
+check_free_mem -w 10 -c 5
+
+check_free_mem check is the percentage of free memory is lower than 10% or 5% respectively
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_free_mem depends on
+
+=over 4
+
+=item * Carp
+
+=item * English
+
+=item * Getopt::Long
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
+
