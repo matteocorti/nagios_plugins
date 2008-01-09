@@ -1,9 +1,9 @@
-%define version 2.0.1
+%define version 0.9.0
 %define release 0
-%define name    check_writable
+%define name    check_free_mem
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   Nagios plugin that checks if one or more directories are writable
+Summary:   Nagios plugin that checks the amount of free physical memory
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -18,16 +18,7 @@ Requires: hddtemp
 Requires: perl
 
 %description
-check_writable is a Nagios plugin that checks if one or more
-directories are writable by:
-
-- checking that the supplied directory is indeed a directory
-- checking if the the filesystem permissions are OK
-- creating a temporary file
-- writing random data to the temporary file (and reading it back)
-
-It return a critical status if one of the tests fails
-
+check_free_mem is a Nagios plugin that checks the amount of free physical memory
 
 %prep
 %setup -q
@@ -49,11 +40,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
-* Tue Nov 13 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.1-0
-- updated to 2.0.1
+* Wed Jan  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
+- Initial revision
 
-* Wed Oct 31 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.0-0
-- updated to 2.0.0
-
-* Mon Sep 24 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.0-0
-- first rpm package
