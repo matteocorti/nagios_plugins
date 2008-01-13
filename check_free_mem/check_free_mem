@@ -23,7 +23,7 @@ use Nagios::Plugin::Threshold;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.11.0';
+use version; our $VERSION = '0.11.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -39,6 +39,7 @@ use vars qw(
   $critical
   $free
   $help
+  $line
   $plugin
   $result
   $shared
@@ -254,7 +255,9 @@ if (!$header || ! $header =~ /\ *total\ *used\ *free\ *shared\ *buffers\ *cached
 
 # process real memory
 my $dummy;
-( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split / +/, shift @lines;
+$line = shift @lines;
+chomp $line;
+( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split / +/, $line;
 
 if (! check_positive_integer($total) ) {
     $plugin->nagios_exit( UNKNOWN, "Error processing free output: $total (total) is not a number");
@@ -280,10 +283,53 @@ if ($swap) {
     # use Totals instead of Mem for 'total', 'used' and 'free'
 
     shift @lines; # skip +/- buffers/cache line
-    shift @lines; # skip Swap
 
-    ( $dummy, $total, $used, $free ) = split / +/, shift @lines;
+    $line = shift @lines;
+    chomp $line;
+    ( $dummy, $total, $used, $free ) = split / +/, $line;
+
+    if (! check_positive_integer($total) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $total (total) is not a number");
+    }
+    if (! check_positive_integer($used) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $used (used) is not a number");
+    }
+    if (! check_positive_integer($free) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $free (free) is not a number");
+    }
     
+    $plugin->add_perfdata(
+        label => 'swap_total',
+        value => $total,
+        uom   => 'B',
+    );
+
+    $plugin->add_perfdata(
+        label => 'swap_used',
+        value => $used,
+        uom   => 'B',
+    );
+
+    $plugin->add_perfdata(
+        label => 'swap_free',
+        value => $free,
+        uom   => 'B',
+    );
+
+    $line = shift @lines;
+    chomp $line;
+    ( $dummy, $total, $used, $free ) = split / +/, $line;
+
+    if (! check_positive_integer($total) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $total (total) is not a number");
+    }
+    if (! check_positive_integer($used) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $used (used) is not a number");
+    }
+    if (! check_positive_integer($free) ) {
+        $plugin->nagios_exit( UNKNOWN, "Error processing free output: $free (free) is not a number");
+    }
+
 }
 
 
@@ -350,7 +396,7 @@ check_free_mem is a Nagios plugin to check the amount of free real memory
 
 =head1 VERSION
 
-Version 0.11.0
+Version 0.11.1
 
 =head1 SYNOPSIS
 

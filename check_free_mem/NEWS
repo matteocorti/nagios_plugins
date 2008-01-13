@@ -1,2 +1,3 @@
+2008-01-13   Version 0.11.1: added swap to the performance output
 2008-01-13   Version 0.11.0: added --free to specify the path of 'free'
 2008-01-13   Version 0.10.0: added --swap to monitor swap space
