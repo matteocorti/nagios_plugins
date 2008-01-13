@@ -1,3 +1,8 @@
+2008-01-13  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_free_mem: Added --swap to add swap space to the computation 
+	* check_free_mem: Added --free to specify the path of 'free'
+
 2008-01-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_free_mem: Initial revision

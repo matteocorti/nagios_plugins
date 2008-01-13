@@ -1,4 +1,4 @@
-%define version 0.9.0
+%define version 0.11.0
 %define release 0
 %define name    check_free_mem
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,6 +40,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Sun Jan 13 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.11.0-0
+- updated to 0.11.0, --free can be used to specify the path of 'free'
+
+* Sun Jan 13 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.10.0-0
+- updated to 0.10.0 with --swap to monitor swap space
+
 * Wed Jan  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
 - Initial revision
 
