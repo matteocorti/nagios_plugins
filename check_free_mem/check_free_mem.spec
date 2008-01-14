@@ -1,4 +1,4 @@
-%define version 0.11.0
+%define version 0.11.2
 %define release 0
 %define name    check_free_mem
 %define _prefix /usr/lib/nagios/plugins/contrib

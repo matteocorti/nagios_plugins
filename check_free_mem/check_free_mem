@@ -23,7 +23,7 @@ use Nagios::Plugin::Threshold;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.11.1';
+use version; our $VERSION = '0.11.2';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -367,7 +367,7 @@ $plugin->add_perfdata(
 
 $free = ( $free + $buffers + $cached ) / $total * 100;
 
-$plugin->nagios_exit( $threshold->get_status($free),
+$plugin->nagios_exit( $threshold->get_status(100 - $free),
     'free ' . ( sprintf '%.2f', $free ) . q{%} );
 
 if ( !( close $output )
@@ -396,7 +396,7 @@ check_free_mem is a Nagios plugin to check the amount of free real memory
 
 =head1 VERSION
 
-Version 0.11.1
+Version 0.11.2
 
 =head1 SYNOPSIS
 

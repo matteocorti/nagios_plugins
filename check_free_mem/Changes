@@ -1,3 +1,8 @@
+2008-01-14  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_free_mem: merged patch from an uncommitted version 0.9 (correcting
+			  the threshold check)
+
 2008-01-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_free_mem: Added --swap to add swap space to the computation
@@ -6,5 +11,10 @@
 
 2008-01-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
+	* check_free_mem: fixed a bug in the threshold comparison
+
+2008-01-09  Matteo Corti  <matteo.corti@id.ethz.ch>
+
 	* check_free_mem: Initial revision
+
 
