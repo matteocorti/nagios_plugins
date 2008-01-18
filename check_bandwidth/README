@@ -1,0 +1,1 @@
+check_free_mem is a Nagios plugin that checks the amount of free real memory
