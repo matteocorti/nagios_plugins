@@ -17,8 +17,8 @@
 #     INSTALLSCRIPT => q[/usr/lib/nagios/plugins/contrib]
 #     NAME => q[check_bandwidth]
 #     NO_META => q[1]
-#     PREREQ_PM => { Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], File::Slurp=>q[0], Carp=>q[0] }
-#     VERSION => q[0.11.2]
+#     PREREQ_PM => { Net::DNS::Resolver=>q[0], Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
+#     VERSION => q[0.9.0]
 #     dist => {  }
 
 # --- MakeMaker post_initialize section:
@@ -59,11 +59,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = check_bandwidth
 NAME_SYM = check_bandwidth
-VERSION = 0.11.2
+VERSION = 0.9.0
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_11_2
+VERSION_SYM = 0_9_0
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.11.2
+XS_VERSION = 0.9.0
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -248,7 +248,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = check_bandwidth
-DISTVNAME = check_bandwidth-0.11.2
+DISTVNAME = check_bandwidth-0.9.0
 
 
 # --- MakeMaker macro section:
@@ -768,17 +768,17 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,11,2,0">' > $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,0,0">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <TITLE>$(DISTNAME)</TITLE>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Matteo Corti &lt;matteo.corti@id.ethz.ch&gt;</AUTHOR>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Carp" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="English" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
-	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="File-Slurp" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Getopt-Long" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin-Threshold" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Net-DNS-Resolver" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Pod-Usage" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="version" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <OS NAME="$(OSNAME)" />' >> $(DISTNAME).ppd

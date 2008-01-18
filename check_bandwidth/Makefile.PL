@@ -14,10 +14,10 @@ include 'version';
 
 requires 'Carp'                      => 0;
 requires 'English'                   => 0;
-requires 'File::Slurp'               => 0;
 requires 'Getopt::Long'              => 0;
 requires 'Nagios::Plugin'            => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
+requires 'Net::DNS::Resolver'        => 0;
 requires 'Pod::Usage'                => 0;
 requires 'version'                   => 0;
 

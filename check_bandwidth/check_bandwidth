@@ -1,3 +1,4 @@
+
 #!perl
 
 # RCS information
@@ -20,10 +21,11 @@ use English qw(-no_match_vars);
 
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
+use Net::DNS::Resolver;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.11.2';
+use version; our $VERSION = '0.9.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -34,15 +36,18 @@ use version; our $VERSION = '0.11.2';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
-  $critical
   $help
   $host
+  $host_ip
+  $local_ip
   $iperf
   $plugin
   $result
   $threshold
   $verbosity
-  $warning
+  $upstream
+  $downstream
+  %direction
 );
 
 ##############################################################################
@@ -79,6 +84,33 @@ sub verbose {
     return;
 
 }
+
+##################################################
+# gets the IP of a host
+# param host
+sub get_ip {
+
+    my $host = shift;
+
+    if ($host =~ /((25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))\.){3}(25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))/) {
+        return $host;
+    }
+
+    
+    my $dns_resolver = Net::DNS::Resolver->new;
+    my $query        = $dns_resolver->search($host);
+    
+    if ($query) {
+        foreach my $rr ($query->answer) {
+            next unless $rr->type eq "A";
+            return $rr->address;
+        }
+    } else {
+        unknown("cannot compute address of $host (".$dns_resolver->errorstring.")");
+    }
+
+}
+
 
 ##############################################################################
 # Usage     : check_positive_integer($number)
@@ -150,12 +182,10 @@ $verbosity = 0;
 Getopt::Long::Configure('bundling', 'no_ignore_case');
 $result = GetOptions(
     'iperf=s'      => \$iperf,
-    'critical|c=i' => \$critical,
     'help|h|?'     => \$help,
     'host|H=s'     => \$host,
     'verbose|v+'   => \$verbosity,
     'version|V'    => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
-    'warning|w=i'  => \$warning,
 );
 
 if ($help) { pod2usage(); }
@@ -168,30 +198,10 @@ if ( !$result ) {
     pod2usage();
 }
 
-# limits
-if (   !defined $critical
-    || !$critical =~ /[0-9]+/mx )
-{
-    pod2usage( -message => 'Could not parse "critical"' );
-}
-if (   !defined $critical
-    || !$warning =~ /[0-9]+/mx )
-{
-    pod2usage( -message => 'Could not parse "warning"' );
-}
-if ( $critical > $warning ) {
-    pod2usage( -message => '"critical" has to be smaller than "warning"' );
-}
-
 # host
 if ( ! defined $host) {
     pod2usage( -message => 'No host specified' );
 }
-
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $warning,
-    critical => $critical,
-);
 
 ##########################
 # Sanity checks: utilities
@@ -217,7 +227,9 @@ if ( ! -x $iperf ) {
 ##################################
 # perform the test
 
-my $command = "$iperf -c $host -d";
+my $host_ip = get_ip($host);
+
+my $command = "$iperf --client $host_ip --tradeoff --format k";
 my $output;
 
 verbose "Executing \"$command\"\n";
@@ -250,6 +262,39 @@ if ($verbosity > 1) {
     }
 }
 
+# process output
+for my $line (@lines) {
+
+    if ($line =~ /^\[\ *[0-9]+\]\ local.*/) {
+        next;
+    }
+    
+    if ($line =~ /^[\\ *[0-9]+\]\ \ .*\ ([0-9]+)\ Kbits\/sec/) {
+        if (! defined $upstream) {
+            $upstream   = $1;
+        } else {
+            $downstream = $1;
+        }
+    }
+
+}
+
+if (!defined $upstream || ! defined $downstream) {
+    $plugin->nagios_exit( UNKNOWN, "Cannot parse up- and downstream speed: check $command output" );            
+}
+    
+$plugin->add_perfdata(
+    label => 'up',
+    value => $upstream,
+    uom   => 'K',
+);
+
+$plugin->add_perfdata(
+    label => 'down',
+    value => $downstream,
+    uom   => 'K',
+);
+
 if ( !( close $output )
     && ( $OS_ERROR != 0 ) )
 {
@@ -260,6 +305,8 @@ if ( !( close $output )
         "Error while closing pipe to $command: $OS_ERROR" );
 }
 
+$plugin->nagios_exit( OK, "down/up $upstream/$downstream Kbits/s" );
+
 1;
 
 __END__
@@ -268,53 +315,52 @@ __END__
 
 =head1 NAME
 
-C<check_bandwidth> - a Nagios plugin to check the amount of free real memory
+C<check_bandwidth> - a Nagios plugin to monitor a connection's bandwidth using iperf
 
 =head1 DESCRIPTION
 
-check_bandwidth is a Nagios plugin to check the amount of free real memory
+check_bandwidth is a Nagios plugin to monitor a connection's bandwidth using iperf
+
+Note that thet it reauires iperf running in server mode on the connected server
 
 =head1 VERSION
 
-Version 0.11.2
+Version 0.9.0
 
 =head1 SYNOPSIS
 
- check_bandwidth --critical=critical --warning=warning
-            [--swap]
+ check_bandwidth --host hostname
+            [--iperf path]
             [--verbose]
             [--version|--help]
 
  Mandatory arguments:
-  --critical,-c   critical   specify the minumal percentage free memory
-  --warning,-w    warning    specify warning threshold for the percentage of free memory
+  --host,-h       hostname   check the bandwidth from localhost to 'hostname'
 
  Options:
-  --swap,-s                  process also swap
+  --iperf         path       path of the iperf utility
   --version,V                print version number
   --verbose,-v               be more verbose (can be repeated)
 
 =head1 REQUIRED ARGUMENTS
 
---critical and --warning
+--host
 
 =head1 OPTIONS
 
-    --critical,-c       minumal percentage free memory (mandatory)
+    --host,-h       hostname   check the bandwidth from localhost to 'hostname'
 
-    --warning,-w        warning threshold for the percentage of free memory (mandatory)
+    --iperf         path       path of the iperf utility
 
-    --swap,-s           process also swap
+    --help,-h,-?               this help screen
 
-    --help,-h,-?        this help screen
+    --verbose,-v               increase verbosity (can be repeated)
 
-    --verbose,-v        increase verbosity (can be repeated)
-
-    --version,-V        prints version information
+    --version,-V               prints version information
 
 =head1 EXAMPLE
 
-check_bandwidth -w 10 -c 5
+check_bandwidth --iperf /opt/bin/iperf --host example.com
 
 check_bandwidth check is the percentage of free memory is lower than 10% or 5% respectively
 
@@ -345,6 +391,8 @@ check_bandwidth depends on
 =item * Nagios::Plugin
 
 =item * Nagios::Plugin::Threshold
+
+=item * Net::DNS::Resolver
 
 =item * version
 
