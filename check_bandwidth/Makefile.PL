@@ -4,8 +4,8 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name     'check_free_mem';
-all_from 'check_free_mem';
+name     'check_bandwidth';
+all_from 'check_bandwidth';
 
 ##############################################################################
 # Specific dependencies
@@ -21,7 +21,7 @@ requires 'Nagios::Plugin::Threshold' => 0;
 requires 'Pod::Usage'                => 0;
 requires 'version'                   => 0;
 
-install_script  'check_free_mem';
+install_script  'check_bandwidth';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',

@@ -1,4 +1,4 @@
-Build and install check_free_mem
+Build and install check_bandwidth
 
 Install to /usr/lib/nagios/plugins/contrib
 ==========================================
@@ -18,7 +18,7 @@ In the source directory run:
     make
     make install
 
-The man page is installed to /usr/share/man/man1/check_free_mem.1
+The man page is installed to /usr/share/man/man1/check_bandwidth.1
 you can customize the path by setting INSTALLMAN1DIR as follows
 
     perl Makefile.PL INSTALLSCRIPT=CUSTOM_DIR INSTALLMAN1DIR=CUSTOM_MAN_DIR
@@ -33,7 +33,7 @@ your Perl interpreter and copy it to the desired location
 
 Generate the man page with pod2man
 
-    pod2man check_free_mem > CUSTOM_MAN_FILE
+    pod2man check_bandwidth > CUSTOM_MAN_FILE
 
 Please report any installation problem to <matteo.corti@id.ethz.ch> or
 open a ticket at
