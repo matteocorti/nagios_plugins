@@ -1,4 +1,4 @@
-%define version 0.1.0
+%define version 0.9.0
 %define release 0
 %define name    check_bandwidth
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -39,6 +39,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
-* Fri Jan 18 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.1.0-0
+* Fri Jan 18 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
 - Initial revision
 

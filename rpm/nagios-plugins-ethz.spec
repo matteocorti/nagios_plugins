@@ -1,4 +1,4 @@
-%define version 1.5
+%define version 1.6
 %define release 0
 %define name    nagios-plugins-ethz
 
@@ -19,6 +19,7 @@ Requires: check_connections
 Requires: check_cpu
 Requires: check_dir
 Requires: check_diskio
+Requires: check_free_mem
 Requires: check_lm_sensors
 Requires: check_nagios_latency
 Requires: check_ssl_cert
@@ -49,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Wed Jan  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.6-0
+- added a dependency for check_free_mem
+
 * Mon Dec  3 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.5-0
 - added check_vpp_logs
 
