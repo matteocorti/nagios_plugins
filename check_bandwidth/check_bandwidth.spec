@@ -1,4 +1,4 @@
-%define version 0.9.0
+%define version 0.9.1
 %define release 0
 %define name    check_bandwidth
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -15,6 +15,7 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 Requires: perl
+Requires: iperf
 
 %description
 Nagios plugin that checks the available bandwidth
