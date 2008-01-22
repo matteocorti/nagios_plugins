@@ -24,7 +24,7 @@ use Net::DNS::Resolver;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.1';
+use version; our $VERSION = '0.9.2';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -35,17 +35,19 @@ use version; our $VERSION = '0.9.1';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
+  $downstream
   $help
   $host
   $host_ip
-  $local_ip
+  $host_port
   $iperf
+  $local_ip
+  $local_port
   $plugin
   $result
   $threshold
-  $verbosity
   $upstream
-  $downstream
+  $verbosity
   %direction
 );
 
@@ -189,11 +191,13 @@ $verbosity = 0;
 
 Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
 $result = GetOptions(
-    'iperf=s'    => \$iperf,
-    'help|h|?'   => \$help,
-    'host|H=s'   => \$host,
-    'verbose|v+' => \$verbosity,
-    'version|V'  => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
+    'iperf=s'       => \$iperf,
+    'help|h|?'      => \$help,
+    'host|H=s'      => \$host,
+    'hostport|p=i'  => \$host_port,
+    'localport|l=i' => \$local_port,
+    'verbose|v+'    => \$verbosity,
+    'version|V'     => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
 );
 
 if ($help) { pod2usage(); }
@@ -218,8 +222,6 @@ if ( !$iperf ) {
     $iperf = get_path('iperf');
 }
 
-verbose "using $iperf", 2;
-
 if ( !$iperf ) {
     $plugin->nagios_exit( UNKNOWN, 'Unable to find the "iperf" utility"' );
 }
@@ -228,12 +230,22 @@ if ( !-x $iperf ) {
     $plugin->nagios_exit( UNKNOWN, "$iperf is not executable" );
 }
 
+verbose "using $iperf", 2;
+
 ##################################
 # perform the test
 
 my $host_ip = get_ip($host);
 
 my $command = "$iperf --client $host_ip --tradeoff --format k";
+
+if (defined $local_port) {
+    $command = $command . " --listenport $local_port";
+}
+if (defined $host_port) {
+    $command = $command . " --port $host_port";
+}
+
 my $output;
 
 verbose "Executing \"$command\"\n";
@@ -331,12 +343,13 @@ Note that thet it reauires iperf running in server mode on the connected server
 
 =head1 VERSION
 
-Version 0.9.1
+Version 0.9.2
 
 =head1 SYNOPSIS
 
  check_bandwidth --host hostname
             [--iperf path]
+            [--localport port] [--hostport port]
             [--verbose]
             [--version|--help]
 
@@ -345,6 +358,8 @@ Version 0.9.1
 
  Options:
   --iperf         path       path of the iperf utility
+  --localport,-l  port       local port
+  --hostport,-p   port       remote port
   --version,V                print version number
   --verbose,-v               be more verbose (can be repeated)
 
@@ -360,15 +375,22 @@ Version 0.9.1
 
     --help,-h,-?               this help screen
 
+    --hostport,-p   port       remote port
+
+    --localport,-l  port       local port
+
     --verbose,-v               increase verbosity (can be repeated)
 
     --version,-V               prints version information
 
 =head1 EXAMPLE
 
-check_bandwidth --iperf /opt/bin/iperf --host example.com
+check_bandwidth --iperf /opt/bin/iperf --host example.com --localport 5002 --hostport 5001
 
 check_bandwidth check is the percentage of free memory is lower than 10% or 5% respectively
+by connecting to an iperf server running on example.com at port 5001. The server will then
+connect to our client to port 5002 for the test in the other direction. See the documentation
+of iperf for the details.
 
 =head1 DIAGNOSTICS
 
