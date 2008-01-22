@@ -91,25 +91,35 @@ sub get_ip {
 
     my $host = shift;
 
-    if ($host =~ /((25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))\.){3}(25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))/) {
+    if ( $host =~
+/((25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))\.){3}(25[0-5]|2[0-4][0-9]|([01]?[0-9]?[0-9]))/mx
+      )
+    {
         return $host;
     }
 
-    
-    my $dns_resolver = Net::DNS::Resolver->new;
-    my $query        = $dns_resolver->search($host);
-    
+    my $dns_resolver = Net::DNS::Resolver->new();
+
+    verbose "get IP address for $host: ", 1;
+
+    my $query = $dns_resolver->search($host);
+
     if ($query) {
-        foreach my $rr ($query->answer) {
-            next unless $rr->type eq "A";
-            return $rr->address;
+        foreach my $rr ( $query->answer() ) {
+            if ( $rr->type() eq 'A' ) {
+                verbose $rr->address() . "\n", 1;
+                return $rr->address;
+            }
         }
-    } else {
-        unknown("cannot compute address of $host (".$dns_resolver->errorstring.")");
     }
 
-}
+    unknown("cannot get the address of $host ("
+          . $dns_resolver->errorstring
+          . ')' );
 
+    return;
+
+}
 
 ##############################################################################
 # Usage     : check_positive_integer($number)
@@ -137,32 +147,31 @@ sub get_path {
 
     my $prog = shift;
     my $path;
-    
+
     my $which_command = "which $prog";
     my $which_output;
 
     open $which_output, q{-|}, "$which_command 2>&1"
-        or $plugin->nagios_exit( UNKNOWN, "Cannot execute $which_command: $OS_ERROR" );
-    
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot execute $which_command: $OS_ERROR" );
+
     while (<$which_output>) {
         chomp;
         if ( !/^which:/mx ) {
             $path = $_;
         }
     }
-    
+
     if ( !( close $which_output )
-             && ( $OS_ERROR != 0 ) )
-        {
-            
-            # close to a piped open return false if the command with non-zero
-            # status. In this case $! is set to 0
-            $plugin->nagios_exit(
-                UNKNOWN,
-                "Error while closing pipe to $which_command: $OS_ERROR"
-            );
-        }
-    
+        && ( $OS_ERROR != 0 ) )
+    {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $which_command: $OS_ERROR" );
+    }
+
     return $path;
 
 }
@@ -178,13 +187,13 @@ $verbosity = 0;
 ########################
 # Command line arguments
 
-Getopt::Long::Configure('bundling', 'no_ignore_case');
+Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
 $result = GetOptions(
-    'iperf=s'      => \$iperf,
-    'help|h|?'     => \$help,
-    'host|H=s'     => \$host,
-    'verbose|v+'   => \$verbosity,
-    'version|V'    => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
+    'iperf=s'    => \$iperf,
+    'help|h|?'   => \$help,
+    'host|H=s'   => \$host,
+    'verbose|v+' => \$verbosity,
+    'version|V'  => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
 );
 
 if ($help) { pod2usage(); }
@@ -198,29 +207,25 @@ if ( !$result ) {
 }
 
 # host
-if ( ! defined $host) {
+if ( !defined $host ) {
     pod2usage( -message => 'No host specified' );
 }
 
 ##########################
 # Sanity checks: utilities
 
-if (!$iperf) {
+if ( !$iperf ) {
     $iperf = get_path('iperf');
 }
 
-if (! $iperf ) {
-    $plugin->nagios_exit(
-        UNKNOWN,
-        'Unable to find the "iperf" utility"'
-    );
+verbose "using $iperf", 2;
+
+if ( !$iperf ) {
+    $plugin->nagios_exit( UNKNOWN, 'Unable to find the "iperf" utility"' );
 }
 
-if ( ! -x $iperf ) {
-    $plugin->nagios_exit(
-        UNKNOWN,
-        "$iperf is not executable"
-    );
+if ( !-x $iperf ) {
+    $plugin->nagios_exit( UNKNOWN, "$iperf is not executable" );
 }
 
 ##################################
@@ -255,7 +260,7 @@ my $pid = open $output, q{-|}, "$command 2>&1"
 # read the whole file
 my @lines = read_file($output);
 
-if ($verbosity > 1) {
+if ( $verbosity > 1 ) {
     for my $line (@lines) {
         verbose "$line", 1;
     }
@@ -264,24 +269,26 @@ if ($verbosity > 1) {
 # process output
 for my $line (@lines) {
 
-    if ($line =~ /^\[\ *[0-9]+\]\ local.*/) {
+    if ( $line =~ /^\[\ *[0-9]+\]\ local.*/mx ) {
         next;
     }
-    
-    if ($line =~ /^[\\ *[0-9]+\]\ \ .*\ ([0-9]+)\ Kbits\/sec/) {
-        if (! defined $upstream) {
-            $upstream   = $1;
-        } else {
+
+    if ( $line =~ /^[\\ *[0-9]+\]\ \ .*\ ([0-9]+)\ Kbits\/sec/mx ) {
+        if ( !defined $upstream ) {
+            $upstream = $1;
+        }
+        else {
             $downstream = $1;
         }
     }
 
 }
 
-if (!defined $upstream || ! defined $downstream) {
-    $plugin->nagios_exit( UNKNOWN, "Cannot parse up- and downstream speed: check $command output" );            
+if ( !defined $upstream || !defined $downstream ) {
+    $plugin->nagios_exit( UNKNOWN,
+        "Cannot parse up- and downstream speed: check $command output" );
 }
-    
+
 $plugin->add_perfdata(
     label => 'up',
     value => $upstream,
