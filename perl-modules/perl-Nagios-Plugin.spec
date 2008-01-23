@@ -2,7 +2,7 @@
 
 Name: perl-Nagios-Plugin
 Version: 0.22
-Release: 0
+Release: 1
 Summary: A family of perl modules to streamline writing Nagios plugins
 License: distributable
 Group: Development/Libraries
@@ -12,7 +12,6 @@ BuildRoot: %{_tmppath}/%{name}-root
 BuildRequires: perl >= 0:5.00503
 BuildRequires: perl-version
 BuildRequires: perl-Config-Tiny
-BuildRequires: perl-Test
 BuildRequires: perl-Test-Simple
 
 Requires:      perl-Math-Calc-Units
