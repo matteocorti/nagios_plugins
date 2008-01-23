@@ -24,7 +24,7 @@ use Net::DNS::Resolver;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.2';
+use version; our $VERSION = '0.9.3';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -45,6 +45,7 @@ use vars qw(
   $local_port
   $plugin
   $result
+  $swap
   $threshold
   $upstream
   $verbosity
@@ -196,8 +197,9 @@ $result = GetOptions(
     'host|H=s'      => \$host,
     'hostport|p=i'  => \$host_port,
     'localport|l=i' => \$local_port,
+    'swap|s'        => \$swap,
     'verbose|v+'    => \$verbosity,
-    'version|V'     => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
+    'version|V' => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
 );
 
 if ($help) { pod2usage(); }
@@ -230,7 +232,7 @@ if ( !-x $iperf ) {
     $plugin->nagios_exit( UNKNOWN, "$iperf is not executable" );
 }
 
-verbose "using $iperf", 2;
+verbose "using $iperf\n", 2;
 
 ##################################
 # perform the test
@@ -239,10 +241,10 @@ my $host_ip = get_ip($host);
 
 my $command = "$iperf --client $host_ip --tradeoff --format k";
 
-if (defined $local_port) {
+if ( defined $local_port ) {
     $command = $command . " --listenport $local_port";
 }
-if (defined $host_port) {
+if ( defined $host_port ) {
     $command = $command . " --port $host_port";
 }
 
@@ -301,6 +303,10 @@ if ( !defined $upstream || !defined $downstream ) {
         "Cannot parse up- and downstream speed: check $command output" );
 }
 
+if ( defined $swap ) {
+    ( $upstream, $downstream ) = ( $downstream, $upstream );
+}
+
 $plugin->add_perfdata(
     label => 'up',
     value => $upstream,
@@ -343,7 +349,7 @@ Note that thet it reauires iperf running in server mode on the connected server
 
 =head1 VERSION
 
-Version 0.9.2
+Version 0.9.3
 
 =head1 SYNOPSIS
 
@@ -360,6 +366,7 @@ Version 0.9.2
   --iperf         path       path of the iperf utility
   --localport,-l  port       local port
   --hostport,-p   port       remote port
+  --swap,-s                  swap down- and upstream statistics
   --version,V                print version number
   --verbose,-v               be more verbose (can be repeated)
 
@@ -378,6 +385,8 @@ Version 0.9.2
     --hostport,-p   port       remote port
 
     --localport,-l  port       local port
+
+    --swap,-s                  swap down- and upstream statistics
 
     --verbose,-v               increase verbosity (can be repeated)
 

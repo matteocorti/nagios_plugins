@@ -1,4 +1,4 @@
-%define version 0.9.2
+%define version 0.9.3
 %define release 0
 %define name    check_bandwidth
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.3-0
+- updated to 0.9.3 (option to swap up- and downstream)
+
 * Tue Jan 22 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.2-0
 - updated to 0.9.2 (options to specify local and remote ports)
 

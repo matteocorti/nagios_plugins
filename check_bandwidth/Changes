@@ -1,3 +1,7 @@
+2008-01-23  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_bandwidth: added an option to swap up- and downstream
+
 2008-01-22  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_bandwidth: added options to specify local and remote ports
