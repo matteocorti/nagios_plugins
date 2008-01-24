@@ -1,1 +1,3 @@
-
+check_bandwidth is a Nagios plugin to monitor a connection's
+bandwidth using iperf. An iperf server must be running on the
+other peer of the tested connection.
