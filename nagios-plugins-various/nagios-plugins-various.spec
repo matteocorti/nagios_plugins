@@ -1,5 +1,5 @@
-%define version 1.2
-%define release 5
+%define version 1.3
+%define release 0
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
 %define _unpackaged_files_terminate_build 0 
@@ -28,6 +28,7 @@ check_mailq
 check_mem
 check_rxdebug
 check_udebu
+check_open_files
 check_procs (patched to generate performance data)
 
 %prep
@@ -38,6 +39,8 @@ check_procs (patched to generate performance data)
 %install
 if grep -q 'Red Hat Enterprise Linux AS release 4' /etc/issue ; then
         cp check_procs.rh4 check_procs
+elif grep -q 'Red Hat Enterprise Linux Server release 5' /etc/issue ; then
+        cp check_procs.rh5 check_procs
 elif grep -q 'Fedora release 8' /etc/issue ; then
         cp check_procs.f8 check_procs
 fi
@@ -58,8 +61,15 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_rxdebug
 %attr(0755, root, root) %{_prefix}/check_udebug
 %attr(0755, root, root) %{_prefix}/check_procs
+%attr(0755, root, root) %{_prefix}/check_open_files.pl
 
 %changelog
+* Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-0
+- added check_open_files
+
+* Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-6
+- added check_procs.rh5
+
 * Mon Dec 17 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2-1
 - check_dhcp requires Net::DHCP::Watch
 

@@ -1,4 +1,4 @@
-%define version 1.6
+%define version 1.7
 %define release 0
 %define name    nagios-plugins-ethz
 
@@ -15,6 +15,7 @@ BuildArch: noarch
 
 Requires: check_afs_offline_volumes
 Requires: check_afs_vol
+Requires: check_bandwidth
 Requires: check_connections
 Requires: check_cpu
 Requires: check_dir
@@ -50,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.7-0
+- included check_bandwidth
+
 * Wed Jan  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.6-0
 - added a dependency for check_free_mem
 
