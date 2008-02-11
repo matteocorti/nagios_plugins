@@ -1,7 +1,7 @@
 AUTHORS
 Changes
-check_bandwidth
-check_bandwidth.spec
+check_procs_multi
+check_procs_multi.spec
 COPYING
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
