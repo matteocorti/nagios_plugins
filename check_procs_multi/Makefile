@@ -1,4 +1,4 @@
-# This Makefile is for the check_bandwidth extension to perl.
+# This Makefile is for the check_procs_multi extension to perl.
 #
 # It was generated automatically by MakeMaker version
 # 6.30 (Revision: Revision: 4535 ) from the contents of
@@ -12,13 +12,13 @@
 
 #     AUTHOR => q[Matteo Corti <matteo.corti@id.ethz.ch>]
 #     DIR => []
-#     DISTNAME => q[check_bandwidth]
-#     EXE_FILES => [q[check_bandwidth]]
+#     DISTNAME => q[check_procs_multi]
+#     EXE_FILES => [q[check_procs_multi]]
 #     INSTALLSCRIPT => q[/usr/lib/nagios/plugins/contrib]
-#     NAME => q[check_bandwidth]
+#     NAME => q[check_procs_multi]
 #     NO_META => q[1]
-#     PREREQ_PM => { Net::DNS::Resolver=>q[0], Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
-#     VERSION => q[0.9.3]
+#     PREREQ_PM => { Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
+#     VERSION => q[0.9.0]
 #     dist => {  }
 
 # --- MakeMaker post_initialize section:
@@ -57,13 +57,13 @@ VENDORLIBEXP = /usr/lib/perl5/vendor_perl/5.8.8
 AR_STATIC_ARGS = cr
 DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
-NAME = check_bandwidth
-NAME_SYM = check_bandwidth
-VERSION = 0.9.3
+NAME = check_procs_multi
+NAME_SYM = check_procs_multi
+VERSION = 0.9.0
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_9_3
+VERSION_SYM = 0_9_0
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.9.3
+XS_VERSION = 0.9.0
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -141,8 +141,8 @@ MM_REVISION = Revision: 4535
 # BASEEXT = Basename part of FULLEXT. May be just equal FULLEXT. (eg Oracle)
 # PARENT_NAME = NAME without BASEEXT and no trailing :: (eg Foo::Bar)
 # DLBASE  = Basename part of dynamic library. May be just equal BASEEXT.
-FULLEXT = check_bandwidth
-BASEEXT = check_bandwidth
+FULLEXT = check_procs_multi
+BASEEXT = check_procs_multi
 PARENT_NAME = 
 DLBASE = $(BASEEXT)
 VERSION_FROM = 
@@ -156,7 +156,7 @@ XS_FILES =
 C_FILES  = 
 O_FILES  = 
 H_FILES  = 
-MAN1PODS = check_bandwidth
+MAN1PODS = check_procs_multi
 MAN3PODS = 
 
 # Where is the Config information that we are using/depend on
@@ -247,8 +247,8 @@ CI = ci -u
 RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
-DISTNAME = check_bandwidth
-DISTVNAME = check_bandwidth-0.9.3
+DISTNAME = check_procs_multi
+DISTVNAME = check_procs_multi-0.9.0
 
 
 # --- MakeMaker macro section:
@@ -401,9 +401,9 @@ POD2MAN = $(POD2MAN_EXE)
 
 
 manifypods : pure_all  \
-	check_bandwidth
+	check_procs_multi
 	$(NOECHO) $(POD2MAN) --section=1 --perm_rw=$(PERM_RW) \
-	  check_bandwidth $(INST_MAN1DIR)/check_bandwidth.$(MAN1EXT) 
+	  check_procs_multi $(INST_MAN1DIR)/check_procs_multi.$(MAN1EXT) 
 
 
 
@@ -413,20 +413,20 @@ manifypods : pure_all  \
 
 # --- MakeMaker installbin section:
 
-EXE_FILES = check_bandwidth
+EXE_FILES = check_procs_multi
 
-pure_all :: $(INST_SCRIPT)/check_bandwidth
+pure_all :: $(INST_SCRIPT)/check_procs_multi
 	$(NOECHO) $(NOOP)
 
 realclean ::
 	$(RM_F) \
-	  $(INST_SCRIPT)/check_bandwidth 
+	  $(INST_SCRIPT)/check_procs_multi 
 
-$(INST_SCRIPT)/check_bandwidth : check_bandwidth $(FIRST_MAKEFILE) $(INST_SCRIPT)$(DFSEP).exists $(INST_BIN)$(DFSEP).exists
-	$(NOECHO) $(RM_F) $(INST_SCRIPT)/check_bandwidth
-	$(CP) check_bandwidth $(INST_SCRIPT)/check_bandwidth
-	$(FIXIN) $(INST_SCRIPT)/check_bandwidth
-	-$(NOECHO) $(CHMOD) $(PERM_RWX) $(INST_SCRIPT)/check_bandwidth
+$(INST_SCRIPT)/check_procs_multi : check_procs_multi $(FIRST_MAKEFILE) $(INST_SCRIPT)$(DFSEP).exists $(INST_BIN)$(DFSEP).exists
+	$(NOECHO) $(RM_F) $(INST_SCRIPT)/check_procs_multi
+	$(CP) check_procs_multi $(INST_SCRIPT)/check_procs_multi
+	$(FIXIN) $(INST_SCRIPT)/check_procs_multi
+	-$(NOECHO) $(CHMOD) $(PERM_RWX) $(INST_SCRIPT)/check_procs_multi
 
 
 
@@ -768,7 +768,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,3,0">' > $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,0,0">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <TITLE>$(DISTNAME)</TITLE>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Matteo Corti &lt;matteo.corti@id.ethz.ch&gt;</AUTHOR>' >> $(DISTNAME).ppd
@@ -778,7 +778,6 @@ ppd:
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Getopt-Long" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin-Threshold" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
-	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Net-DNS-Resolver" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Pod-Usage" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="version" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <OS NAME="$(OSNAME)" />' >> $(DISTNAME).ppd

@@ -1,6 +1,6 @@
-%define version 0.9.3
+%define version 0.9.0
 %define release 0
-%define name    check_bandwidth
+%define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib
 
 Summary:   Nagios plugin that checks the available bandwidth
@@ -15,10 +15,10 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 Requires: perl
-Requires: iperf
 
 %description
-Nagios plugin that checks the available bandwidth
+check_procs_multi is a Nagios plugin similar to check_procs able to
+check several processes at once.
 
 %prep
 %setup -q
@@ -40,12 +40,5 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
-* Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.3-0
-- updated to 0.9.3 (option to swap up- and downstream)
-
-* Tue Jan 22 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.2-0
-- updated to 0.9.2 (options to specify local and remote ports)
-
-* Fri Jan 18 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
-- Initial revision
-
+* Mon Feb 11 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
+- Initial release

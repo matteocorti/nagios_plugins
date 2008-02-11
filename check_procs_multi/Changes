@@ -1,12 +1,4 @@
-2008-01-23  Matteo Corti  <matteo.corti@id.ethz.ch>
+2008-02-11  Matteo Corti  <matteo.corti@id.ethz.ch>
 
-	* check_bandwidth: added an option to swap up- and downstream
+	* check_procs_multi: initial release
 
-2008-01-22  Matteo Corti  <matteo.corti@id.ethz.ch>
-
-	* check_bandwidth: added options to specify local and remote ports
-
-2008-01-21  Matteo Corti  <matteo.corti@id.ethz.ch>
-
-	* check_bandwidth: cleaned up with bashcritic
-	* check_bandwidth: fixed the shebang

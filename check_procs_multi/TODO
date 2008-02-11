@@ -1,3 +1,27 @@
- * Support other systems (e.g., Mac OS X, Solaris, ...)
+* Add all the missing options of check_procs
 
-
+ -m, --metric=TYPE
+  Check thresholds against metric. Valid types:
+  PROCS   - number of processes (default)
+  VSZ     - virtual memory size
+  RSS     - resident set memory size
+  CPU     - percentage cpu
+  ELAPSED - time elapsed in seconds
+-s, --state=STATUSFLAGS
+   Only scan for processes that have, in the output of `ps`, one or
+   more of the status flags you specify (for example R, Z, S, RS,
+   RSZDT, plus others based on the output of your 'ps' command).
+ -p, --ppid=PPID
+   Only scan for children of the parent process ID indicated.
+ -z, --vsz=VSZ
+   Only scan for processes with vsz higher than indicated.
+ -r, --rss=RSS
+   Only scan for processes with rss higher than indicated.
+ -P, --pcpu=PCPU
+   Only scan for processes with pcpu higher than indicated.
+ -u, --user=USER
+   Only scan for processes with user name or ID indicated.
+ -a, --argument-array=STRING
+   Only scan for processes with args that contain STRING.
+ -C, --command=COMMAND
+   Only scan for exact matches of COMMAND (without path).

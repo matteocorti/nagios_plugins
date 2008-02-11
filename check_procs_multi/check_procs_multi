@@ -1,0 +1,353 @@
+#!perl -w
+
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_dir 856 2007-10-31 09:34:21Z corti $
+#   $Revision: 856 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_dir/check_dir $
+#   $Date: 2007-10-31 10:34:21 +0100 (Wed, 31 Oct 2007) $
+
+use strict;
+use warnings;
+
+use 5.008;
+
+use Getopt::Long;
+use Carp;
+use English qw(-no_match_vars);
+
+use File::Slurp;
+use Nagios::Plugin;
+use Nagios::Plugin::Threshold;
+use Net::DNS::Resolver;
+use Pod::Usage qw(pod2usage);
+
+use version; our $VERSION = '0.9.0';
+
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+            $help
+            $plugin
+            $threshold
+            $verbosity
+            @procs
+);
+
+
+##############################################################################
+# subroutines
+
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
+
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# main
+
+# initialization
+$plugin    = Nagios::Plugin->new( shortname => 'CHECK_PROCS_MULTI' );
+$verbosity = 0;
+
+Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
+my $result = GetOptions(
+    'proc|p=s'   => \@procs,
+    'help|h|?'   => \$help,
+    'verbose|v+' => \$verbosity,
+    'version|V'  => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
+);
+
+###############
+# Sanity checks
+
+# syntax
+if ( !$result ) {
+    pod2usage();
+}
+
+if ($help) { pod2usage(); }
+
+my $critical;
+my $warning;
+
+for my $proc (@procs) {
+
+    # we need 6 fields even if empty
+    my @line = split /,/mx, $proc, 5;
+    
+    if ( $#line != 4 ) {
+        $plugin->nagios_exit( UNKNOWN, 'Error parsing @line' );
+    }
+    
+    my $proc = $line[0];
+    my $wmin = $line[1];
+    my $wmax = $line[2];
+    my $cmin = $line[3];
+    my $cmax = $line[4];
+
+    if ($wmin && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $wmin is not a number" ); }
+    if ($wmax && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $wmax is not a number" ); }
+    if ($cmin && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $cmin is not a number" ); }
+    if ($cmax && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $cmax is not a number" ); }
+    
+    my $command = "ps --no-headers -C $proc";
+    my $output;
+
+    verbose "Executing \"$command\"\n";
+
+    my $pid = open $output, q{-|}, "$command 2>&1"
+        or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+
+    # read the whole file
+    my @lines = read_file($output);
+
+    if ( $verbosity > 0 ) {
+        for my $line (@lines) {
+            verbose "$line", 1;
+        }
+    }
+        
+    if ( !( close $output ) &&
+             ( $OS_ERROR != 0 ) )
+        {
+
+            # close to a piped open return false if the command with non-zero
+            # status. In this case $! is set to 0
+            $plugin->nagios_exit( UNKNOWN,
+                                      "Error while closing pipe to $command: $OS_ERROR" );
+        }
+        
+    my $count = $#lines + 1;
+
+    if ( $cmin && $count < $cmin ) {
+        if ($critical) {
+            $critical = $critical . ", $count $proc";
+        } else {
+            $critical = "$count $proc";
+        }   
+    }
+    elsif ( $cmax && $count > $cmax ) {
+        if ($critical) {
+            $critical = $critical . ", $count $proc";
+        } else {
+            $critical = "$count $proc";
+        }   
+    } elsif ( $wmin && $count < $wmin ) {
+        if ($warning) {
+            $warning = $warning . ", $count $proc";
+        } else {
+            $warning = "$count $proc";
+        }   
+    }
+    elsif ( $wmax && $count > $wmax ) {
+        if ($warning) {
+            $warning = $warning . ", $count $proc";
+        } else {
+            $warning = "$count $proc";
+        }   
+    }
+    
+    $threshold = Nagios::Plugin::Threshold->set_thresholds(
+        warning  => "$wmin:$wmax",
+        critical => "$cmin:$cmax",
+    );
+
+    $plugin->add_perfdata(
+        label     => $proc,
+        value     => $count,
+        threshold => $threshold,
+        uom       => q{},
+    );
+    
+    
+}
+
+if ($critical) {
+    $plugin->nagios_exit( CRITICAL, $critical );
+} elsif ($warning) {
+    $plugin->nagios_exit( WARNING, $warning );
+} else {
+    $plugin->nagios_exit( OK, 'all processes OK' );
+}
+
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<check_procs_multi> - a Nagios plugin similar to check_procs able to
+check several processes at once.
+
+=head1 DESCRIPTION
+
+check_procs_multi is a Nagios plugin similar to check_procs able to
+check several processes at once.
+
+=head1 VERSION
+
+Version 0.9.0
+
+=head1 SYNOPSIS
+
+ check_procs_multi --proc name,warning_min,warning_max,critical_min,critical_max
+            [--verbose]
+            [--version|--help]
+
+ Mandatory arguments:
+  --proc           name,warning_min,warning_max,critical_min,critical_max
+                             process check definition
+
+ Options:
+  --help,-h,-?               prints the usage
+  --version,V                print version number
+  --verbose,-v               be more verbose (can be repeated)
+
+=head1 REQUIRED ARGUMENTS
+
+--conf
+
+=head1 OPTIONS
+
+    --proc         name,warning_min,warning_max,critical_min,critical_max
+                               process check definition
+
+    --help,-h,-?               prints the usage
+        
+    --version,V                print version number
+        
+    --verbose,-v               be more verbose (can be repeated)
+
+=head1 EXAMPLE
+
+check_procs_multi --proc crond,1,,1, --proc httpd,1,100,1,200
+
+checks if at least 1 crond process is running and checks that there is
+at least 1 httpd process and no more than 200 httpd proceses (gives a
+warning at 100)
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_procs_multi depends on
+
+=over 4
+
+=item * Carp
+
+=item * English
+
+=item * File::Slurp
+
+=item * Getopt::Long
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
+
