@@ -18,7 +18,7 @@
 #     NAME => q[check_procs_multi]
 #     NO_META => q[1]
 #     PREREQ_PM => { Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
-#     VERSION => q[0.9.0]
+#     VERSION => q[0.9.1]
 #     dist => {  }
 
 # --- MakeMaker post_initialize section:
@@ -59,11 +59,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = check_procs_multi
 NAME_SYM = check_procs_multi
-VERSION = 0.9.0
+VERSION = 0.9.1
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_9_0
+VERSION_SYM = 0_9_1
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.9.0
+XS_VERSION = 0.9.1
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -248,7 +248,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = check_procs_multi
-DISTVNAME = check_procs_multi-0.9.0
+DISTVNAME = check_procs_multi-0.9.1
 
 
 # --- MakeMaker macro section:
@@ -768,7 +768,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,0,0">' > $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,1,0">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <TITLE>$(DISTNAME)</TITLE>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Matteo Corti &lt;matteo.corti@id.ethz.ch&gt;</AUTHOR>' >> $(DISTNAME).ppd

@@ -1,3 +1,7 @@
+2008-02-12  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_procs_multi: added default values (min 1)
+
 2008-02-11  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_procs_multi: initial release

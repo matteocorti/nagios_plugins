@@ -1,4 +1,4 @@
-%define version 0.9.0
+%define version 0.9.1
 %define release 0
 %define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,5 +40,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Tue Feb 12 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.1-0
+- version 0.9.1 (default min 1)
+
 * Mon Feb 11 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.0-0
 - Initial release

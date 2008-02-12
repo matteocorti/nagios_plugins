@@ -24,7 +24,7 @@ use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.0';
+use version; our $VERSION = '0.9.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -35,13 +35,12 @@ use version; our $VERSION = '0.9.0';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
-            $help
-            $plugin
-            $threshold
-            $verbosity
-            @procs
+  $help
+  $plugin
+  $threshold
+  $verbosity
+  @procs
 );
-
 
 ##############################################################################
 # subroutines
@@ -82,7 +81,7 @@ sub verbose {
 # main
 
 # initialization
-$plugin    = Nagios::Plugin->new( shortname => 'CHECK_PROCS_MULTI' );
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_PROCS_MULTI' );
 $verbosity = 0;
 
 Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
@@ -106,33 +105,87 @@ if ($help) { pod2usage(); }
 my $critical;
 my $warning;
 
+if ( @procs == 0 ) {
+    $plugin->nagios_exit( UNKNOWN,
+        'Error: at least one process must be specified' );
+}
+
+####################
+# Perform the checks
+
 for my $proc (@procs) {
+
+    my $name;
+    my $wmin;
+    my $wmax;
+    my $cmin;
+    my $cmax;
 
     # we need 6 fields even if empty
     my @line = split /,/mx, $proc, 5;
-    
-    if ( $#line != 4 ) {
-        $plugin->nagios_exit( UNKNOWN, 'Error parsing @line' );
-    }
-    
-    my $proc = $line[0];
-    my $wmin = $line[1];
-    my $wmax = $line[2];
-    my $cmin = $line[3];
-    my $cmax = $line[4];
 
-    if ($wmin && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $wmin is not a number" ); }
-    if ($wmax && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $wmax is not a number" ); }
-    if ($cmin && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $cmin is not a number" ); }
-    if ($cmax && ! $wmin =~ /[0-9]+/mx) { $plugin->nagios_exit( UNKNOWN, "Error: $cmax is not a number" ); }
-    
-    my $command = "ps --no-headers -C $proc";
+    if ( $#line == 0 ) {
+
+        # assume 1,,1,
+        $name = $line[0];
+        $wmin = 1;
+        $cmin = 1;
+
+    }
+    else {
+
+        if ( $#line != 4 ) {
+            $plugin->nagios_exit( UNKNOWN, "Error parsing @line" );
+        }
+
+        $name = $line[0];
+        $wmin = $line[1];
+        $wmax = $line[2];
+        $cmin = $line[3];
+        $cmax = $line[4];
+
+        # sanity checks
+        if ( $wmin && !$wmin =~ /[0-9]+/mx ) {
+            $plugin->nagios_exit( UNKNOWN, "Error: $wmin is not a number" );
+        }
+        if ( $wmax && !$wmin =~ /[0-9]+/mx ) {
+            $plugin->nagios_exit( UNKNOWN, "Error: $wmax is not a number" );
+        }
+
+        if ( $cmin && !$wmin =~ /[0-9]+/mx ) {
+            $plugin->nagios_exit( UNKNOWN, "Error: $cmin is not a number" );
+        }
+        if ( $cmax && !$wmin =~ /[0-9]+/mx ) {
+            $plugin->nagios_exit( UNKNOWN, "Error: $cmax is not a number" );
+        }
+
+        if ( $wmin > $wmax ) {
+            $plugin->nagios_exit( UNKNOWN,
+                "Error: $wmin (min) is bigger than $wmax (max)" );
+        }
+        if ( $cmin > $cmax ) {
+            $plugin->nagios_exit( UNKNOWN,
+                "Error: $cmin (min) is bigger than $cmax (max)" );
+        }
+
+        if ( $wmin > $cmin ) {
+            $plugin->nagios_exit( UNKNOWN,
+                "Error: $wmin (warning) is bigger than $wmin (critical)" );
+        }
+        if ( $wmax > $cmax ) {
+            $plugin->nagios_exit( UNKNOWN,
+                "Error: $wmax (warning) is bigger than $cmax (critical)" );
+        }
+
+    }
+
+    my $command = "ps --no-headers -C $name";
     my $output;
 
     verbose "Executing \"$command\"\n";
 
     my $pid = open $output, q{-|}, "$command 2>&1"
-        or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
     # read the whole file
     my @lines = read_file($output);
@@ -142,67 +195,78 @@ for my $proc (@procs) {
             verbose "$line", 1;
         }
     }
-        
-    if ( !( close $output ) &&
-             ( $OS_ERROR != 0 ) )
-        {
 
-            # close to a piped open return false if the command with non-zero
-            # status. In this case $! is set to 0
-            $plugin->nagios_exit( UNKNOWN,
-                                      "Error while closing pipe to $command: $OS_ERROR" );
-        }
-        
+    if ( !( close $output )
+        && ( $OS_ERROR != 0 ) )
+    {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $command: $OS_ERROR" );
+    }
+
     my $count = $#lines + 1;
 
     if ( $cmin && $count < $cmin ) {
         if ($critical) {
-            $critical = $critical . ", $count $proc";
-        } else {
-            $critical = "$count $proc";
-        }   
+            $critical = $critical . ", $count $name";
+        }
+        else {
+            $critical = "$count $name";
+        }
     }
     elsif ( $cmax && $count > $cmax ) {
         if ($critical) {
-            $critical = $critical . ", $count $proc";
-        } else {
-            $critical = "$count $proc";
-        }   
-    } elsif ( $wmin && $count < $wmin ) {
+            $critical = $critical . ", $count $name";
+        }
+        else {
+            $critical = "$count $name";
+        }
+    }
+    elsif ( $wmin && $count < $wmin ) {
         if ($warning) {
-            $warning = $warning . ", $count $proc";
-        } else {
-            $warning = "$count $proc";
-        }   
+            $warning = $warning . ", $count $name";
+        }
+        else {
+            $warning = "$count $name";
+        }
     }
     elsif ( $wmax && $count > $wmax ) {
         if ($warning) {
-            $warning = $warning . ", $count $proc";
-        } else {
-            $warning = "$count $proc";
-        }   
+            $warning = $warning . ", $count $name";
+        }
+        else {
+            $warning = "$count $name";
+        }
     }
-    
+
+    my $warn_string =
+      ( ($wmin) ? "$wmin" : q{} ) . q{:} . ( ($wmax) ? "$wmax" : q{} );
+    my $critical_string =
+      ( ($cmin) ? "$cmin" : q{} ) . q{:} . ( ($cmax) ? "$cmax" : q{} );
+
     $threshold = Nagios::Plugin::Threshold->set_thresholds(
-        warning  => "$wmin:$wmax",
-        critical => "$cmin:$cmax",
+        warning  => $warn_string,
+        critical => $critical_string,
     );
 
     $plugin->add_perfdata(
-        label     => $proc,
+        label     => $name,
         value     => $count,
         threshold => $threshold,
         uom       => q{},
     );
-    
-    
+
 }
 
 if ($critical) {
     $plugin->nagios_exit( CRITICAL, $critical );
-} elsif ($warning) {
+}
+elsif ($warning) {
     $plugin->nagios_exit( WARNING, $warning );
-} else {
+}
+else {
     $plugin->nagios_exit( OK, 'all processes OK' );
 }
 
@@ -224,7 +288,7 @@ check several processes at once.
 
 =head1 VERSION
 
-Version 0.9.0
+Version 0.9.1
 
 =head1 SYNOPSIS
 
