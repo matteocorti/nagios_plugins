@@ -1,6 +1,12 @@
+2008-02-13  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_procs_multi: the usage text now specifies that more
+	  checks can be specified concurrently
+
 2008-02-12  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_procs_multi: added default values (min 1)
+	* check_procs_multi: fixed a bug in the sanity checks
 
 2008-02-11  Matteo Corti  <matteo.corti@id.ethz.ch>
 

@@ -1,4 +1,4 @@
-%define version 0.9.1
+%define version 0.9.2
 %define release 0
 %define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Tue Feb 12 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.2-0
+- fixed a bug in the sanity checks
+
 * Tue Feb 12 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.1-0
 - version 0.9.1 (default min 1)
 
