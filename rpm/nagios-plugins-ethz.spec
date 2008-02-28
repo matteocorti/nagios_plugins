@@ -1,4 +1,4 @@
-%define version 1.7
+%define version 1.8
 %define release 0
 %define name    nagios-plugins-ethz
 
@@ -23,6 +23,7 @@ Requires: check_diskio
 Requires: check_free_mem
 Requires: check_lm_sensors
 Requires: check_nagios_latency
+Requires: check_procs_multi
 Requires: check_ssl_cert
 Requires: check_tcptraffic
 Requires: check_topology
@@ -51,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Mon Feb 11 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.8-0
+- included dep on check_procs_multi
+
 * Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.7-0
 - included check_bandwidth
 
