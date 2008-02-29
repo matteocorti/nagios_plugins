@@ -1,48 +1,179 @@
-#!/usr/bin/perl
+#!perl
 
-# RCS information (required by Perl::Critic)
-#   $Id$
-#   $Revision$
-#   $HeadURL$
-#   $Date$
+# check_updates is a Nagios plugin to check if RedHat or Fedora system
+# is up-to-date
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_updates 966 2008-02-28 15:47:36Z corti $
+#   $Revision: 966 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_updates/check_updates $
+#   $Date: 2008-02-28 16:47:36 +0100 (Thu, 28 Feb 2008) $
 
 use strict;
 use warnings;
 
-use Getopt::Long;
+use Carp;
 use English '-no_match_vars';
+use File::Slurp;
+use Getopt::Long;
+use Nagios::Plugin::Threshold;
+use Nagios::Plugin;
+use Pod::Usage qw(pod2usage);
 use version;
 
-our $VERSION     = '1.2.0';
+our $VERSION = '2.0.0';
 
-my $critical   = 0;
-my $help       = q{};
-my $result;
-my $status     = 0;
-my $status_msg = q{};
-my $warning    = 0;
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+  $critical
+  $help
+  $netstat
+  $plugin
+  $result
+  $status
+  $status_msg
+  $threshold
+  $verbosity
+  $warning
+  %states
+);
 
 ##############################################################################
 # subroutines
 
-################################
-# prints the usage of the plugin
-sub usage {
+##############################################################################
+# Usage     : verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub verbose {
 
-    my $msg = shift;
+    # arguments
+    my $message = shift;
+    my $level   = shift;
 
-  if (defined $msg) {
-    print "$msg\n";
-  }
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
 
-  print << "EOT";
-usage:
-  -c crit      critical
-  -w warn      warning
-  --version    version
-EOT
+    if ( !defined $level ) {
+        $level = 0;
+    }
 
-  exit 3;
+    if ( $level < $verbosity ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : initialize_state_table
+# Purpose   : resets the counters for each known state
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub initialize_state_table {
+
+    my @known_states = qw(
+      CLOSE_WAIT
+      CLOSED
+      ESTABLISHED
+      FIN_WAIT_1
+      FIN_WAIT_2
+      LAST_ACK
+      LISTEN
+      SYN_RECEIVED
+      SYN_SEND
+      TIME_WAIT
+    );
+
+    for my $state (@known_states) {
+        $states{$state} = 0;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : check_positive_integer($number)
+# Purpose   : checks if the argument is a valid positive integer
+# Returns   : true if the number is valid
+# Arguments : number to test
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub check_positive_integer {
+    my $number = shift;
+    return $number =~ /^[0-9]+$/mx;
+}
+
+##############################################################################
+# Usage     : get_path('program_name');
+# Purpose   : retrieves the path of an executable file using the
+#             'which' utility
+# Returns   : the path of the program (if found)
+# Arguments : the program name
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub get_path {
+
+    my $prog = shift;
+    my $path;
+
+    my $which_command = "which $prog";
+    my $which_output;
+
+    open $which_output, q{-|}, "$which_command 2>&1"
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot execute $which_command: $OS_ERROR" );
+
+    while (<$which_output>) {
+        chomp;
+        if ( !/^which:/mx ) {
+            $path = $_;
+        }
+    }
+
+    if (  !( close $which_output )
+        && ( $OS_ERROR != 0 ) )
+    {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $which_command: $OS_ERROR" );
+    }
+
+    return $path;
 
 }
 
@@ -50,68 +181,351 @@ EOT
 # main
 #
 
+################################################################################
+# Initialization
+
+$critical   = 0;
+$help       = q{};
+$netstat    = q{};
+$status     = 0;
+$status_msg = q{};
+$verbosity  = 0;
+$warning    = 0;
+
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_CONNECTIONS' );
+
 ########################
 # Command line arguments
 
-$result = GetOptions (
-    'critical=i'  => \$critical,
-    'warning=i'   => \$warning,
-    'help'        => \$help,
-    'version'     => sub { print "check_dir version $VERSION\n"; exit 3;}
+Getopt::Long::Configure(qw{bundling });
+$result = GetOptions(
+    'critical|c=i' => \$critical,
+    'help|h|?'     => \$help,
+    'netstat=s'    => \$netstat,
+    'verbose|v+'   => \$verbosity,
+    'version|V'    => sub { print "check_dir version $VERSION\n"; exit 3; },
+    'warning|w=i'  => \$warning,
 );
 
-if (!$result) {
-  usage();
+if ( !$result || $help ) {
+    pod2usage();
 }
 
-if ($help)                { usage(); }
-if ($critical <= 0)       { usage('Could not parse "critical"'); }
-if ($warning  <= 0)       { usage('Could not parse "warning"'); }
-if ($critical < $warning) { usage('"critical" has to be greater than "warning"'); }
+###############
+# Sanity checks
 
-my $command = 'netstat -an | grep ^tcp';
+if ( !$critical || !check_positive_integer($critical) || $critical <= 0 ) {
+    $plugin->nagios_exit( UNKNOWN, 'unable to parse critical' );
+}
+
+if ( !$warning || !check_positive_integer($warning) || $warning <= 0 ) {
+    $plugin->nagios_exit( UNKNOWN, 'unable to parse warning' );
+}
+
+if ( $critical < $warning ) {
+    $plugin->nagios_exit( UNKNOWN,
+        'critical has to be greater or equal warning' );
+}
+
+if ( !$netstat ) {
+    $netstat = get_path('netstat');
+}
+
+if ( !$netstat ) {
+    $plugin->nagios_exit( UNKNOWN, 'Unable to find the "netstat" utility"' );
+}
+
+if ( !-x $netstat ) {
+    $plugin->nagios_exit( UNKNOWN, "$netstat is not executable" );
+}
+
+verbose "using $netstat\n", 2;
+
+################
+# Set the limits
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $warning,
+    critical => $critical,
+);
+
+################################################################################
+
+my $command = "$netstat -an";
 my $output;
-my %states;
 
-my $pid = open $output, '<', "$command 2>&1 |" or
-    croak "Cannot execute $command";
+verbose qq{Executing "$command"\n};
 
-while (<$output>) {
-    chomp;
-    if (/tcp.*\s([A-Z_]+)/mx) {
-        $states{$1}++;
+my $pid = open $output, q{-|}, "$command 2>&1"
+  or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+
+# read the whole file
+my @lines = read_file($output);
+
+if ( $verbosity > 2 ) {
+    for my $line (@lines) {
+        verbose "$line", 1;
+    }
+}
+
+# skip the first two lines (header)
+shift @lines;
+shift @lines;
+
+# continue to parse until we detect a known protocol
+#   TCP
+#   UTP
+#   ICMP
+
+my $protocol;
+my $recv;
+my $send;
+my $local;
+my $remote;
+my $state;
+
+my $tcp     = 0;
+my $udp     = 0;
+my $udp_in  = 0;
+my $icmp    = 0;
+my $icmp_in = 0;
+
+initialize_state_table();
+
+for my $line (@lines) {
+
+    if ( $line =~ /^tcp/mx ) {
+
+        $tcp++;
+
+        ( $protocol, $recv, $send, $local, $remote, $state ) = split /\s+/mx, $line;
+
+        if ( !defined $states{$state} ) {
+            $plugin->nagios_exit( UNKNOWN, "unknown TCP state '$state'" );
+        }
+
+        $states{$state}++;
+
+    }
+    elsif ( $line =~ /^udp/mx ) {
+
+        ( $protocol, $recv, $send, $local, $remote ) = split /\s+/mx, $line;
+
+        if ( $remote eq '*.*' ) {
+            $udp_in++;
+        }
+
+        $udp++;
+    }
+    elsif ( $line =~ /^icm/mx ) {
+
+        ( $protocol, $recv, $send, $local, $remote ) = split /\s+/mx, $line;
+
+        if ( $remote eq '*.*' ) {
+            $icmp_in++;
+        }
+
+        $icmp++;
+
     }
     else {
-        croak "Error: cannot parse netstat output: $OS_ERROR\n";
+        last;
     }
+
 }
 
-my $total;
-my $status = q{};
+if (  !( close $output )
+    && ( $OS_ERROR != 0 ) )
+{
 
-while ( my ($state,$count) = each %states ) {
-    $total += $count;
-    $status = $status . q{ } . "$state=$count;;;;";
+    # close to a piped open return false if the command with non-zero
+    # status. In this case $! is set to 0
+    $plugin->nagios_exit( UNKNOWN,
+        "Error while closing pipe to $command: $OS_ERROR" );
 }
 
-$status = ": $total connections"
-    . ' |'
-    . " TOTAL=$total;$warning;$critical;;"
-    . $status
-    . "\n";
+my $total = $udp + $tcp + $icmp;
 
-close $output or
-    croak "Couldn't close: $!";
+for my $state ( keys %states ) {
 
-if ($total < $warning) {
-    print 'CONNECTIONS OK'.$status;
-    exit 0;
-} else {
-  if ($total < $critical) {
-    print 'CONNECTIONS WARNING'.$status;
-    exit 1;
-  } else {
-    print 'CONNECTIONS CRITICAL'.$status;
-    exit 2;
-  }
+    $plugin->add_perfdata(
+        label => "$state",
+        value => $states{$state},
+        uom   => q{},
+    );
+
 }
+
+$plugin->add_perfdata(
+    label => 'TCP',
+    value => $tcp,
+    uom   => q{},
+);
+
+$plugin->add_perfdata(
+    label => 'UDP',
+    value => $udp,
+    uom   => q{},
+);
+
+$plugin->add_perfdata(
+    label => 'UDP_LISTEN',
+    value => $udp_in,
+    uom   => q{},
+);
+
+$plugin->add_perfdata(
+    label => 'ICMP',
+    value => $icmp,
+    uom   => q{},
+);
+
+$plugin->add_perfdata(
+    label => 'ICMP_LISTEN',
+    value => $icmp_in,
+    uom   => q{},
+);
+
+$plugin->nagios_exit( $threshold->get_status($total), "$total connections" );
+
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<check_connections> - a Nagios plugin to check for the number of
+network connections
+
+=head1 DESCRIPTION
+
+check_connections is a Nagios plugin to check for the number of
+network connections
+
+=head1 VERSION
+
+Version 2.0.0
+
+=head1 SYNOPSIS
+
+check_connections [OPTIONS] --critical c --warning w
+
+ Options
+  --critical,-c  n       connection limit for a critical warning
+  --help,-h,-?           this help message
+  --verbose,-v           verbose output
+  --version,-V           print version
+  --warning,-w   n       connection limit for a warning    
+
+=head1 REQUIRED ARGUMENTS
+
+  --critical,-c  n       connection limit for a critical warning
+
+  --help,-h,-?           this help message
+
+  --verbose,-v           verbose output
+
+  --version,-V           print version
+
+  --warning,-w   n       connection limit for a warning    
+
+=head1 OPTIONS
+
+=head1 EXAMPLE
+
+ check_connections -w 500 -c 1000
+
+check_connections will warn with more the 500 connections and issue
+a critical error with more than 1000 connections
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_updates depends on
+
+=over 4
+
+=item * Carp
+
+=item * English
+
+=item * File::Slurp
+
+=item * Getopt::Long
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * Pod::Usage
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
+

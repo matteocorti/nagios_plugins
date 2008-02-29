@@ -1,9 +1,9 @@
-%define version 1.2.0
+%define version 2.0.0
 %define release 0
 %define name    check_connections
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   Nagios plugin to monitor the number open TCP connections.
+Summary:   Nagios plugin to monitor the number of network connections
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -15,7 +15,7 @@ Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.
 BuildArch: noarch
 
 %description
-Nagios plugin to monitor the number open TCP connections.
+Nagios plugin to monitor the number of network connections
 
 %prep
 %setup -q
