@@ -32,7 +32,7 @@ use Nagios::Plugin;
 use Pod::Usage qw(pod2usage);
 use version;
 
-our $VERSION = '2.0.0';
+our $VERSION = '2.0.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -416,7 +416,7 @@ network connections
 
 =head1 VERSION
 
-Version 2.0.0
+Version 2.0.1
 
 =head1 SYNOPSIS
 
@@ -433,15 +433,15 @@ check_connections [OPTIONS] --critical c --warning w
 
   --critical,-c  n       connection limit for a critical warning
 
+  --warning,-w   n       connection limit for a warning    
+
+=head1 OPTIONS
+
   --help,-h,-?           this help message
 
   --verbose,-v           verbose output
 
   --version,-V           print version
-
-  --warning,-w   n       connection limit for a warning    
-
-=head1 OPTIONS
 
 =head1 EXAMPLE
 
