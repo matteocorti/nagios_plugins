@@ -1,3 +1,7 @@
+2008-02-28  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+        * Using Nagios::Plugin and general cleanup
+
 2007-02-12  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* VERSION 1.2: print performance data

@@ -1,5 +1,5 @@
 %define version 2.0.0
-%define release 0
+%define release 1
 %define name    check_connections
 %define _prefix /usr/lib/nagios/plugins/contrib
 

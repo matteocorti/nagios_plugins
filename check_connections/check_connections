@@ -104,14 +104,18 @@ sub initialize_state_table {
     my @known_states = qw(
       CLOSE_WAIT
       CLOSED
+      CLOSING
       ESTABLISHED
       FIN_WAIT_1
       FIN_WAIT_2
       LAST_ACK
       LISTEN
       SYN_RECEIVED
+      SYN_RECV
       SYN_SEND
+      SYN_SENT
       TIME_WAIT
+      UNKNOWN
     );
 
     for my $state (@known_states) {
@@ -355,6 +359,12 @@ for my $state ( keys %states ) {
     );
 
 }
+
+$plugin->add_perfdata(
+    label => 'TOTAL',
+    value => $total,
+    uom   => q{},
+);
 
 $plugin->add_perfdata(
     label => 'TCP',
