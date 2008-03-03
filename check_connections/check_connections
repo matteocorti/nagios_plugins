@@ -92,6 +92,48 @@ sub verbose {
 }
 
 ##############################################################################
+# Usage     : $state = standardize_state( $state );
+# Purpose   : convert connection states to a standard set (not all the OSes
+#             have the same set of states)
+# Returns   : a standard state
+# Arguments : $state : state string to standardize
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub standardize_state {
+
+    my $state = shift;
+    
+    # Linux        Mac OS X     SunOS
+    #
+    #                           BOUND        ready to connect or listen
+    # CLOSED       CLOSED       CLOSED       socket not being used
+    # CLOSE_WAIT   CLOSE_WAIT   CLOSE_WAIT   remote end has shut down, waiting for socket to close
+    # CLOSING      CLOSING      CLOSING      both sockets closed but not all data sent
+    # ESTABLISHED  ESTABLISHED  ESTABLISHED  connection established
+    # FIN_WAIT1    FIN_WAIT1    FIN_WAIT1    socket closed connection shutting down
+    # FIN_WAIT2    FIN_WAIT2    FIN_WAIT2    connection closed waiting from the other end
+    #                           IDLE         opened but not bound
+    # LAST_ACK     LAST_ACK     LAST_ACK     remote end has shut down, socket closed, wait for ack
+    # LISTEN       LISTEN       LISTEN       listening for incoming connections
+    # SYN_RECV     SYN_RCVD     SYN_RECEIVED connection request received
+    # SYN_SENT     SYN_SENT     SYN_SENT     attempting to establish a connection
+    # TIME_WAIT    TIME_WAIT    TIME_WAIT    wait after close for packets still in the network
+    # UNKNOWN                                state unknown
+
+    # Remapping needed for
+    #
+    # SYN_RECV, SYN_RCVD, SYN_RECEIVED -> SYN_RECEIVED
+
+    if ($state =~ /^(SYN_RECV|SYN_RCVD)$/mx) {
+        return 'SYN_RECEIVED';
+    }
+
+    return $state;
+    
+}
+
+##############################################################################
 # Usage     : initialize_state_table
 # Purpose   : resets the counters for each known state
 # Returns   : n/a
@@ -102,17 +144,17 @@ sub verbose {
 sub initialize_state_table {
 
     my @known_states = qw(
-      CLOSE_WAIT
+      BOUND
       CLOSED
+      CLOSE_WAIT
       CLOSING
       ESTABLISHED
       FIN_WAIT_1
       FIN_WAIT_2
+      IDLE
       LAST_ACK
       LISTEN
       SYN_RECEIVED
-      SYN_RECV
-      SYN_SEND
       SYN_SENT
       TIME_WAIT
       UNKNOWN
@@ -303,6 +345,8 @@ for my $line (@lines) {
         $tcp++;
 
         ( $protocol, $recv, $send, $local, $remote, $state ) = split /\s+/mx, $line;
+
+        $state = standardize_state( $state );
 
         if ( !defined $states{$state} ) {
             $plugin->nagios_exit( UNKNOWN, "unknown TCP state '$state'" );
