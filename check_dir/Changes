@@ -1,3 +1,9 @@
+2008-03-18  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* VERSION: 2.1.1
+	* check_dir: short options
+	* check_dir: accepts ranges for critical and warning
+
 2007-11-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* Makefile.PL: included version.pm in the distribution

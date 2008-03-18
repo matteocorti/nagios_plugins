@@ -23,7 +23,7 @@ use Nagios::Plugin::Threshold;
 use File::stat;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.0.1';
+use version; our $VERSION = '2.1.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -202,36 +202,56 @@ sub check_dir {
 # Command line arguments
 
 $result = GetOptions(
-    'dir=s'      => \@dirnames,
-    'critical=i' => \$critical,
-    'warining=i' => \$warning,
-    'help'       => \$help,
-    'recursive'  => \$recursive,
-    'verbose|v+' => \$verbosity,
-    'version'    => sub { print "check_dir version $VERSION\n"; exit 3; }
+    'dir=s'        => \@dirnames,
+    'critical|c=s' => \$critical,
+    'warning|w=s'  => \$warning,
+    'help|h|?'     => \$help,
+    'recursive|r'  => \$recursive,
+    'verbose|v+'   => \$verbosity,
+    'version|V'    => sub { print "check_dir version $VERSION\n"; exit 3; }
 );
 
 #############################
 # Sanity checks: command line
 
 if ( !$result ) {
-    pod2usage();
+    pod2usage(
+        -exitval => UNKNOWN,
+    );
 }
 
 if ( $help )          { pod2usage(); }
-if ( !defined $critical || $critical <= 0 ) {
-    pod2usage( -message => 'Could not parse "critical"');
-}
-if ( !defined $critical || $warning  <= 0 ) {
-    pod2usage( -message => 'Could not parse "warning"');
-}
-if ( $critical < $warning ) {
-    pod2usage( -message => '"critical" has to be greater than "warning"');
-}
 
+if (! $critical ) {
+    pod2usage(
+        -exitval => UNKNOWN,
+        -message => 'missing --critical'
+    );
+}
+my $critical_range = Nagios::Plugin::Range->parse_range_string( $critical );
+if (! $critical_range->is_set() ) {
+    pod2usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "critical"'
+    );
+}
+if (! $warning ) {
+    pod2usage(
+        -exitval => UNKNOWN,
+        -message => 'missing --warning'
+    );
+}
+my $warning_range  = Nagios::Plugin::Range->parse_range_string( $warning );
+if (! $critical_range->is_set() ) {
+    pod2usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "warning"'
+    );
+}
+    
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $warning,
-    critical => $critical,
+    warning  => $warning_range,
+    critical => $critical_range,
 );
 
 ##########################
@@ -276,7 +296,7 @@ more directories.
 
 =head1 VERSION
 
-Version 2.0.1
+Version 2.1.1
 
 =head1 SYNOPSIS
 
@@ -286,8 +306,10 @@ Version 2.0.1
 
  Mandatory arguments:
   --dir,-d        dirname    specify directory (can be repeated)
-  --critical,-c   critical   specify the critical number of files
-  --warning,-w    warning    specify warning threshold for the number of files
+  --critical,-c   critical   specify the critical number (or range)
+                             of files
+  --warning,-w    warning    specify warning threshold (range) for
+                             the number of files
 
  Options:
   --recursive,-r             perform recursive traversal
@@ -302,9 +324,10 @@ Version 2.0.1
 
     --dir,-d            directory to check (mandatory, can be repeated)
 
-    --critical,-c       critical number of files (mandatory)
+    --critical,-c       critical number (or range) of files (mandatory)
 
-    --warning,-w        warning threshold for the number of files (mandatory)
+    --warning,-w        warning threshold (range) for the number of
+                        files (mandatory)
 
     --help,-h,-?        this help screen
 
