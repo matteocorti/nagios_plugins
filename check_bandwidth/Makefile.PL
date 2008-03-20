@@ -5,7 +5,8 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_bandwidth';
-all_from 'check_bandwidth';
+version_from 'check_bandwidth';
+all_from 'check_bandwidth.pod';
 
 ##############################################################################
 # Specific dependencies

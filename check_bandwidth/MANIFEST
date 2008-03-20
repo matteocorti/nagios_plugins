@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_bandwidth
+check_bandwidth.pod
 check_bandwidth.spec
 COPYING
 inc/Module/Install.pm

@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_diskio
+check_diskio.pod
 check_diskio.spec
 COPYING
 inc/Module/Install.pm

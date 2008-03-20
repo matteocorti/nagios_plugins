@@ -1,4 +1,4 @@
-%define version 2.1.2
+%define version 2.1.4
 %define release 0
 %define name    check_dir
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -37,6 +37,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Thu Mar 20 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.4-0
+- added -d (which was automatic w/o the option bundling introduced in 2.1.3)
+
+* Thu Mar 20 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.3-0
+- short command line options can be bundled and are case sensitive
+
 * Thu Mar 20 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.2-0
 - ePN compatibility
 

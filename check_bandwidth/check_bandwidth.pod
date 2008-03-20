@@ -1,64 +1,69 @@
+
 =pod
 
 =head1 NAME
 
-C<check_dir> - a Nagios plugin to monitor the number of files in one or
-more directories.
+C<check_bandwidth> - a Nagios plugin to monitor a connection's bandwidth using iperf
 
 =head1 DESCRIPTION
 
-check_dir is a Nagios plugin to monitor the number of files in one or
-more directories.
+check_bandwidth is a Nagios plugin to monitor a connection's bandwidth using iperf
+
+Note that thet it reauires iperf running in server mode on the connected server
 
 =head1 VERSION
 
-Version 2.1.4
+Version 0.9.4
 
 =head1 SYNOPSIS
 
- check_dir  --dir=dirname --critical=critical --warning=warning
-            [--recursive] [--verbose]
+ check_bandwidth --host hostname
+            [--iperf path]
+            [--localport port] [--hostport port]
+            [--verbose]
             [--version|--help]
 
  Mandatory arguments:
-  --dir,-d        dirname    specify directory (can be repeated)
-  --critical,-c   critical   specify the critical number (or range)
-                             of files
-  --warning,-w    warning    specify warning threshold (range) for
-                             the number of files
+  --host,-h       hostname   check the bandwidth from localhost to 'hostname'
 
  Options:
-  --recursive,-r             perform recursive traversal
+  --iperf         path       path of the iperf utility
+  --localport,-l  port       local port
+  --hostport,-p   port       remote port
+  --swap,-s                  swap down- and upstream statistics
   --version,V                print version number
   --verbose,-v               be more verbose (can be repeated)
 
 =head1 REQUIRED ARGUMENTS
 
---dir, --critical and --warning
+--host
 
 =head1 OPTIONS
 
-    --dir,-d            directory to check (mandatory, can be repeated)
+    --host,-h       hostname   check the bandwidth from localhost to 'hostname'
 
-    --critical,-c       critical number (or range) of files (mandatory)
+    --iperf         path       path of the iperf utility
 
-    --warning,-w        warning threshold (range) for the number of
-                        files (mandatory)
+    --help,-h,-?               this help screen
 
-    --help,-h,-?        this help screen
+    --hostport,-p   port       remote port
 
-    --recursive,-r      include subdirectories
-    
-    --verbose,-v        increase verbosity (can be repeated)
+    --localport,-l  port       local port
 
-    --version,-V        prints version information
+    --swap,-s                  swap down- and upstream statistics
+
+    --verbose,-v               increase verbosity (can be repeated)
+
+    --version,-V               prints version information
 
 =head1 EXAMPLE
 
-check_dir --dir=/tmp --dir=/var/tmp --critical=1000 --warning=800
+check_bandwidth --iperf /opt/bin/iperf --host example.com --localport 5002 --hostport 5001
 
-check_dir will check if both the /tmp and /var/tmp have less than 800,
-respectively 1000 files
+check_bandwidth check is the percentage of free memory is lower than 10% or 5% respectively
+by connecting to an iperf server running on example.com at port 5001. The server will then
+connect to our client to port 5002 for the test in the other direction. See the documentation
+of iperf for the details.
 
 =head1 DIAGNOSTICS
 
@@ -72,7 +77,7 @@ in case of an unkown problem
 
 =head1 DEPENDENCIES
 
-check_dir depends on
+check_bandwidth depends on
 
 =over 4
 
@@ -80,13 +85,15 @@ check_dir depends on
 
 =item * English
 
-=item * File::stat
+=item * File::Slurp
 
 =item * Getopt::Long
 
 =item * Nagios::Plugin
 
 =item * Nagios::Plugin::Threshold
+
+=item * Net::DNS::Resolver
 
 =item * version
 

@@ -32,7 +32,7 @@ use Nagios::Plugin;
 use Pod::Usage qw(pod2usage);
 use version;
 
-our $VERSION = '2.0.1';
+our $VERSION = '2.0.2';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -460,7 +460,7 @@ network connections
 
 =head1 VERSION
 
-Version 2.0.1
+Version 2.0.2
 
 =head1 SYNOPSIS
 

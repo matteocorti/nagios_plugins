@@ -23,7 +23,7 @@ use Nagios::Plugin::Threshold;
 use File::stat;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.1.2';
+use version; our $VERSION = '2.1.4';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -201,8 +201,9 @@ sub check_dir {
 ########################
 # Command line arguments
 
+Getopt::Long::Configure('bundling', 'no_ignore_case');
 $result = GetOptions(
-    'dir=s'        => \@dirnames,
+    'dir|d=s'      => \@dirnames,
     'critical|c=s' => \$critical,
     'warning|w=s'  => \$warning,
     'help|h|?'     => \$help,
