@@ -1,3 +1,7 @@
+2008-03-20  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_dir: POD is in a separate file because of ePN
+
 2008-03-18  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* VERSION: 2.1.1

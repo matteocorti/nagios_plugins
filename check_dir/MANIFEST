@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_dir
+check_dir.pod
 check_dir.spec
 COPYING
 inc/Module/Install.pm

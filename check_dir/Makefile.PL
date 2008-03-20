@@ -5,7 +5,9 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_dir';
-all_from 'check_dir';
+
+version_from 'check_dir';
+all_from     'check_dir.pod';
 
 ##############################################################################
 # Specific dependencies
