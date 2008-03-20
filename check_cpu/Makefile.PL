@@ -5,7 +5,9 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_cpu';
-all_from 'check_cpu';
+
+version_from 'check_cpu';
+all_from 'check_cpu.pod';
 
 ##############################################################################
 # Specific dependencies

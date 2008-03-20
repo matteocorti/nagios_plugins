@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_cpu
+check_cpu.pod
 check_cpu.spec
 COPYING
 inc/Module/Install.pm

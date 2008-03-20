@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '1.0.1';
+use version; our $VERSION = '1.0.2';
 
 use English qw(-no_match_vars);
 use File::Temp;
@@ -70,35 +70,14 @@ use vars qw(
 # subroutines
 
 ##############################################################################
-# Usage     : whoami()
-# Purpose   : retrieve the user runnging the process
-# Returns   : username
-# Arguments : n/a
-# Throws    : n/a
-# Comments  : n/a
-# See also  : n/a
-sub whoami {
-    my $output;
-    my $pid = open $output, q{-|}, 'whoami'
-      or
-      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
-    while (<$output>) {
-        chomp;
-        return $_;
-    }
-    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
-    return;
-}
-
-##############################################################################
-# Usage     : write_timer($file)
+# Usage     : write_timer_to_file($file)
 # Purpose   : writes the time and transmit data to the temporary file
 # Returns   : n/a
 # Arguments : $file : file to write the timer to
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a
-sub write_timer {
+sub write_timer_to_file {
 
     my $file = shift;
 
@@ -121,7 +100,28 @@ sub write_timer {
 }
 
 ##############################################################################
-# Usage     : verbose("some message string", $optional_verbosity_level);
+# Usage     : get_proc_owner()
+# Purpose   : retrieve the user runnging the process
+# Returns   : username
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub get_proc_owner {
+    my $output;
+    my $pid = open $output, q{-|}, 'whoami'
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    while (<$output>) {
+        chomp;
+        return $_;
+    }
+    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    return;
+}
+
+##############################################################################
+# Usage     : print_verbose("some message string", $optional_verbosity_level);
 # Purpose   : write a message if the verbosity level is high enough
 # Returns   : n/a
 # Arguments : message : message string
@@ -129,7 +129,7 @@ sub write_timer {
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a
-sub verbose {
+sub print_verbose {
 
     # arguments
     my $message = shift;
@@ -137,7 +137,7 @@ sub verbose {
 
     if ( !defined $message ) {
         $plugin->nagios_exit( UNKNOWN,
-            q{Internal error: not enough parameters for 'verbose'} );
+            q{Internal error: not enough parameters for 'print_verbose'} );
     }
 
     if ( !defined $level ) {
@@ -166,7 +166,7 @@ sub read_stats {
     my %result;
     my $IN;
 
-    verbose "reading $file\n";
+    print_verbose "reading $file\n";
 
     open $IN, q{<}, $file
       or $plugin->nagios_exit( UNKNOWN, "Cannot open $file" );
@@ -243,7 +243,7 @@ sub read_stats {
 
 ################
 # Initialization
-$tmp       = '/tmp/check_cpu_status-' . whoami();
+$tmp       = '/tmp/check_cpu_status-' . get_proc_owner();
 $plugin    = Nagios::Plugin->new( shortname => 'CHECK_CPU' );
 $verbosity = 0;
 
@@ -287,8 +287,8 @@ $threshold = Nagios::Plugin::Threshold->set_thresholds(
 # Check the proc entry
 
 if ( !-f $tmp ) {
-    verbose "temporary file ($tmp) not available resetting and waiting\n";
-    write_timer($tmp);
+    print_verbose "temporary file ($tmp) not available resetting and waiting\n";
+    write_timer_to_file($tmp);
     sleep 1;    # wait at least one second to gather some data
 }
 
@@ -305,7 +305,7 @@ if ( $diff < 1 ) {
     %old = read_stats($tmp);
 }
 
-write_timer($tmp);
+write_timer_to_file($tmp);
 
 # cpu = (new - old)(tot_new - tot_old)
 $cpu = sprintf '%.0f',
@@ -380,145 +380,3 @@ else {
 }
 
 1;
-
-__END__
-
-=pod
-
-=head1 NAME
-
-C<check_cpu> is a nagios plugin to monitor the CPU usage on Linux systems
-
-=head1 DESCRIPTION
-
-C<check_cpu> is a nagios plugin to monitor the CPU usage on Linux systems
-
-=head1 VERSION
-
-Version 1.0.1
-
-=head1 SYNOPSIS
-
- check_cpu --warning=W --critical=C [OPTIONS]
-
- Options:
-  --critical,-c=crit            critical threshold
-  --help,-h,-?                  this help message
-  --silent,-s                   do not issue warnings
-  --warning,-w=warn             warning threshold
-  --verbose,-v                  increase verbosity
-  --version                     version
-
-=head1 REQUIRED ARGUMENTS
-
-  --critical,-c=crit            critical threshold
-  --warning,-w=warn             warning threshold
-
-=head1 OPTIONS
-
-  --critical,-c=crit            critical threshold
-    
-  --help,-h,-?                  this help message
-    
-  --silent,-s                   do not issue warnings
-    
-  --warning,-w=warn             warning threshold
-    
-  --version,-v                  version
-
-=head1 EXAMPLE
-
-check_cpu --warning=90 --critical=95
-
-check_cpu warns if the cpu usage is higher than 90% or 95% respectively
-
-=head1 DIAGNOSTICS
-
-You can specify multiple --verbose options to increase the program
-verbosity.
-
-=head1 EXIT STATUS
-
-0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
-in case of an unkown problem
-
-=head1 DEPENDENCIES
-
-check_cpu depends on
-
-=over 4
-
-=item * Carp
-
-=item * File::Copy
-
-=item * File::Temp
-
-=item * English
-
-=item * Getopt::Long
-
-=item * Nagios::Plugin
-
-=item * Nagios::Plugin::Threshold
-
-=item * Pod::Usage
-
-=item * version
-
-=back
-
-=head1 CONFIGURATION
-
-=head1 INCOMPATIBILITIES
-
-None reported.
-
-=head1 SEE ALSO
-
-Nagios documentation
-
-=head1 BUGS AND LIMITATIONS
-
-No bugs have been reported.
-
-Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
-or through the web interface at
-https://svn.id.ethz.ch/trac/bd_webhosting/newticket
-
-=head1 AUTHOR
-
-Matteo Corti <matteo.corti@id.ethz.ch>
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright (c) 2007, ETH Zurich.
-
-This module is free software; you can redistribute it and/or modify it
-under the terms of GNU general public license (gpl) version 3.
-See the LICENSE file for details.
-
-=head1 DISCLAIMER OF WARRANTY
-
-BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
-FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
-WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
-PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
-EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
-SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
-THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
-
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
-REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
-TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
-SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
-RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
-FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
-SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
-DAMAGES.
-
-=head1 ACKNOWLEDGMENTS
