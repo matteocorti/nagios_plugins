@@ -2,10 +2,12 @@
 use inc::Module::Install;
 
 ##############################################################################
-# Define metadata (we read it from the binary)
+# Define metadata (we read it from the binary and the POD)
 
-name     'check_procs_multi';
-all_from 'check_procs_multi';
+name         'check_procs_multi';
+
+version_from 'check_procs_multi';
+all_from     'check_procs_multi.pod';
 
 ##############################################################################
 # Specific dependencies

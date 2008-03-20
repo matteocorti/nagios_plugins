@@ -18,7 +18,7 @@
 #     NAME => q[check_procs_multi]
 #     NO_META => q[1]
 #     PREREQ_PM => { Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], Pod::Usage=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
-#     VERSION => q[0.9.2]
+#     VERSION => q[0.9.3]
 #     dist => {  }
 
 # --- MakeMaker post_initialize section:
@@ -42,7 +42,7 @@ LIBC = /lib/libc-2.7.so
 LIB_EXT = .a
 OBJ_EXT = .o
 OSNAME = linux
-OSVERS = 2.6.20-1.3001.fc6xen
+OSVERS = 2.6.18-53.1.6.el5xen
 RANLIB = :
 SITELIBEXP = /usr/lib/perl5/site_perl/5.8.8
 SITEARCHEXP = /usr/lib/perl5/site_perl/5.8.8/i386-linux-thread-multi
@@ -59,11 +59,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = check_procs_multi
 NAME_SYM = check_procs_multi
-VERSION = 0.9.2
+VERSION = 0.9.3
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_9_2
+VERSION_SYM = 0_9_3
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.9.2
+XS_VERSION = 0.9.3
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -156,8 +156,8 @@ XS_FILES =
 C_FILES  = 
 O_FILES  = 
 H_FILES  = 
-MAN1PODS = check_procs_multi
-MAN3PODS = 
+MAN1PODS = 
+MAN3PODS = check_procs_multi.pod
 
 # Where is the Config information that we are using/depend on
 CONFIGDEP = $(PERL_ARCHLIB)$(DFSEP)Config.pm $(PERL_INC)$(DFSEP)config.h
@@ -179,9 +179,10 @@ PERL_ARCHIVE       =
 PERL_ARCHIVE_AFTER = 
 
 
-TO_INST_PM = 
+TO_INST_PM = check_procs_multi.pod
 
-PM_TO_BLIB = 
+PM_TO_BLIB = check_procs_multi.pod \
+	$(INST_LIB)/check_procs_multi.pod
 
 
 # --- MakeMaker platform_constants section:
@@ -248,7 +249,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = check_procs_multi
-DISTVNAME = check_procs_multi-0.9.2
+DISTVNAME = check_procs_multi-0.9.3
 
 
 # --- MakeMaker macro section:
@@ -401,9 +402,10 @@ POD2MAN = $(POD2MAN_EXE)
 
 
 manifypods : pure_all  \
-	check_procs_multi
-	$(NOECHO) $(POD2MAN) --section=1 --perm_rw=$(PERM_RW) \
-	  check_procs_multi $(INST_MAN1DIR)/check_procs_multi.$(MAN1EXT) 
+	check_procs_multi.pod \
+	check_procs_multi.pod
+	$(NOECHO) $(POD2MAN) --section=3 --perm_rw=$(PERM_RW) \
+	  check_procs_multi.pod $(INST_MAN3DIR)/check_procs_multi.$(MAN3EXT) 
 
 
 
@@ -768,7 +770,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,2,0">' > $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,3,0">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <TITLE>$(DISTNAME)</TITLE>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Matteo Corti &lt;matteo.corti@id.ethz.ch&gt;</AUTHOR>' >> $(DISTNAME).ppd
@@ -790,6 +792,8 @@ ppd:
 # --- MakeMaker pm_to_blib section:
 
 pm_to_blib : $(TO_INST_PM)
+	$(NOECHO) $(ABSPERLRUN) -MExtUtils::Install -e 'pm_to_blib({@ARGV}, '\''$(INST_LIB)/auto'\'', '\''$(PM_FILTER)'\'')' \
+	  check_procs_multi.pod $(INST_LIB)/check_procs_multi.pod 
 	$(NOECHO) $(TOUCH) pm_to_blib
 
 
