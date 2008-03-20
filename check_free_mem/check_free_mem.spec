@@ -1,4 +1,4 @@
-%define version 0.11.2
+%define version 0.11.3
 %define release 0
 %define name    check_free_mem
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -24,7 +24,7 @@ check_free_mem is a Nagios plugin that checks the amount of free physical memory
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN1DIR=%{buildroot}/usr/share/man/man1
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3
 make
 
 %install
@@ -37,9 +37,12 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-, root, root, 0644)
 %doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
 %attr(0755, root, root) %{_prefix}/%{name}
-%attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
+%attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Thu Mar 20 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.11.3-0
+- ePN compatibility
+
 * Sun Jan 13 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.11.0-0
 - updated to 0.11.0, --free can be used to specify the path of 'free'
 

@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_free_mem
+check_free_mem.pod
 check_free_mem.spec
 COPYING
 inc/Module/Install.pm
@@ -15,6 +16,7 @@ INSTALL
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
+META.yml
 NAME
 NEWS
 README

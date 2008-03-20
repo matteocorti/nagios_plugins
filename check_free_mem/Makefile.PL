@@ -5,7 +5,9 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_free_mem';
-all_from 'check_free_mem';
+
+version_from 'check_free_mem';
+all_from     'check_free_mem.pod';
 
 ##############################################################################
 # Specific dependencies
