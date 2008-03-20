@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_tcptraffic
+check_tcptraffic.pod
 check_tcptraffic.spec
 COPYING
 inc/Module/Install.pm
