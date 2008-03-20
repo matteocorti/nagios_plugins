@@ -1,0 +1,200 @@
+
+=pod
+
+=head1 NAME
+
+C<check_diskio> - a Nagios plugin to monitor the amount of disk I/O in sectors
+on Linux 2.6 and 2.4 systems
+
+
+=head1 DESCRIPTION
+
+check_diskio is a Nagios plugin to monitor the amount of disk I/O in sectors
+on Linux 2.6 and 2.4 systems
+
+=head1 VERSION
+
+Version 2.1.1
+
+=head1 SYNOPSIS
+
+ check_diskio --device=devicename --critical=critical --warning=warning
+            [--byte] [--ssize=size]
+            [--reset] [--verbose] [--silent]
+            [--version|--help]
+
+ Required arguments:
+  --device=name,-d name         device name
+  --critical=value,-c value     critical number of sectors/s
+  --warning=value,-w value      number of sectors/s which generates a warning
+
+ Options
+  --help,-h,-?                  this help message
+  --reset,-r                    reset the counter
+  --silent,-s                   no warnings or critials are issued
+  --ssize=size                  specify the sector size in bytes (default 512)
+  --verbose,-v                  verbose output
+  --version,-V                  print version
+  --uom=unit                    unit of measurement:
+
+                                  unit              description
+                                  =============================================
+
+                                  sector,sectors,s  sdectors/s
+                                  bit,bits,b        bps      bits per second
+                                  byte,bytes,B      Bps      bytes per second
+                                  Kb                Kbps     Kbits per second
+                                  KB,K              KBbps    Kbytes per second
+                                  Mb                Mbps     Mbits per second
+                                  MB,M              MBps     Mbytes per second
+
+=head1 REQUIRED ARGUMENTS
+
+--device, --critical and --warning
+
+=head1 OPTIONS
+
+  --device=name,-d name         device name
+
+  --critical=value,-c value     critical number of sectors/s
+
+  --warning=value,-w value      number of sectors/s which generates a warning
+
+  --uom=unit                    unit of measurement
+
+                                  unit              description
+                                  =============================================
+
+                                  sector,sectors,s  sdectors/s
+                                  bit,bits,b        bps      bits per second
+                                  byte,bytes,B      Bps      bytes per second
+                                  Kb                Kbps     Kbits per second
+                                  KB,K              KBbps    Kbytes per second
+                                  Mb                Mbps     Mbits per second
+                                  MB,M              MBps     Mbytes per second
+
+  --ssize=size                  sector size in bytes (default 512)
+
+  --reset,-r                    reset the counter
+
+  --silent,-s                   no warnings or critials are issued
+
+  --version,-V                  print version
+
+  --verbose,-v                  verbose output
+
+  --help,-h,-?                  this help message
+
+
+=head1 EXAMPLE
+
+check_diskio --warning=102400 --critical=122880 --device=hda
+
+check_diskio checks if the I/O for /dev/hda will stay below the given
+critical and warning values
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_diskio depends on
+
+=over 4
+
+=item * Carp
+
+=item * English
+
+=item * Getopt::Long
+
+=item * List::MoreUtils
+
+=item * List::Util
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * Number::Format
+
+=item * POSIX
+
+=item * Pod::Usage
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
+
+Many thanks to
+
+=over 4
+
+=item * Jeff Potter for pointing out an overflow problem
+
+=item * Wilco for the RAID patch
+
+=back
+
