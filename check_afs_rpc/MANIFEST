@@ -1,6 +1,7 @@
 AUTHORS
 Changes
 check_afs_rpc
+check_afs_rpc.pod
 check_afs_rpc.spec
 COPYING
 inc/Module/Install.pm

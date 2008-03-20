@@ -5,7 +5,9 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_afs_rpc';
-all_from 'check_afs_rpc';
+
+version_from 'check_afs_rpc';
+all_from     'check_afs_rpc.pod';
 
 ##############################################################################
 # Specific dependencies
