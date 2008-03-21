@@ -27,7 +27,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '1.0.2';
+use version; our $VERSION = '1.0.3';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -59,11 +59,21 @@ use vars qw(
   $warning
 );
 
+#
+# And all subroutines are predeclared to avoid redefinition errors
+#
+use subs qw(
+            get_path
+            usage
+            verbose
+        );
+
 ##############################################################################
-# Usage     : usage()
+# Usage     : usage( -message => 'some text', -exitval => 1 )
 # Purpose   : prints a usage message
 # Returns   : n/a
 # Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a

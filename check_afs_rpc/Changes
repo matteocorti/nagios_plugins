@@ -1,6 +1,7 @@
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_afs_rpc: POD in a separate file because of ePN compatibility
+	* check_afs_rpc: use subs qw() to avoid redeclaration errors
 
 2007-11-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 

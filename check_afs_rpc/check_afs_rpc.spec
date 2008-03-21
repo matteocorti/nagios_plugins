@@ -1,4 +1,4 @@
-%define version 1.0.2
+%define version 1.0.3
 %define release 0
 %define name    check_afs_rpc
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Fri Mar 21 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.3-0
+- use subs qw() to avoid redeclaration errors
+
 * Fri Mar 21 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.2-0
 - usage no longer using POD (which is now in a separate file)
 
