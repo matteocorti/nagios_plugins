@@ -300,18 +300,29 @@ $result = GetOptions(
 # Sanity checks
 
 if ( !$result || $help ) {
-    pod2usage();
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
 
 if ( !$silent ) {
     if ( !defined $critical || $critical <= 0 ) {
-        pod2usage( -message => 'Could not parse "critical"' );
+        usage(
+            -exitval => UNKNOWN,
+            -message => 'Could not parse "critical"'
+        );
     }
     if ( !defined $warning || $warning <= 0 ) {
-        pod2usage( -message => 'Could not parse "warning"' );
+        usage(
+            -exitval => UNKNOWN,
+            -message => 'Could not parse "warning"'
+        );
     }
     if ( $critical < $warning ) {
-        pod2usage( -message => '"critical" has to be greater than "warning"' );
+        usage(
+            -exitval => UNKNOWN,
+            -message => '"critical" has to be greater than "warning"'
+        );
     }
 }
 
