@@ -22,9 +22,8 @@ use File::Slurp;
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
-use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.3';
+use version; our $VERSION = '0.9.4';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -44,6 +43,52 @@ use vars qw(
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+check_procs_multi
+           --proc name[,warning_min,warning_max,critical_min,critical_max]
+           [--verbose]
+           [--version|--help]
+
+Mandatory arguments:
+ --proc           name[,warning_min,warning_max,critical_min,critical_max]
+                            process check definition
+
+Several --proc checks can be specified at the same time
+If only the name of the process is specified check_procs_multi assumes ,1,,1,
+(i.e., critical if no processes are running)
+
+Options:
+ --help,-h,-?               prints the usage
+ --version,V                print version number
+ --verbose,-v               be more verbose (can be repeated)
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : print_verbose("some message string", $optional_verbosity_level);
@@ -96,11 +141,11 @@ my $result = GetOptions(
 # Sanity checks
 
 # syntax
-if ( !$result ) {
-    pod2usage();
+if ( !$result || $help ) {
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
-
-if ($help) { pod2usage(); }
 
 my $critical;
 my $warning;
