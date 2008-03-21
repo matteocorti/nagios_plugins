@@ -10,7 +10,7 @@ C<check_cpu> is a nagios plugin to monitor the CPU usage on Linux systems
 
 =head1 VERSION
 
-Version 1.0.2
+Version 1.0.3
 
 =head1 SYNOPSIS
 

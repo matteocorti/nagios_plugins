@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '1.0.2';
+use version; our $VERSION = '1.0.3';
 
 use English qw(-no_match_vars);
 use File::Temp;
@@ -32,7 +32,6 @@ use File::Copy;
 use Getopt::Long;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
-use Pod::Usage qw(pod2usage);
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -68,6 +67,44 @@ use vars qw(
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+        check_cpu --warning=W --critical=C [OPTIONS]
+
+        Options:
+         --critical,-c=crit            critical threshold
+         --help,-h,-?                  this help message
+         --silent,-s                   do not issue warnings
+         --warning,-w=warn             warning threshold
+         --verbose,-v                  increase verbosity
+         --version                     version
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : write_timer_to_file($file)
