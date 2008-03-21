@@ -21,9 +21,8 @@ use English qw(-no_match_vars);
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use File::Slurp;
-use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.11.3';
+use version; our $VERSION = '1.0.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -53,6 +52,49 @@ use vars qw(
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+        check_free_mem --critical=critical --warning=warning
+                   [--swap]
+                   [--verbose]
+                   [--version|--help]
+
+        Mandatory arguments:
+         --critical,-c   critical   specify the minumal percentage free memory
+         --warning,-w    warning    specify warning threshold for the percentage of free memory
+
+        Options:
+         --swap,-s                  process also swap
+         --version,V                print version number
+         --verbose,-v               be more verbose (can be repeated)
+EOT
+
+    exit $exitval;
+    
+}
+
 
 ##############################################################################
 # Usage     : verbose("some message string", $optional_verbosity_level);
@@ -170,26 +212,41 @@ $result = GetOptions(
 # Sanity checks: command line
 
 if ( !$result ) {
-    pod2usage();
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
 
-if ($help) { pod2usage(); }
+if ($help) {
+    usage(
+        -exitval => UNKNOWN,
+    );
+}
 if (   !defined $critical
     || !$critical =~ /[0-9]+/mx
     || $critical < 0
     || $critical > 100 )
 {
-    pod2usage( -message => 'Could not parse "critical"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "critical"',
+    );
 }
 if (   !defined $critical
     || !$warning =~ /[0-9]+/mx
     || $warning < 0
     || $warning > 100 )
 {
-    pod2usage( -message => 'Could not parse "warning"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "warning"',
+    );
 }
 if ( $critical > $warning ) {
-    pod2usage( -message => '"critical" has to be smaller than "warning"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => '"critical" has to be smaller than "warning"',
+    );
 }
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(

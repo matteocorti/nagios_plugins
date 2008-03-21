@@ -1,3 +1,7 @@
+2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_free_mem: fixed issue with ePN (POD)
+
 2008-01-14  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_free_mem: merged patch from an uncommitted version 0.9 (correcting

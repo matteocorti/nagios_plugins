@@ -19,7 +19,5 @@ requires:
   Getopt::Long: 0
   Nagios::Plugin: 0
   Nagios::Plugin::Threshold: 0
-  Pod::Usage: 0
-  perl: 5.8.0
   version: 0
-version: 0.11.2
+version: 1.0.0
