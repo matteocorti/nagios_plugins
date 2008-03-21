@@ -21,9 +21,8 @@ use English qw(-no_match_vars);
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use File::stat;
-use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.1.4';
+use version; our $VERSION = '2.1.5';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -57,6 +56,50 @@ $status      = 0;
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+        check_dir  --dir=dirname --critical=critical --warning=warning
+                   [--recursive] [--verbose]
+                   [--version|--help]
+
+        Mandatory arguments:
+         --dir,-d        dirname    specify directory (can be repeated)
+         --critical,-c   critical   specify the critical number (or range)
+                                    of files
+         --warning,-w    warning    specify warning threshold (range) for
+                                    the number of files
+
+        Options:
+         --recursive,-r             perform recursive traversal
+         --version,V                print version number
+         --verbose,-v               be more verbose (can be repeated)
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : max($i, $j)
@@ -215,36 +258,34 @@ $result = GetOptions(
 #############################
 # Sanity checks: command line
 
-if ( !$result ) {
-    pod2usage(
+if ( !$result || $help ) {
+    usage(
         -exitval => UNKNOWN,
     );
 }
 
-if ( $help )          { pod2usage(); }
-
 if (! $critical ) {
-    pod2usage(
+    usage(
         -exitval => UNKNOWN,
         -message => 'missing --critical'
     );
 }
 my $critical_range = Nagios::Plugin::Range->parse_range_string( $critical );
 if (! $critical_range->is_set() ) {
-    pod2usage(
+    usage(
         -exitval => UNKNOWN,
         -message => 'Could not parse "critical"'
     );
 }
 if (! $warning ) {
-    pod2usage(
+    usage(
         -exitval => UNKNOWN,
         -message => 'missing --warning'
     );
 }
 my $warning_range  = Nagios::Plugin::Range->parse_range_string( $warning );
 if (! $critical_range->is_set() ) {
-    pod2usage(
+    usage(
         -exitval => UNKNOWN,
         -message => 'Could not parse "warning"'
     );
