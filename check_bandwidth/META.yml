@@ -20,6 +20,5 @@ requires:
   Nagios::Plugin::Threshold: 0
   Net::DNS::Resolver: 0
   Pod::Usage: 0
-  perl: 5.8.0
   version: 0
-version: 0.9.2
+version: 0.9.5

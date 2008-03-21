@@ -24,7 +24,7 @@ use Net::DNS::Resolver;
 use File::Slurp;
 use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.4';
+use version; our $VERSION = '0.9.5';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -54,6 +54,50 @@ use vars qw(
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+
+        check_rxdebug [OPTIONS] --hostname hostname
+
+        Mandatory arguments:
+         --hostname,-H   hostname   name of the AFS server
+
+        Options:
+         --critical,-c   critical   specify the critical number of blocked
+                                    connections (default 8)
+         --help,-h,-?               usage info
+         --port,p        port       connection port (default 7000)
+         --version,V                print version number
+         --warning,-w    warning    specify warning threshold for the number
+                                    blocked connections (default 2)
+
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : verbose("some message string", $optional_verbosity_level);
@@ -202,19 +246,28 @@ $result = GetOptions(
     'version|V' => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
 );
 
-if ($help) { pod2usage(); }
+if ($help) {
+    usage(
+        -exitval => UNKNOWN,
+    );
+}
 
 ###############
 # Sanity checks
 
 # syntax
 if ( !$result ) {
-    pod2usage();
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
 
 # host
 if ( !defined $host ) {
-    pod2usage( -message => 'No host specified' );
+    usage(
+        -message => 'No host specified',
+        -exitval => UNKNOWN,
+    );
 }
 
 ##########################
