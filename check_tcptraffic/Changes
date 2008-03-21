@@ -1,3 +1,7 @@
+2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: ePN compatibility (POD in a separate file)
+
 2007-12-07  root  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: single char command line options

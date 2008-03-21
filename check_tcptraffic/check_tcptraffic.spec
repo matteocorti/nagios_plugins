@@ -1,4 +1,4 @@
-%define version 2.0.2
+%define version 2.0.3
 %define release 0
 %define name    check_tcptraffic
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Fri Mar 21 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.3-0
+- fixed missing usage message
+
 * Thu Mar 20 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.0.2-0
 - ePN compatibility
 

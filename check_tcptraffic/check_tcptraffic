@@ -31,9 +31,8 @@ use English qw(-no_match_vars);
 use Getopt::Long;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
-use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '2.0.2';
+use version; our $VERSION = '2.0.3';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -63,6 +62,50 @@ use vars qw(
 # subroutines
 
 use subs qw(verbose);
+
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+check_tcptraffic --critical=crit --warning=warn --interface=iface --speed=speed
+                 [--verbose] [--reset] [--help]
+
+Required arguments
+ --critical,c  crit      critical
+ --warning,w   warn      warning
+ --interface,i iface     network interface
+ --speed,s               speed (in Mbit/s)
+
+Options
+ --help,-h,-?            this help message
+ --reset,r               initialize counter
+ --version,V             print version and exit
+ --verbose,v             verbose
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : whoami()
@@ -308,17 +351,45 @@ $result = GetOptions(
     'version|V'     => sub { print "check_tcptraffic version $VERSION\n"; exit 3; }
 );
 
-if ( !$result ) {
-    pod2usage();
+if ( !$result || $help) {
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
 
-if ($help) { pod2usage(); }
-if ( $critical <= 0 ) { pod2usage( -message => 'Could not parse "critical"' ); }
-if ( !$interface )   { pod2usage( -message => 'Could not parse "interface"' ); }
-if ( !$speed )       { pod2usage( -message => 'Could not parse "speed"' ); }
-if ( $warning <= 0 ) { pod2usage( -message => 'Could not parse "warning"' ); }
+if ( $critical <= 0 ) {
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "critical"',
+    );
+}
+
+if ( !$interface ) {
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "interface"',
+    );
+}
+
+if ( !$speed ) {
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "speed"',
+    );
+}
+
+if ( $warning <= 0 ) {
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "warning"',
+   );
+}
+
 if ( $critical < $warning ) {
-    pod2usage('"critical" has to be greater than "warning"');
+    usage(
+        -exitval => UNKNOWN,
+        -message => '"critical" has to be greater than "warning"',
+    );
 }
 
 # check the speed
