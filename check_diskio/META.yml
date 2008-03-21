@@ -22,7 +22,5 @@ requires:
   Nagios::Plugin::Threshold: 0
   Number::Format: 0
   POSIX: 0
-  Pod::Usage: 0
-  perl: 5.8.0
   version: 0
-version: 2.1.0
+version: 2.1.2

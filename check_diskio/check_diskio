@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '2.1.1';
+use version; our $VERSION = '2.1.2';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
@@ -35,7 +35,6 @@ use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
 use Number::Format qw(format_number);
 use POSIX qw(uname);
-use Pod::Usage qw(pod2usage);
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -65,6 +64,49 @@ use vars qw(
 
 ##############################################################################
 # subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ($args{-exitval}) {
+        $exitval = $args{-exitval};
+    }
+    
+    if ($args{-message}) {
+        print $args{-message};
+    }
+
+    print<<'EOT';
+        check_diskio --device=devicename --critical=critical --warning=warning
+        Required arguments:
+         --device=name,-d name         device name
+         --critical=value,-c value     critical number of sectors/s
+         --warning=value,-w value      number of sectors/s which generates a warning
+
+        Options
+         --help,-h,-?                  this help message
+         --reset,-r                    reset the counter
+         --silent,-s                   no warnings or critials are issued
+         --ssize=size                  specify the sector size in bytes (default 512)
+         --verbose,-v                  verbose output
+         --version,-V                  print version
+         --uom=unit                    unit of measurement:
+EOT
+
+    exit $exitval;
+    
+}
 
 ##############################################################################
 # Usage     : verbose("some message string", $optional_verbosity_level);
@@ -420,23 +462,38 @@ $result = GetOptions(
 );
 
 if ( !$result || $help ) {
-    pod2usage();
+    usage(
+        -exitval => UNKNOWN,
+    );
 }
 
 ###############
 # Sanity checks
 
 if ( !$silent && ( !defined $critical || $critical <= 0 ) ) {
-    pod2usage( -message => 'Could not parse "critical"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "critical"',
+    );
 }
+
 if ( !$silent && ( !defined $warning || $warning <= 0 ) ) {
-    pod2usage( -message => 'Could not parse "critical"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => 'Could not parse "critical"',
+    );
 }
 if ( !$silent && ( $critical < $warning ) ) {
-    pod2usage( -message => '"critical" has to be greater than "warning"' );
+    usage(
+        -exitval => UNKNOWN,
+        -message => '"critical" has to be greater than "warning"',
+    );
 }
 if ( !$device ) {
-    pod2usage( -message => q{Could not parse "device"} );
+    usage(
+        -exitval => UNKNOWN,
+        -message => q{Could not parse "device"},
+    );
 }
 
 #####
