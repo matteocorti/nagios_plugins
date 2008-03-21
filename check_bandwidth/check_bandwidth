@@ -22,9 +22,8 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
 use File::Slurp;
-use Pod::Usage qw(pod2usage);
 
-use version; our $VERSION = '0.9.5';
+use version; our $VERSION = '0.9.6';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -78,21 +77,22 @@ sub usage {
     }
 
     print<<'EOT';
-
-        check_rxdebug [OPTIONS] --hostname hostname
+        check_bandwidth --host hostname
+                   [--iperf path]
+                   [--localport port] [--hostport port]
+                   [--verbose]
+                   [--version|--help]
 
         Mandatory arguments:
-         --hostname,-H   hostname   name of the AFS server
+         --host,-h       hostname   check the bandwidth from localhost to 'hostname'
 
         Options:
-         --critical,-c   critical   specify the critical number of blocked
-                                    connections (default 8)
-         --help,-h,-?               usage info
-         --port,p        port       connection port (default 7000)
+         --iperf         path       path of the iperf utility
+         --localport,-l  port       local port
+         --hostport,-p   port       remote port
+         --swap,-s                  swap down- and upstream statistics
          --version,V                print version number
-         --warning,-w    warning    specify warning threshold for the number
-                                    blocked connections (default 2)
-
+         --verbose,-v               be more verbose (can be repeated)
 EOT
 
     exit $exitval;

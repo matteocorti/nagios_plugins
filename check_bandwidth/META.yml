@@ -19,6 +19,5 @@ requires:
   Nagios::Plugin: 0
   Nagios::Plugin::Threshold: 0
   Net::DNS::Resolver: 0
-  Pod::Usage: 0
   version: 0
-version: 0.9.5
+version: 0.9.6
