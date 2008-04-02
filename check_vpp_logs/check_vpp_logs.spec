@@ -1,4 +1,4 @@
-%define version 1.0.1
+%define version 1.1.0
 %define release 0
 %define name    check_vpp_logs
 %define _prefix /usr/lib/nagios/plugins/contrib
