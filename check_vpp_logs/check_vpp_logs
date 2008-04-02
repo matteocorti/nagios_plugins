@@ -100,7 +100,10 @@ fi
 
 CURRENT=`date +"%s"`
 
-LAST=`grep 'End update: [0-9]+ new jobs processed in [0-9]+ seconds' $FILE | tail -n 1 | sed -e "s/\ Updating.*//"`
+LAST=`grep -E 'End\ update:\ [0-9]+\ new\ jobs\ processed\ in\ [0-9]+\ seconds' $FILE | tail -n 1 | sed -e "s/\ End\ update.*//"`
+
+if [ -n "$VERBOSE" ] ; then echo $LAST; fi
+
 LAST_UNIX=`date -d "$LAST" +"%s"`
 
 (( DIFFERENCE = $CURRENT - $LAST_UNIX ))
