@@ -1,3 +1,4 @@
+2008-04-10 2.2.0: --device can be specified as a mount point
 2007-11-22 2.1.0: fixed a bug which made the read value the same as the write
                   value, removed the UOM from the performance data and
                   added a --uom option to specify the unit of measurement

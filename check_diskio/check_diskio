@@ -25,10 +25,11 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '2.1.2';
+use version; our $VERSION = '2.2.0';
 
 use English qw(-no_match_vars);
 use Getopt::Long;
+use File::Grep;
 use List::MoreUtils qw(any);
 use List::Util qw(first);
 use Nagios::Plugin::Threshold;
@@ -90,7 +91,7 @@ sub usage {
     print<<'EOT';
         check_diskio --device=devicename --critical=critical --warning=warning
         Required arguments:
-         --device=name,-d name         device name
+         --device=name,-d name         device name (or mount point)
          --critical=value,-c value     critical number of sectors/s
          --warning=value,-w value      number of sectors/s which generates a warning
 
@@ -496,6 +497,45 @@ if ( !$device ) {
     );
 }
 
+# Detect device from mount point
+if ( ! ( $device =~ /^\/dev\//mx ) ) {
+    if ( $device ne '/' && $device =~ /\/$/mx ) {
+        # remove trailing /
+        $device =~ s/\/$//mx;
+    }
+
+    my $MTAB_FH;
+    my $mount_point = $device;
+
+    undef $device;
+    
+    open $MTAB_FH, q{<}, '/etc/mtab'
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot open /etc/mtab: $OS_ERROR" );
+    while (<$MTAB_FH>) {
+        if ($_ =~ /(\/dev.*)\ +$mount_point\ +.*/mx) {
+            $device = $1;
+            last;
+        }
+    }
+    close $MTAB_FH
+      or $plugin->nagios_exit( UNKNOWN, "Error while closing /etc/mtab: $OS_ERROR" );
+
+    if (! $device ) {
+        usage(
+            -exitval => UNKNOWN,
+            -message => "Could not find a device for $mount_point\n",
+        );
+        exit 100;
+    }
+
+    # device found: strip the partition number
+    $device =~ s/[0-9]+$//mx;
+
+    verbose "Checking device $device for mount point $mount_point\n";
+        
+}
+
 #####
 # UOM
 
@@ -552,7 +592,9 @@ elsif ( $format eq 'Mb' ) {
 
 }
 else {
-    pod2usage( -message => "Uknown unit of measurement: $format" );
+    usage(
+        -message => "Uknown unit of measurement: $format",
+    );
 }
 
 ################

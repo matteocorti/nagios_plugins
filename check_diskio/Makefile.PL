@@ -5,8 +5,8 @@ use inc::Module::Install;
 # Define metadata (we read it from the binary)
 
 name     'check_diskio';
-version_from 'check_diskio';
 all_from 'check_diskio.pod';
+version_from 'check_diskio';
 
 ##############################################################################
 # Specific dependencies
