@@ -25,4 +25,6 @@ install_script  'check_procs_multi';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
+    INSTALLBIN           => '/usr/lib/nagios/plugins/contrib',
+    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',	    
 );
