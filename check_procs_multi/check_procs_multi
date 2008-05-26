@@ -23,7 +23,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
 
-use version; our $VERSION = '0.9.4';
+use version; our $VERSION = '0.9.5';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -224,7 +224,7 @@ for my $proc (@procs) {
 
     }
 
-    my $command = "ps --no-headers -C $name";
+    my $command = "ps -e -o args | grep $name | grep -v grep";
     my $output;
 
     print_verbose "Executing \"$command\"\n";
@@ -251,7 +251,7 @@ for my $proc (@procs) {
             "Error while closing pipe to $command: $OS_ERROR" );
     }
 
-    my $count = $#lines + 1;
+    my $count = $#lines;
 
     if ( $cmin && $count < $cmin ) {
         if ($critical) {

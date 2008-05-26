@@ -1,3 +1,8 @@
+2008-05-26  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_procs_multi: not using ps -C since it has probles getting perl programs (command
+	                     name is different from process name)
+
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_procs_multi: POD in a separate file for ePN compatibility
