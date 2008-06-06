@@ -23,7 +23,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
 
-use version; our $VERSION = '0.9.5';
+use version; our $VERSION = '0.9.6';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -224,7 +224,14 @@ for my $proc (@procs) {
 
     }
 
-    my $command = "ps -e -o args | grep $name | grep -v grep";
+    # list all processes (the ps -c option cannot be used for scripts where
+    # the name of the script does not correspond to the name of the process:
+    # usually the interpreter)
+    #
+    # count everything that is at the beginning of the line, is preceded by
+    # a '[' or by a path
+    
+    my $command = "ps -e -o args | grep '^\\(.*\\/\\|\\[\\)*$name' | grep -v grep";
     my $output;
 
     print_verbose "Executing \"$command\"\n";
@@ -251,7 +258,7 @@ for my $proc (@procs) {
             "Error while closing pipe to $command: $OS_ERROR" );
     }
 
-    my $count = $#lines;
+    my $count = scalar @lines;
 
     if ( $cmin && $count < $cmin ) {
         if ($critical) {

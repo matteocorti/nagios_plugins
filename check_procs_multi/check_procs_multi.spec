@@ -1,4 +1,4 @@
-%define version 0.9.5
+%define version 0.9.6
 %define release 0
 %define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib

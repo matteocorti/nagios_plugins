@@ -1,3 +1,8 @@
+2008-06-06  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_procs_multi: fixed a bug in the process count (some processes where not correctly
+	                     detected
+
 2008-05-26  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_procs_multi: not using ps -C since it has probles getting perl programs (command
