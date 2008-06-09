@@ -1,3 +1,4 @@
+2008-06-09: 1.0.0  grepping in Perl (ps executed once). Better process selection
 2008-06-06: 0.9.6  fixed a bug in the process count (some processes where not
                    correctly detected
 2008-05-26: 0.9.5  fixed a bug when proc name is different from command name

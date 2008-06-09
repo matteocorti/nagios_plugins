@@ -25,5 +25,3 @@
    Only scan for processes with args that contain STRING.
  -C, --command=COMMAND
    Only scan for exact matches of COMMAND (without path).
-
-* cleanup the regexp

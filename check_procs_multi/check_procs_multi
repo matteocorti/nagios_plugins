@@ -23,7 +23,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Net::DNS::Resolver;
 
-use version; our $VERSION = '0.9.6';
+use version; our $VERSION = '1.0.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -38,6 +38,7 @@ use vars qw(
   $plugin
   $threshold
   $verbosity
+  @lines
   @procs
 );
 
@@ -126,15 +127,19 @@ sub print_verbose {
 # main
 
 # initialization
-$plugin = Nagios::Plugin->new( shortname => 'CHECK_PROCS_MULTI' );
+
+$help = 0;
+undef $threshold;
 $verbosity = 0;
+@procs = ();
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_PROCS_MULTI' );
 
 Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
 my $result = GetOptions(
     'proc|p=s'   => \@procs,
     'help|h|?'   => \$help,
     'verbose|v+' => \$verbosity,
-    'version|V'  => sub { print "check_bandwidth version $VERSION\n"; exit 3; },
+    'version|V'  => sub { print "check_procs_multi version $VERSION\n"; exit 3; },
 );
 
 ###############
@@ -154,6 +159,27 @@ if ( @procs == 0 ) {
     $plugin->nagios_exit( UNKNOWN,
         'Error: at least one process must be specified' );
 }
+
+my $command = "ps -eo comm";
+my $output;
+
+print_verbose "Executing \"$command\"\n";
+
+my $pid = open $output, q{-|}, "$command 2>&1"
+    or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+
+# read the whole file
+my @lines = read_file($output);
+
+    if ( !( close $output )
+        && ( $OS_ERROR != 0 ) )
+    {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $command: $OS_ERROR" );
+    }
 
 ####################
 # Perform the checks
@@ -224,41 +250,9 @@ for my $proc (@procs) {
 
     }
 
-    # list all processes (the ps -c option cannot be used for scripts where
-    # the name of the script does not correspond to the name of the process:
-    # usually the interpreter)
-    #
-    # count everything that is at the beginning of the line, is preceded by
-    # a '[' or by a path
-    
-    my $command = "ps -e -o args | grep '^\\(.*\\/\\|\\[\\)*$name' | grep -v grep";
-    my $output;
+    print_verbose "Checking $name\n";
 
-    print_verbose "Executing \"$command\"\n";
-
-    my $pid = open $output, q{-|}, "$command 2>&1"
-      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
-
-    # read the whole file
-    my @lines = read_file($output);
-
-    if ( $verbosity > 0 ) {
-        for my $line (@lines) {
-            print_verbose "$line", 1;
-        }
-    }
-
-    if ( !( close $output )
-        && ( $OS_ERROR != 0 ) )
-    {
-
-        # close to a piped open return false if the command with non-zero
-        # status. In this case $! is set to 0
-        $plugin->nagios_exit( UNKNOWN,
-            "Error while closing pipe to $command: $OS_ERROR" );
-    }
-
-    my $count = scalar @lines;
+    my $count = scalar grep { /^$name$/mx } @lines;
 
     if ( $cmin && $count < $cmin ) {
         if ($critical) {

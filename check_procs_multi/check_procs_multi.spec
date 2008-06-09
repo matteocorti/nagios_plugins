@@ -1,4 +1,4 @@
-%define version 0.9.6
+%define version 1.0.0
 %define release 0
 %define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Mon Jun  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.0-0
+- grepping in perl
+
 * Mon May 26 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 0.9.5-0
 - fixed a bug when command name != proc name
 
