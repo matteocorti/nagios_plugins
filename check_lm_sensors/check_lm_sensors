@@ -1,4 +1,16 @@
-#!/usr/bin/perl
+#!perl
+
+# check_lm_sensors is a Nagios plugin to monitor the values of on board sensors and hard
+# disk temperatures on Linux systems
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
 
 # RCS information (required by Perl::Critic)
 #   $Id$
@@ -15,7 +27,7 @@ use English qw(-no_match_vars);
 
 use Nagios::Plugin;
 
-use version; our $VERSION = '3.1.0';
+use version; our $VERSION = '4.0.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
