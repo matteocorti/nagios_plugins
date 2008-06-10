@@ -27,7 +27,7 @@ use English qw(-no_match_vars);
 
 use Nagios::Plugin;
 
-use version; our $VERSION = '4.0.0';
+use version; our $VERSION = '3.1.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -36,37 +36,36 @@ use version; our $VERSION = '4.0.0';
 #            shared in the subroutines!
 #
 # All variables are therefore declared as package variables...
-# 
+#
 use vars qw(
-            $verbosity
-            $prog_name
-            $plugin
-            $hddtemp_bin
-            $sensors_bin            
-            $drives
-            $help
-            $list
-            $result
-            $sanitize
-            $sensors
-            %rename
-            %sensor_values
-            @drives
-            %highs
-            %lows
-            %ranges
-            $space
-            $status
-            $desc
-            $criticals
-            $warnings
-            $unknowns
-            $name
-            $limits
-            $converted_name
-            %checks
-        );
-
+  $verbosity
+  $prog_name
+  $plugin
+  $hddtemp_bin
+  $sensors_bin
+  $drives
+  $help
+  $list
+  $result
+  $sanitize
+  $sensors
+  %rename
+  %sensor_values
+  @drives
+  %highs
+  %lows
+  %ranges
+  $space
+  $status
+  $desc
+  $criticals
+  $warnings
+  $unknowns
+  $name
+  $limits
+  $converted_name
+  %checks
+);
 
 # initialization
 $criticals = q{};
@@ -97,16 +96,14 @@ $warnings  = q{};
 sub verbose {
 
     # arguments
-    my $message   = shift;
-    my $level     = shift;
+    my $message = shift;
+    my $level   = shift;
 
-    if ( !defined $message) {
-        $plugin->nagios_exit(
-            UNKNOWN,
-            q{Internal error: not enough parameters for 'verbose'}
-        );
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
     }
-    
+
     if ( !defined $level ) {
         $level = 0;
     }
@@ -136,9 +133,13 @@ sub usage {
 
     print << 'EOT';
 
-usage:
+check_lm_sensors [--help] [--verbose] [--version] [OPTIONS]
+
+Options:
 
   -?, --help      help
+
+  --check, -c     specifies a check for a sensor
 
   -l, --low       specifies a check for a sensor value which is too low.
                   Example:
@@ -201,7 +202,9 @@ Sensors with a space in the name can be specified
 
 EOT
 
-    $plugin->nagios_exit( UNKNOWN, 'Invalid arguments');
+    $plugin->nagios_exit( UNKNOWN, 'Invalid arguments' );
+
+    return;
 
 }
 
@@ -231,16 +234,16 @@ sub get_path {
         }
     }
 
-    if (!(close $output) &&
-            ($OS_ERROR != 0) ) {
+    if (  !( close $output )
+        && ( $OS_ERROR != 0 ) )
+    {
+
         # close to a piped open return false if the command with non-zero
         # status. In this case $! is set to 0
-        $plugin->nagios_exit(
-            UNKNOWN,
-            "Error while closing pipe to $command: $OS_ERROR\n"
-        );
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $command: $OS_ERROR\n" );
     }
-    
+
     return $path;
 
 }
@@ -261,12 +264,9 @@ sub parse_drives {
     if ( -x $hddtemp_bin ) {
 
         verbose "Looking for drives in /proc/partitions\n";
-        
+
         open $IN, '<', '/proc/partitions'
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                'Cannot open /proc/partitions'
-            );
+          or $plugin->nagios_exit( UNKNOWN, 'Cannot open /proc/partitions' );
 
         while (<$IN>) {
 
@@ -289,10 +289,8 @@ sub parse_drives {
             my $output;
 
             my $pid = open $output, q{-|}, "$command 2>&1"
-                or $plugin->nagios_exit(
-                    UNKNOWN,
-                    "Cannot execute $command: $OS_ERROR"
-                );
+              or $plugin->nagios_exit( UNKNOWN,
+                "Cannot execute $command: $OS_ERROR" );
 
             while (<$output>) {
                 chomp;
@@ -315,35 +313,30 @@ sub parse_drives {
 
                     if ( $verbosity || $list ) {
                         print
-                            "found temperature for drive $name ($name = $_)\n";
+                          "found temperature for drive $name ($name = $_)\n";
                     }
 
                 }
                 else {
                     verbose
-                        "warning: temperature for /dev/$name not available\n";
+                      "warning: temperature for /dev/$name not available\n";
                 }
 
             }
 
             close $output
-                or $plugin->nagios_exit(
-                    UNKNOWN,
-                    "Error while executing $command: $OS_ERROR\n"
-                );
+              or $plugin->nagios_exit( UNKNOWN,
+                "Error while executing $command: $OS_ERROR\n" );
 
         }
 
         close $IN
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                "Cannot close input: $OS_ERROR\n"
-            );
+          or $plugin->nagios_exit( UNKNOWN, "Cannot close input: $OS_ERROR\n" );
 
     }
     else {
         verbose
-            "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
+          "warning: $hddtemp_bin not found: HDD temperatures not checked\n";
     }
 
     return;
@@ -368,10 +361,8 @@ sub parse_sensors {
         my $output;
 
         my $pid = open $output, q{-|}, "$command 2>&1"
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                "Cannot execute $command: $OS_ERROR"
-            );
+          or
+          $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
         while (<$output>) {
             chomp;
@@ -385,18 +376,14 @@ sub parse_sensors {
         }
 
         close $output
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                "Error while executing $command: $OS_ERROR\n"
-            );
+          or $plugin->nagios_exit( UNKNOWN,
+            "Error while executing $command: $OS_ERROR\n" );
 
         $command = "$sensors_bin -A | grep \:";
 
         $pid = open $output, q{-|}, "$command 2>&1"
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                "Cannot execute $command: $OS_ERROR"
-            );
+          or
+          $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
         while (<$output>) {
             chomp;
@@ -425,15 +412,13 @@ sub parse_sensors {
         }
 
         close $output
-            or $plugin->nagios_exit(
-                UNKNOWN,
-                "Error while executing $command: $OS_ERROR\n"
-            );
+          or $plugin->nagios_exit( UNKNOWN,
+            "Error while executing $command: $OS_ERROR\n" );
 
     }
     else {
         verbose
-            "warning: $sensors_bin not found: HDD temperatures not checked\n";
+          "warning: $sensors_bin not found: HDD temperatures not checked\n";
     }
 
     return;
@@ -447,7 +432,7 @@ sub parse_sensors {
 ########################
 # Command line arguments
 
-Getopt::Long::Configure('bundling', 'no_ignore_case');
+Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
 $result = GetOptions(
     'check|c=s'     => \%checks,
     'drives!'       => \$drives,
@@ -470,18 +455,18 @@ if ( !$result ) {
 }
 
 if (   !( defined $list )
-    && !( %checks )
-    && !( %highs )
-    && !( %ranges )
-    && !( %lows ) )
+    && !(%checks)
+    && !(%highs)
+    && !(%ranges)
+    && !(%lows) )
 {
-    $plugin->nagios_exit( UNKNOWN, 'at least one check has to be specified');
+    $plugin->nagios_exit( UNKNOWN, 'at least one check has to be specified' );
 }
 
 # convert old options
-if ( %checks ) {
+if (%checks) {
     verbose
-        "warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
+"warning: the --checks options is deprecated, use the --low, --high and --range options instead\n";
 }
 
 if ($drives) {
@@ -501,7 +486,7 @@ if ($sensors) {
     if ( !$sensors_bin ) {
         $sensors_bin = get_path('sensors');
     }
-    if ( !$sensors_bin) {
+    if ( !$sensors_bin ) {
         verbose "warning: sensors not found: lm_sensors not checked\n";
     }
     else {
@@ -533,7 +518,7 @@ while ( ( $name, $limits ) = each %checks ) {
     my $diff  = $value;
 
     if ($ref) {
-        $diff = abs ($value - $ref) ;
+        $diff = abs( $value - $ref );
     }
 
     if ( $diff > $crit ) {
@@ -664,16 +649,18 @@ while ( ( $name, $limits ) = each %ranges ) {
 # build the status string
 
 if ( $criticals ne q{} ) {
-    $plugin->nagios_exit(CRITICAL, "$desc|$status");
+    $plugin->nagios_exit( CRITICAL, "$desc|$status" );
 }
 
 if ( $warnings ne q{} ) {
-    $plugin->nagios_exit(WARNING, "$desc|$status");    
+    $plugin->nagios_exit( WARNING, "$desc|$status" );
 }
 
 if ( $unknowns ne q{} ) {
-    $plugin->nagios_exit(UNKNOWN, "$desc|$status");    
+    $plugin->nagios_exit( UNKNOWN, "$desc|$status" );
 }
 
-$plugin->nagios_exit(OK, "$desc|$status");    
+$plugin->nagios_exit( OK, "$desc|$status" );
+
+1;
 
