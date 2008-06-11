@@ -26,17 +26,19 @@ disk temperatures on Linux systems
 %setup -q
 
 %build
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
 
 %install
-make DESTDIR=$RPM_BUILD_ROOT%{_prefix} install
+make install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root, 0644)
-%doc AUTHORS ChangeLog NEWS README INSTALL TODO COPYING VERSION
+%doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
 %attr(0755, root, root) %{_prefix}/check_lm_sensors
+%attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
 * Tue Jun 10 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.0-0
