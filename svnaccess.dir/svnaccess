@@ -1,5 +1,7 @@
 [/]
 corti = rw
+bircher = rw
+* = r
 
 #trac TRAC_ADMIN = corti
 #trac TRAC_ADMIN = bircher
