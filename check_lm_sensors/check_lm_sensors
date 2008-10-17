@@ -364,6 +364,8 @@ sub parse_sensors {
           or
           $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
+        select(undef, undef, undef, .2);
+        
         while (<$output>) {
             chomp;
             if (   /^No\ sensors\ found/mx
