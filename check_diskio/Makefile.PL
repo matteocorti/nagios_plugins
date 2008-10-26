@@ -14,6 +14,7 @@ version_from 'check_diskio';
 include 'version';
 
 requires 'Carp'                      => 0;
+requires 'Class::Accessor::Fast'     => 0;
 requires 'English'                   => 0;
 requires 'Getopt::Long'              => 0;
 requires 'List::MoreUtils'           => 0;
