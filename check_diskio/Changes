@@ -1,3 +1,7 @@
+2008-10-26  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* Makefile.PL: added dependendcy Class::Accessor::Fast
+
 2008-04-10  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: --device can be specified as mount point

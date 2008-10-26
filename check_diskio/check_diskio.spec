@@ -1,4 +1,4 @@
-%define version 2.2.0
+%define version 2.2.1
 %define release 0
 %define name    check_diskio
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -37,6 +37,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Sun Oct 26 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.1-0
+- added dependency on Class::Accessor::Fast
+
 * Thu Apr 10 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.0-0
 - --device can be specified as a mount point
 
