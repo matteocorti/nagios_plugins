@@ -1,4 +1,4 @@
-%define version 3.1.0
+%define version 3.1.1
 %define release 0
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Fri Oct 17 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.1-0
+- short pause before reading the output of 'sensors'
+
 * Tue Jun 10 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.0-0
 - repackaging and cleanup
 

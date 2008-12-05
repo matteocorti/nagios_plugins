@@ -249,7 +249,7 @@ $result = GetOptions(
     'help|h|?'     => \$help,
     'netstat=s'    => \$netstat,
     'verbose|v+'   => \$verbosity,
-    'version|V'    => sub { print "check_dir version $VERSION\n"; exit 3; },
+    'version|V'    => sub { print "check_connections version $VERSION\n"; exit 3; },
     'warning|w=i'  => \$warning,
 );
 

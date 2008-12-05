@@ -1,5 +1,5 @@
 %define version 1.0.3
-%define release 0
+%define release 1
 %define name    check_afs_rpc
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -31,7 +31,8 @@ warning, or okay.
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
+
 make
 
 %install

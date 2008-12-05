@@ -1,7 +1,7 @@
 # This Makefile is for the check_bandwidth extension to perl.
 #
 # It was generated automatically by MakeMaker version
-# 6.38 (Revision: 40911) from the contents of
+# 6.42 (Revision: 41145) from the contents of
 # Makefile.PL. Don't edit this file, edit Makefile.PL instead.
 #
 #       ANY CHANGES MADE HERE WILL BE LOST!
@@ -17,7 +17,7 @@
 #     INSTALLSCRIPT => q[/usr/lib/nagios/plugins/contrib]
 #     NAME => q[check_bandwidth]
 #     NO_META => q[1]
-#     PREREQ_PM => { Net::DNS::Resolver=>q[0], Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], version=>q[0], Nagios::Plugin::Threshold=>q[0], Carp=>q[0] }
+#     PREREQ_PM => { Net::DNS::Resolver=>q[0], Nagios::Plugin=>q[0], Getopt::Long=>q[0], English=>q[0], version=>q[0], ExtUtils::MakeMaker=>q[6.42], Carp=>q[0], Nagios::Plugin::Threshold=>q[0] }
 #     VERSION => q[0.9.6]
 #     dist => { PREOP=>q[$(PERL) -I. "-MModule::Install::Admin" -e "dist_preop(q($(DISTVNAME)))"] }
 
@@ -26,31 +26,31 @@
 
 # --- MakeMaker const_config section:
 
-# These definitions are from config.sh (via /System/Library/Perl/5.8.8/darwin-thread-multi-2level/Config.pm)
+# These definitions are from config.sh (via /usr/lib/perl5/5.10.0/i386-linux-thread-multi/Config.pm)
 
 # They may have been overridden via Makefile.PL or on the command line
 AR = ar
-CC = cc
-CCCDLFLAGS =  
-CCDLFLAGS =  
-DLEXT = bundle
+CC = gcc -std=gnu99
+CCCDLFLAGS = -fPIC
+CCDLFLAGS = -Wl,-E -Wl,-rpath,/usr/lib/perl5/5.10.0/i386-linux-thread-multi/CORE
+DLEXT = so
 DLSRC = dl_dlopen.xs
 EXE_EXT = 
 FULL_AR = /usr/bin/ar
-LD = cc -mmacosx-version-min=10.5
-LDDLFLAGS = -arch i386 -arch ppc -bundle -undefined dynamic_lookup -L/usr/local/lib
-LDFLAGS = -arch i386 -arch ppc -L/usr/local/lib
-LIBC = /usr/lib/libc.dylib
+LD = gcc -std=gnu99
+LDDLFLAGS = -shared -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i386 -mtune=generic -fasynchronous-unwind-tables -DPERL_USE_SAFE_PUTENV -L/usr/local/lib
+LDFLAGS =  -L/usr/local/lib
+LIBC = /lib/libc-2.8.90.so
 LIB_EXT = .a
 OBJ_EXT = .o
-OSNAME = darwin
-OSVERS = 9.0
-RANLIB = /usr/bin/ar ts
-SITELIBEXP = /Library/Perl/5.8.8
-SITEARCHEXP = /Library/Perl/5.8.8/darwin-thread-multi-2level
-SO = dylib
-VENDORARCHEXP = /Network/Library/Perl/5.8.8/darwin-thread-multi-2level
-VENDORLIBEXP = /Network/Library/Perl/5.8.8
+OSNAME = linux
+OSVERS = 2.6.18-92.1.10.el5
+RANLIB = :
+SITELIBEXP = /usr/local/lib/perl5/site_perl/5.10.0
+SITEARCHEXP = /usr/local/lib/perl5/site_perl/5.10.0/i386-linux-thread-multi
+SO = so
+VENDORARCHEXP = /usr/lib/perl5/vendor_perl/5.10.0/i386-linux-thread-multi
+VENDORLIBEXP = /usr/lib/perl5/vendor_perl/5.10.0
 
 
 # --- MakeMaker constants section:
@@ -77,53 +77,53 @@ MAN3EXT = 3pm
 INSTALLDIRS = site
 DESTDIR = 
 PREFIX = $(SITEPREFIX)
-PERLPREFIX = /
+PERLPREFIX = /usr
 SITEPREFIX = /usr/local
-VENDORPREFIX = /usr/local
-INSTALLPRIVLIB = /System/Library/Perl/5.8.8
+VENDORPREFIX = /usr
+INSTALLPRIVLIB = /usr/lib/perl5/5.10.0
 DESTINSTALLPRIVLIB = $(DESTDIR)$(INSTALLPRIVLIB)
-INSTALLSITELIB = /Library/Perl/5.8.8
+INSTALLSITELIB = /usr/local/lib/perl5/site_perl/5.10.0
 DESTINSTALLSITELIB = $(DESTDIR)$(INSTALLSITELIB)
-INSTALLVENDORLIB = /Network/Library/Perl/5.8.8
+INSTALLVENDORLIB = /usr/lib/perl5/vendor_perl/5.10.0
 DESTINSTALLVENDORLIB = $(DESTDIR)$(INSTALLVENDORLIB)
-INSTALLARCHLIB = /System/Library/Perl/5.8.8/darwin-thread-multi-2level
+INSTALLARCHLIB = /usr/lib/perl5/5.10.0/i386-linux-thread-multi
 DESTINSTALLARCHLIB = $(DESTDIR)$(INSTALLARCHLIB)
-INSTALLSITEARCH = /Library/Perl/5.8.8/darwin-thread-multi-2level
+INSTALLSITEARCH = /usr/local/lib/perl5/site_perl/5.10.0/i386-linux-thread-multi
 DESTINSTALLSITEARCH = $(DESTDIR)$(INSTALLSITEARCH)
-INSTALLVENDORARCH = /Network/Library/Perl/5.8.8/darwin-thread-multi-2level
+INSTALLVENDORARCH = /usr/lib/perl5/vendor_perl/5.10.0/i386-linux-thread-multi
 DESTINSTALLVENDORARCH = $(DESTDIR)$(INSTALLVENDORARCH)
 INSTALLBIN = /usr/bin
 DESTINSTALLBIN = $(DESTDIR)$(INSTALLBIN)
 INSTALLSITEBIN = /usr/local/bin
 DESTINSTALLSITEBIN = $(DESTDIR)$(INSTALLSITEBIN)
-INSTALLVENDORBIN = /usr/local/bin
+INSTALLVENDORBIN = /usr/bin
 DESTINSTALLVENDORBIN = $(DESTDIR)$(INSTALLVENDORBIN)
 INSTALLSCRIPT = /usr/lib/nagios/plugins/contrib
 DESTINSTALLSCRIPT = $(DESTDIR)$(INSTALLSCRIPT)
 INSTALLSITESCRIPT = /usr/local/bin
 DESTINSTALLSITESCRIPT = $(DESTDIR)$(INSTALLSITESCRIPT)
-INSTALLVENDORSCRIPT = /usr/local/bin
+INSTALLVENDORSCRIPT = /usr/bin
 DESTINSTALLVENDORSCRIPT = $(DESTDIR)$(INSTALLVENDORSCRIPT)
 INSTALLMAN1DIR = /usr/share/man/man1
 DESTINSTALLMAN1DIR = $(DESTDIR)$(INSTALLMAN1DIR)
 INSTALLSITEMAN1DIR = /usr/local/share/man/man1
 DESTINSTALLSITEMAN1DIR = $(DESTDIR)$(INSTALLSITEMAN1DIR)
-INSTALLVENDORMAN1DIR = /usr/local/share/man/man1
+INSTALLVENDORMAN1DIR = /usr/share/man/man1
 DESTINSTALLVENDORMAN1DIR = $(DESTDIR)$(INSTALLVENDORMAN1DIR)
 INSTALLMAN3DIR = /usr/share/man/man3
 DESTINSTALLMAN3DIR = $(DESTDIR)$(INSTALLMAN3DIR)
 INSTALLSITEMAN3DIR = /usr/local/share/man/man3
 DESTINSTALLSITEMAN3DIR = $(DESTDIR)$(INSTALLSITEMAN3DIR)
-INSTALLVENDORMAN3DIR = /usr/local/share/man/man3
+INSTALLVENDORMAN3DIR = /usr/share/man/man3
 DESTINSTALLVENDORMAN3DIR = $(DESTDIR)$(INSTALLVENDORMAN3DIR)
 PERL_LIB =
-PERL_ARCHLIB = /System/Library/Perl/5.8.8/darwin-thread-multi-2level
+PERL_ARCHLIB = /usr/lib/perl5/5.10.0/i386-linux-thread-multi
 LIBPERL_A = libperl.a
 FIRST_MAKEFILE = Makefile
 MAKEFILE_OLD = Makefile.old
 MAKE_APERL_FILE = Makefile.aperl
 PERLMAINCC = $(CC)
-PERL_INC = /System/Library/Perl/5.8.8/darwin-thread-multi-2level/CORE
+PERL_INC = /usr/lib/perl5/5.10.0/i386-linux-thread-multi/CORE
 PERL = /usr/bin/perl "-Iinc"
 FULLPERL = /usr/bin/perl "-Iinc"
 ABSPERL = $(PERL)
@@ -137,9 +137,9 @@ PERL_CORE = 0
 PERM_RW = 644
 PERM_RWX = 755
 
-MAKEMAKER   = /System/Library/Perl/5.8.8/ExtUtils/MakeMaker.pm
-MM_VERSION  = 6.38
-MM_REVISION = 40911
+MAKEMAKER   = /usr/lib/perl5/5.10.0/ExtUtils/MakeMaker.pm
+MM_VERSION  = 6.42
+MM_REVISION = 41145
 
 # FULLEXT = Pathname for extension directory (eg Foo/Bar/Oracle).
 # BASEEXT = Basename part of FULLEXT. May be just equal FULLEXT. (eg Oracle)
@@ -191,7 +191,7 @@ PM_TO_BLIB = check_bandwidth.pod \
 
 
 # --- MakeMaker platform_constants section:
-MM_Unix_VERSION = 6.38
+MM_Unix_VERSION = 6.42
 PERL_MALLOC_DEF = -DPERL_EXTMALLOC_DEF -Dmalloc=Perl_malloc -Dfree=Perl_mfree -Drealloc=Perl_realloc -Dcalloc=Perl_calloc
 
 
@@ -234,7 +234,7 @@ FIXIN = $(PERLRUN) "-MExtUtils::MY" -e "MY->fixin(shift)"
 
 
 # --- MakeMaker makemakerdflt section:
-makemakerdflt: all
+makemakerdflt : all
 	$(NOECHO) $(NOOP)
 
 
@@ -487,7 +487,7 @@ realclean purge ::  clean realclean_subdirs
 
 
 # --- MakeMaker metafile section:
-metafile:
+metafile :
 	$(NOECHO) $(NOOP)
 
 
@@ -707,7 +707,7 @@ uninstall_from_vendordirs ::
 
 # --- MakeMaker force section:
 # Phony target to force checking subdirectories.
-FORCE:
+FORCE :
 	$(NOECHO) $(NOOP)
 
 
@@ -777,7 +777,7 @@ testdb_static :: testdb_dynamic
 
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
-ppd:
+ppd :
 	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="0,9,6,0">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <TITLE>$(DISTNAME)</TITLE>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> $(DISTNAME).ppd
@@ -785,13 +785,14 @@ ppd:
 	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Carp" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="English" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="ExtUtils-MakeMaker" VERSION="6,42,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Getopt-Long" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Nagios-Plugin-Threshold" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="Net-DNS-Resolver" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <DEPENDENCY NAME="version" VERSION="0,0,0,0" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <OS NAME="$(OSNAME)" />' >> $(DISTNAME).ppd
-	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="darwin-thread-multi-2level-5.8" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="i386-linux-thread-multi-5.1" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    </IMPLEMENTATION>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '</SOFTPKG>' >> $(DISTNAME).ppd
@@ -812,7 +813,7 @@ pm_to_blib : $(TO_INST_PM)
 
 
 # End.
-# Postamble by Module::Install 0.670
+# Postamble by Module::Install 0.75
 # --- Module::Install::Admin::Makefile section:
 
 realclean purge ::

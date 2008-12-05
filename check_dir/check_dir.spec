@@ -1,5 +1,5 @@
 %define version 2.1.5
-%define release 0
+%define release 1
 %define name    check_dir
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -21,7 +21,7 @@ Nagios plugin to monitor the number of files in one or more directories.
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
 make
 
 %install

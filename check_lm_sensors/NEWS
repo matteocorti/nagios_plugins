@@ -1,3 +1,7 @@
+2008-10-17 (Version 3.1.1)
+* added a short pause while reading the output of 'sensors' to cope
+  with some systems where a delay caused the plugin to fail
+
 2007-10-03 (Version 3.0.0)
 * the plugin is now compatible with embedded perl
 

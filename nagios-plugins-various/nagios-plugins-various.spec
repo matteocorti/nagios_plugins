@@ -1,4 +1,4 @@
-%define version 1.3
+%define version 1.4
 %define release 0
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -13,7 +13,6 @@ Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
-BuildArch: i386
 
 Requires:  perl(Net::DHCP::Watch)
 
@@ -29,22 +28,13 @@ check_mem
 check_rxdebug
 check_udebu
 check_open_files
-check_procs (patched to generate performance data)
 
 %prep
 %setup -q
 
 %build
 
-%install
-if grep -q 'Red Hat Enterprise Linux AS release 4' /etc/issue ; then
-        cp check_procs.rh4 check_procs
-elif grep -q 'Red Hat Enterprise Linux Server release 5' /etc/issue ; then
-        cp check_procs.rh5 check_procs
-elif grep -q 'Fedora release 8' /etc/issue ; then
-        cp check_procs.f8 check_procs
-fi
-        
+%install        
 make DESTDIR=$RPM_BUILD_ROOT%{_prefix} install
 
 %clean
@@ -60,10 +50,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) %{_prefix}/check_mem
 %attr(0755, root, root) %{_prefix}/check_rxdebug
 %attr(0755, root, root) %{_prefix}/check_udebug
-%attr(0755, root, root) %{_prefix}/check_procs
 %attr(0755, root, root) %{_prefix}/check_open_files.pl
 
 %changelog
+* Fri Dec  5 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-1
+- removed check_procs
+
 * Wed Jan 23 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-0
 - added check_open_files
 

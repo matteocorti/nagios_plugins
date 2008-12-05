@@ -1,5 +1,5 @@
 %define version 0.9.6
-%define release 0
+%define release 1
 %define name    check_bandwidth
 %define _prefix /usr/lib/nagios/plugins/contrib
 
@@ -24,7 +24,7 @@ Nagios plugin that checks the available bandwidth
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
 make
 
 %install

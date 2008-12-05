@@ -1,8 +1,11 @@
 ---
 abstract: ~
-author: 'Matteo Corti <matteo.corti@id.ethz.ch>'
+author:
+  - 'Matteo Corti <matteo.corti@id.ethz.ch>'
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.67'
+generated_by: 'Module::Install version 0.75'
 license: gpl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.3.html
@@ -11,7 +14,6 @@ name: check_free_mem
 no_index:
   directory:
     - inc
-    - t
 requires:
   Carp: 0
   English: 0
