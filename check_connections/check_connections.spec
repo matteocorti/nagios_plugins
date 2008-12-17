@@ -1,4 +1,4 @@
-%define version 2.0.2
+%define version 2.1.0
 %define release 0
 %define name    check_connections
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -39,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Wed Dec 17 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.0-0
+- Updated to 2.1.0
+
 * Mon Sep 24 2007 Matteo Corti <matteo.corti@id.ethz.ch> - 1.2.0-0
 - First RPM package
 

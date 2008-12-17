@@ -1,3 +1,10 @@
+2008-12-17  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_connections:
+	   * FIN_WAIT_[1-2] remapped to FIN_WAIT[1-2]
+	   * Using Nagios::Plugin::Getopt
+	   * Timout
+
 2008-02-29  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_connections: uses Nagios::Plugin
