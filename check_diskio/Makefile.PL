@@ -13,16 +13,20 @@ version_from 'check_diskio';
 
 include 'version';
 
+requires 'Array::Unique'             => 0;
 requires 'Carp'                      => 0;
 requires 'Class::Accessor::Fast'     => 0;
 requires 'English'                   => 0;
+requires 'File::Slurp'               => 0;
 requires 'Getopt::Long'              => 0;
 requires 'List::MoreUtils'           => 0;
 requires 'List::Util'                => 0;
 requires 'Nagios::Plugin'            => 0;
+requires 'Nagios::Plugin::GetOpt'    => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
 requires 'Number::Format'            => 0;
 requires 'POSIX'                     => 0;
+requires 'Readonly'                  => 0;
 requires 'version'                   => 0;
 
 install_script  'check_diskio';

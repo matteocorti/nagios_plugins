@@ -1,3 +1,11 @@
+2009-01-20  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: detect physical devices for LVM
+
+2009-01-19  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: support multiple devices
+
 2008-10-26  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* Makefile.PL: added dependendcy Class::Accessor::Fast
