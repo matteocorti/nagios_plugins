@@ -435,8 +435,26 @@ check_diskio --device=devicename --critical=critical --warning=warning
              [--verbose] [--version] [--uom=unit]
 EOT
 
+my $extra = <<'EOT';
+
+Units of measurement:
+
+unit                       description
+---------------------------------------------
+  
+sector,sectors,s           sectors/s
+bit,bits,b        bps      bits per second
+byte,bytes,B      Bps      bytes per second
+Kb                Kbps     Kbits per second
+KB,K              KBbps    Kbytes per second
+Mb                Mbps     Mbits per second
+MB,M              MBps     Mbytes per second
+
+EOT
+
 $options = Nagios::Plugin::Getopt->new(
     usage   => $usage,
+    extra   => $extra,
     version => $VERSION,
     url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
     blurb   => 'Monitor disk I/O',
