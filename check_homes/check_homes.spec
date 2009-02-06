@@ -1,4 +1,4 @@
-%define version 0.1.3
+%define version 0.2.0
 %define release 0
 %define name    check_homes
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -39,3 +39,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man1/%{name}.1.gz
 
 %changelog
+* Fri Feb  6 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 0.2.0-0
+- standard command line option processing and check for existence in LDAP
+

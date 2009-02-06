@@ -24,33 +24,24 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '0.1.4';
+use version; our $VERSION = '0.2.0';
 
 use English qw(-no_match_vars);
-use Getopt::Long;
 use List::MoreUtils qw(any);
 use List::Util qw(first);
+use Nagios::Plugin::Getopt;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
-use Pod::Usage qw(pod2usage);
+use Readonly;
 
-# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
-#            the main routine would be executed as a subroutine and all the
-#            declared subroutines would therefore be inner subroutines
-#            This will cause all the global lexical variables not to stay shared
-#            in the subroutines!
-#
-# All variables are therefore declared as package variables...
-#
-use vars qw(
-  @errors
-  $help
-  $home_checks
-  $plugin
-  $threshold
-  $tmp
-  $verbosity
-);
+my @errors;
+my $options;
+my $plugin;
+my $threshold;
+my $tmp;
+
+Readonly my $DEFAULT_MAX_ERRORS => 16;
+Readonly my $PW_DIR_POS         => 7;    # see getpwnam(3)
 
 ##############################################################################
 # subroutines
@@ -79,7 +70,7 @@ sub verbose {
         $level = 0;
     }
 
-    if ( $level < $verbosity ) {
+    if ( $level < $options->verbose ) {
         print $message;
     }
 
@@ -96,16 +87,34 @@ sub verbose {
 # Comments  : n/a
 # See also  : n/a
 sub whoami {
+
     my $output;
+    my $uname;
+
     my $pid = open $output, q{-|}, 'whoami'
       or
       $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+
     while (<$output>) {
         chomp;
-        return $_;
+        $uname = $_;
     }
-    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
-    return;
+
+    if ( !( close $output ) && ( $OS_ERROR != 0 ) ) {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to whoami: $OS_ERROR\n" );
+
+    }
+
+    if ( !$uname ) {
+        $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    }
+
+    return $uname;
+
 }
 
 ##############################################################################
@@ -121,19 +130,26 @@ sub check_user {
     my $user = shift;
     my $home = "/nas/$user";
 
-    verbose "checking $user's home: $home\n", 1;
+    verbose 'checking ' . $user . "'s home: $home\n", 1;
 
     my $ls;
     my $command = "ls -d $home 2>&1 ";
     open $ls, q{-|}, $command
       or
       $plugin->nagios_exit( UNKNOWN, "Cannot execute \"$command\": $OS_ERROR" );
-
     while (<$ls>) {
         chomp;
         if ( $_ ne $home ) {
             push @errors, $user;
         }
+    }
+    if ( !( close $ls ) && ( $OS_ERROR != 0 ) ) {
+
+        # close to a piped open return false if the command with non-zero
+        # status. In this case $! is set to 0
+        $plugin->nagios_exit( UNKNOWN,
+            "Error while closing pipe to $command: $OS_ERROR\n" );
+
     }
 
     return;
@@ -146,30 +162,56 @@ sub check_user {
 
 ################
 # initialization
-$home_checks = 1;
-$help        = q{};
-$verbosity   = 0;
-$tmp         = '/tmp/check_homes_status-' . whoami();
-$plugin      = Nagios::Plugin->new( shortname => 'CHECK_HOMES' );
-$threshold   = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => 0,
-    critical => 0,
-);
+$tmp = '/tmp/check_homes_status-' . whoami();
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_HOMES' );
 
 ########################
 # Command line arguments
 
-Getopt::Long::Configure(qw{bundling });
-my $result = GetOptions(
-    'help|h|?'   => \$help,
-    'checks|c=i' => \$home_checks,
-    'verbose|v+' => \$verbosity,
-    'version|V'  => sub { print "check_updates version $VERSION\n"; exit 3; }
+$options = Nagios::Plugin::Getopt->new(
+    usage =>
+'Usage: %s [--help] [--verbose] [--version] [--timeout t] [--checks c] [--max_error m] [--critical c] [--warning w]',
+    version => $VERSION,
+    url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
+    blurb =>
+'check_homes is an ETHZ specific Nagios plugin to test to check home directories of nethz users',
 );
 
-if ( !$result || $help ) {
-    pod2usage();
-}
+$options->arg(
+    spec    => 'checks=i',
+    help    => 'the number of random home directories to check',
+    default => 1,
+);
+
+$options->arg(
+    spec    => 'max_errors=i',
+    help    => 'maximum number of errors shown in the status line',
+    default => $DEFAULT_MAX_ERRORS,
+);
+
+$options->arg(
+    spec    => 'critical|c=i',
+    help    => 'connection limit for a critical warning',
+    default => 1,
+);
+
+$options->arg(
+    spec    => 'warning|w=i',
+    help    => 'connection limit for a warning',
+    default => 1,
+);
+
+$options->getopts();
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $options->warning,
+    critical => $options->critical,
+);
+
+#########
+# Timeout
+
+alarm $options->timeout;
 
 ##############################################################################
 # get the user list
@@ -182,7 +224,7 @@ open $list, q{<}, $filename
   or $plugin->nagios_exit( UNKNOWN, "Cannot open $filename: $OS_ERROR" );
 
 while (<$list>) {
-    s/\ .*//mx;
+    s/\ .*//mxs;
     chomp;
     push @users, $_;
 }
@@ -194,19 +236,26 @@ my $users_number = @users;
 
 verbose "Retrieved $users_number users\n";
 
-verbose "Selecting $home_checks random"
-  . ( ( $home_checks > 0 ) ? 'users' : 'user' ) . "\n";
+verbose 'Selecting '
+  . $options->checks
+  . ' random '
+  . ( ( $options->checks > 0 ) ? 'users' : 'user' ) . "\n";
 
 srand;
 
 my $i = 0;
 my @to_check;
 
-while ( $i < $home_checks ) {
+while ( $i < $options->checks ) {
 
     my $index = int rand $users_number;
 
-    if ( any { /$users[$index]/mx } @to_check ) {
+    if ( any { /$users[$index]/mxs } @to_check ) {
+        redo;
+    }
+
+    my $home = ( getpwnam $users[$index]  )[$PW_DIR_POS];
+    if ( !( $home && $home =~ m{^/nas/}mxs ) ) {
         redo;
     }
 
@@ -225,13 +274,13 @@ if ( -f $tmp ) {
 
     open $file, q{<}, $tmp
       or $plugin->nagios_exit( UNKNOWN, "Cannot open $tmp: $OS_ERROR" );
-
     while (<$file>) {
         chomp;
-        verbose "  $_\n", 1;
-        push @to_check, $_;
+        if ( getpwnam $_ ) {
+            verbose "  $_\n", 1;
+            push @to_check, $_;
+        }
     }
-
     close $file
       or $plugin->nagios_exit( UNKNOWN, "Cannot close $tmp: $OS_ERROR" );
 
@@ -264,7 +313,6 @@ if (@errors) {
       or $plugin->nagios_exit( WARNING, "Error closing $tmp: $OS_ERROR" );
 
     # generate error message
-
     for my $user (@errors) {
         if ( defined $error_string ) {
             $error_string = "$error_string, /nas/$user";
@@ -273,11 +321,29 @@ if (@errors) {
             $error_string = "/nas/$user";
         }
     }
+
+    if ( @errors < $options->max_errors ) {
+        $error_string = map { "/nas/$_" } join @errors;
+
+    }
+    else {
+        $error_string = map { "/nas/$_" } join splice @errors, 0,
+          $options->max_errors;
+        $error_string .= ', ...';
+    }
+
     $plugin->nagios_exit( CRITICAL, "Error accessing $error_string" );
 }
 else {
+    if ( -e $tmp ) {
+        unlink $tmp
+          or $plugin->nagios_exit( UNKNOWN, "Error deleting $tmp: $OS_ERROR" );
+    }
+
     $plugin->nagios_exit( OK,
-        "Checked $home_checks " . ( ( $home_checks > 1 ) ? 'homes' : 'home' ) );
+            'Checked '
+          . $options->checks . q{ }
+          . ( ( $options->checks > 1 ) ? 'homes' : 'home' ) );
 }
 
 1;
@@ -297,30 +363,76 @@ directories of nethz users
 
 =head1 VERSION
 
-Version 0.1.4
+Version 0.2.0
+
+=head1 USAGE
+
+Usage: check_homes [--help] [--verbose] [--version] [--timeout t]
+                   [--critical c] [--warning w]
+                   [--checks c] [--max_error m]
 
 =head1 SYNOPSIS
 
- check_homes [--help] [--verbose] [--version] [--checks value]
+Usage: check_homes [--help] [--verbose] [--version] [--timeout t]
+                   [--critical c] [--warning w]
+                   [--checks c] [--max_error m]
 
- Options
-  --checks,-c   value           the number of random home directories to check
-  --help,-h,-?                  this help message
-  --verbose,-v                  verbose output
-  --version,-V                  print version
+ -?, --usage
+   Print usage information
+ -h, --help
+   Print detailed help screen
+ -V, --version
+   Print version information
+ --extra-opts=[<section>[@<config_file>]]
+   Section and/or config_file from which to load extra options (may repeat)
+ -c, --checks=INTEGER
+   the number of random home directories to check
+ --max_errors=INTEGER
+   maximum number of errors shown in the status line
+ -c, --critical=INTEGER
+   connection limit for a critical warning
+ -w, --warning=INTEGER
+   connection limit for a warning
+ -t, --timeout=INTEGER
+   Seconds before plugin times out (default: 15)
+ -v, --verbose
+   Show details for command-line debugging (can repeat up to 3 times)
 
 =head1 REQUIRED ARGUMENTS
 
+None
 
 =head1 OPTIONS
 
-  --checks,-c   value           the number of random home directories to check
-
-  --help,-h,-?                  this help message
-
-  --version,-V                  print version
-
-  --verbose,-v                  verbose output
+ -?, --usage
+   Print usage information
+    
+ -h, --help
+   Print detailed help screen
+    
+ -V, --version
+   Print version information
+    
+ --extra-opts=[<section>[@<config_file>]]
+   Section and/or config_file from which to load extra options (may repeat)
+    
+ -c, --checks=INTEGER
+   the number of random home directories to check
+    
+ --max_errors=INTEGER
+   maximum number of errors shown in the status line
+    
+ -c, --critical=INTEGER
+   connection limit for a critical warning
+    
+ -w, --warning=INTEGER
+   connection limit for a warning
+    
+ -t, --timeout=INTEGER
+   Seconds before plugin times out (default: 15)
+    
+ -v, --verbose
+   Show details for command-line debugging (can repeat up to 3 times)
 
 =head1 EXAMPLE
 
@@ -348,17 +460,15 @@ check_updates depends on
 
 =item * English
 
-=item * Getopt::Long
-
 =item * List::MoreUtils
 
 =item * List::Util
 
 =item * Nagios::Plugin
 
-=item * Nagios::Plugin::Threshold
+=item * Nagios::Plugin::Getopt
 
-=item * Pod::Usage
+=item * Nagios::Plugin::Threshold
 
 =item * version
 
