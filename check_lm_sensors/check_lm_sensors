@@ -57,7 +57,6 @@ my %lows;
 my %rename;
 my %ranges;
 my %sensor_values;
-my @drives;
 
 # initialization
 $criticals = q{};
@@ -200,14 +199,12 @@ sub get_path {
 
     my $pid = open $output, q{-|}, "$command 2>&1"
       or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
-
     while (<$output>) {
         chomp;
-        if ( !/^which:/mx ) {
+        if ( !/^which:/mxs ) {
             $path = $_;
         }
     }
-
     if (  !( close $output )
         && ( $OS_ERROR != 0 ) )
     {
@@ -239,22 +236,22 @@ sub parse_drives {
 
         verbose "Looking for drives in /proc/partitions\n";
 
+        my @disks;
+
         open $IN, '<', '/proc/partitions'
           or $plugin->nagios_exit( UNKNOWN, 'Cannot open /proc/partitions' );
-
         while (<$IN>) {
-
             chomp;
-
             my ( $major, $minor, $blocs, $name ) = split;
-
-            if ( !defined $major || $major eq 'major' || $major eq q{} ) {
+            if ( !defined $major || $major eq 'major' || $major eq q{} || $name =~ /[0-9]$/mxs ) {
                 next;
             }
+            push @disks, $name;
+        }
+        close $IN
+          or $plugin->nagios_exit( UNKNOWN, "Cannot close input: $OS_ERROR\n" );
 
-            if ( $name =~ /[0-9]$/mx ) {
-                next;
-            }
+        for my $name (@disks) {
 
             verbose "  checking disk /dev/$name\n", 1;
 
@@ -262,43 +259,38 @@ sub parse_drives {
 
             my $output;
 
+            my $temp;
+            
             my $pid = open $output, q{-|}, "$command 2>&1"
-              or $plugin->nagios_exit( UNKNOWN,
-                "Cannot execute $command: $OS_ERROR" );
-
+              or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
             while (<$output>) {
                 chomp;
-
-                if ( $_ =~ /^[0-9]+$/mx ) {
-
-                    # check if the sensor has to be renamed
-                    if ( $rename{$name} ) {
-                        $name = $rename{$name};
-                    }
-
-                    $sensor_values{$name} = $_;
-
-                    if ( $verbosity ) {
-                        print
-                          "found temperature for drive $name ($name = $_)\n";
-                    }
-
-                }
-                else {
-                    verbose
-                      "warning: temperature for /dev/$name not available\n";
-                }
-
+                $temp = $_;
+                last;
             }
-
             close $output
               or $plugin->nagios_exit( UNKNOWN,
                 "Error while executing $command: $OS_ERROR\n" );
+                
+            if ( $temp =~ /^[0-9]+$/mxs ) {
+
+                # check if the sensor has to be renamed
+                if ( $rename{$name} ) {
+                    $name = $rename{$name};
+                }
+
+                $sensor_values{$name} = $temp;
+
+                verbose "found temperature for drive $name ($name = $_)\n";
+                
+            }
+            else {
+                verbose
+                    "warning: temperature for /dev/$name not available\n";
+            }
 
         }
 
-        close $IN
-          or $plugin->nagios_exit( UNKNOWN, "Cannot close input: $OS_ERROR\n" );
 
     }
     else {
@@ -341,13 +333,13 @@ sub parse_sensors {
         open $name_handler, q{<}, "$dev_dir/$device/device/name"
           or $plugin->nagios_exit( UNKNOWN,
             "Error reading $dev_dir/$device/device/name: $OS_ERROR" );
-
+        
         while (<$name_handler>) {
             chomp;
             $name = $_;
             last;
         }
-
+        
         close $name_handler
           or $plugin->nagios_exit( UNKNOWN,
             "Error closing $dev_dir/$device/device/name: $OS_ERROR" );
@@ -458,7 +450,7 @@ $result = GetOptions(
     'raw'           => \$raw,
     'sensors!'      => \$sensors,
     'verbose|v+'    => \$verbosity,
-    'version' => sub { print "check_lm_sensors version $VERSION\n"; exit 3; }
+    'version' => sub { print "check_lm_sensors version $VERSION\n"; exit UNKNOWN; }
 );
 
 if ( !$result ) {
@@ -505,7 +497,7 @@ if ( $list ) {
 while ( ( $name, $limits ) = each %lows ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /gmx;
+    $converted_name =~ s/_/\ /gmxs;
 
     if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
@@ -515,7 +507,7 @@ while ( ( $name, $limits ) = each %lows ) {
         next;
     }
 
-    my ( $warn, $crit ) = split /,/mx, $limits;
+    my ( $warn, $crit ) = split /,/mxs, $limits;
 
     my $value = $sensor_values{$name};
 
@@ -539,7 +531,7 @@ while ( ( $name, $limits ) = each %lows ) {
 while ( ( $name, $limits ) = each %highs ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /gmx;
+    $converted_name =~ s/_/\ /gmxs;
 
     if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
@@ -549,7 +541,7 @@ while ( ( $name, $limits ) = each %highs ) {
         next;
     }
 
-    my ( $warn, $crit ) = split /,/mx, $limits;
+    my ( $warn, $crit ) = split /,/mxs, $limits;
 
     my $value = $sensor_values{$name};
 
@@ -574,7 +566,7 @@ while ( ( $name, $limits ) = each %highs ) {
 while ( ( $name, $limits ) = each %ranges ) {
 
     $converted_name = $name;
-    $converted_name =~ s/_/\ /gmx;
+    $converted_name =~ s/_/\ /gmxs;
 
     if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
         $name = $converted_name;
@@ -584,7 +576,7 @@ while ( ( $name, $limits ) = each %ranges ) {
         next;
     }
 
-    my ( $warn, $crit, $ref ) = split /,/mx, $limits;
+    my ( $warn, $crit, $ref ) = split /,/mxs, $limits;
 
     my $value = $sensor_values{$name};
     my $diff  = $value;
