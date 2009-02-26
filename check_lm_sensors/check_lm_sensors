@@ -44,6 +44,7 @@ my $list;
 my $name;
 my $plugin;
 my $prog_name;
+my $raw;
 my $result;
 my $sensors;
 my $space;
@@ -122,7 +123,7 @@ sub usage {
         print "$msg\n";
     }
 
-    print << 'EOT';
+    print<<'EOT';
 
 check_lm_sensors [--help] [--verbose] [--version] [OPTIONS]
 
@@ -166,6 +167,8 @@ Options:
   -d, --drives    enable checks on drive temperature
 
   --hddtemp_bin   manually specifies the location of the hddtemp binary
+
+  --raw           use the sensor raw output and do not convert to standard units
 
   -v, --verbose   verbose output
 
@@ -275,8 +278,7 @@ sub parse_drives {
 
                     $sensor_values{$name} = $_;
 
-
-                    if ( $verbosity || $list ) {
+                    if ( $verbosity ) {
                         print
                           "found temperature for drive $name ($name = $_)\n";
                     }
@@ -321,79 +323,119 @@ sub parse_sensors {
     my $dir_handle;
 
     Readonly my $dev_dir => '/sys/class/hwmon';
-    
+
     opendir $dir_handle, $dev_dir
-        or return;
+      or return;
 
     my @devices = grep { m/^[^\.]/mxs } readdir $dir_handle;
 
     closedir $dir_handle
-        or $plugin->nagios_exit( UNKNOWN, "Error closing $dev_dir: $OS_ERROR");    
+      or $plugin->nagios_exit( UNKNOWN, "Error closing $dev_dir: $OS_ERROR" );
 
     for my $device (@devices) {
 
         my $name;
-        
+
         # get device name
         my $name_handler;
         open $name_handler, q{<}, "$dev_dir/$device/device/name"
-            or $plugin->nagios_exit( UNKNOWN, "Error reading $dev_dir/$device/device/name: $OS_ERROR");
-        
-        while(<$name_handler>) {
+          or $plugin->nagios_exit( UNKNOWN,
+            "Error reading $dev_dir/$device/device/name: $OS_ERROR" );
+
+        while (<$name_handler>) {
             chomp;
             $name = $_;
             last;
         }
 
         close $name_handler
-            or $plugin->nagios_exit( UNKNOWN, "Error closing $dev_dir/$device/device/name: $OS_ERROR");
+          or $plugin->nagios_exit( UNKNOWN,
+            "Error closing $dev_dir/$device/device/name: $OS_ERROR" );
 
         # list sensors
         opendir $dir_handle, "$dev_dir/$device/device/"
-            or return;
+          or return;
 
-        my @sensors = apply { s/_input//mxs; } grep { m/^[^\.].*_input/mxs } readdir $dir_handle;
+        my @sensors =
+          apply { s/_input//mxs; }
+        grep { m/^[^\.].*_input/mxs } readdir $dir_handle;
 
         closedir $dir_handle
-            or $plugin->nagios_exit( UNKNOWN, "Error closing $dev_dir/$device/device: $OS_ERROR");
+          or $plugin->nagios_exit( UNKNOWN,
+            "Error closing $dev_dir/$device/device: $OS_ERROR" );
 
         for my $sensor (@sensors) {
 
             # get device name
             my $sensor_handler;
             my $value;
-            
-            open $sensor_handler, q{<}, "$dev_dir/$device/device/$sensor".'_input'
-                or $plugin->nagios_exit( UNKNOWN, "Error reading $dev_dir/$device/device/$sensor"."_input: $OS_ERROR");
-            
-            while(<$sensor_handler>) {
+
+            open $sensor_handler, q{<}, "$dev_dir/$device/device/$sensor"
+              . '_input'
+              or $plugin->nagios_exit( UNKNOWN,
+                    "Error reading $dev_dir/$device/device/$sensor"
+                  . "_input: $OS_ERROR"
+              );
+
+            while (<$sensor_handler>) {
                 chomp;
-                $value=$_;
+                $value = $_;
                 last;
             }
 
             close $sensor_handler
-                or $plugin->nagios_exit( UNKNOWN, "Error closing $dev_dir/$device/device/$sensor"."_input: $OS_ERROR");
+              or $plugin->nagios_exit( UNKNOWN,
+                    "Error closing $dev_dir/$device/device/$sensor"
+                  . "_input: $OS_ERROR" );
 
             my $full_name = $name . q{_} . $sensor;
-            
+
             # check if the sensor has to be renamed
             if ( $rename{$full_name} ) {
                 $full_name = $rename{$full_name};
             }
-            
+
             $sensor_values{$full_name} = $value;
             
-            if ( $verbosity || $list ) {
+            if ( $verbosity ) {
                 print "found sensor $full_name ($value)\n";
             }
-            
+
         }
-        
+
     }
-            
+
     return;
-    
+
+}
+
+sub convert_values {
+
+    for my $sensor ( keys %sensor_values ) {
+
+        if ($sensor =~ /\w+_(in|cpu|temp|curr)[0-9]+/mxs ) {
+            
+            # convert from millidegrees, milliamperes or millivolts
+            
+            $sensor_values{$sensor} = $sensor_values{$sensor} / 1_000;
+
+        } elsif ($sensor =~ /\w+_(power|energy)[0-9]+/mxs ) {
+
+            # convert from microJoule or microWarr
+
+            $sensor_values{$sensor} = $sensor_values{$sensor} / 1_000_000;
+            
+        } elsif ($sensor =~ /\w+_pwm[0-9]+/mxs ) {
+
+            # value (0-255) is a percentage
+
+            $sensor_values{$sensor} = $sensor_values{$sensor} / 2.55;
+
+        }
+
+    }
+
+    return;
 
 }
 
@@ -413,6 +455,7 @@ $result = GetOptions(
     'list'          => \$list,
     'low|l=s'       => \%lows,
     'range|r=s'     => \%ranges,
+    'raw'           => \$raw,
     'sensors!'      => \$sensors,
     'verbose|v+'    => \$verbosity,
     'version' => sub { print "check_lm_sensors version $VERSION\n"; exit 3; }
@@ -444,6 +487,16 @@ if ($drives) {
 }
 
 parse_sensors();
+
+if (! $raw ) {
+    convert_values();
+}
+
+if ( $list ) {
+    for my $sensor (keys %sensor_values) {
+        print "$sensor -> $sensor_values{$sensor}\n";
+    }
+}
 
 ################
 # perform checks
