@@ -5,7 +5,7 @@
 #
 # See  the INSTALL file for installation instructions
 #
-# Copyright (c) 2007, ETH Zurich.
+# Copyright (c) 2009, ETH Zurich.
 #
 # This module is free software; you can redistribute it and/or modify it
 # under the terms of GNU general public license (gpl) version 3.
@@ -21,20 +21,17 @@
 use strict;
 use warnings;
 
-use Getopt::Long;
 use Carp;
-use English qw(-no_match_vars);
-use List::MoreUtils qw(apply);
-use Readonly;
-
 use Data::Dumper;
-
+use English qw(-no_match_vars);
+use Getopt::Long;
+use List::MoreUtils qw(apply);
+use Nagios::Plugin::Getopt;
 use Nagios::Plugin;
+use Readonly;
 
 use version; our $VERSION = '4.0.0';
 
-my $converted_name;
-my $criticals;
 my $desc;
 my $drives;
 my $hddtemp_bin;
@@ -47,11 +44,9 @@ my $prog_name;
 my $raw;
 my $result;
 my $sensors;
-my $space;
 my $status;
 my $unknowns;
 my $verbosity;
-my $warnings;
 my %highs;
 my %lows;
 my %rename;
@@ -59,18 +54,15 @@ my %ranges;
 my %sensor_values;
 
 # initialization
-$criticals = q{};
 $desc      = q{};
 $drives    = 1;
 $help      = q{};
 $prog_name = 'LM_SENSORS';
 $plugin    = Nagios::Plugin->new( shortname => $prog_name );
 $sensors   = 1;
-$space     = q{};
 $status    = q{};
 $unknowns  = q{};
 $verbosity = 0;
-$warnings  = q{};
 
 ##############################################################################
 # subroutines
@@ -100,7 +92,53 @@ sub verbose {
     }
 
     if ( $level < $verbosity ) {
+
+        ## no critic
+
+        #Violates 'InputOutput::RequireCheckedSyscalls'
         print $message;
+
+        ## use critic
+
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : check_arguments( \%arguments, $number_of_expected_arguments )
+# Purpose   : performs sanity checks on arguments
+# Returns   : n/a
+# Arguments : \%arguments                   : an arguments hash (highs, lows or ranges)
+#             $number_of_expected_arguments : number of numberical arguments
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub check_arguments {
+
+    my ( $checks_ref, $number_of_arguments ) = @_;
+
+    for my $sensor ( keys %{$checks_ref} ) {
+
+        if ( !defined $sensor_values{$sensor} ) {
+            $plugin->nagios_exit( UNKNOWN, "unkown sensor $sensor" );
+        }
+        else {
+            my @numbers = split /,/mxs, $checks_ref->{$sensor};
+            if ( @numbers != $number_of_arguments ) {
+                $plugin->nagios_exit( UNKNOWN,
+"wrong number of arguments ($checks_ref->{$sensor}) for $sensor"
+                );
+            }
+            for my $number (@numbers) {
+                if ( !( $number =~ /^-?\d+\.?\d*$/mxs ) ) {
+                    $plugin->nagios_exit( UNKNOWN,
+                        "$number (in $checks_ref->{$sensor}) is not a number" );
+                }
+            }
+        }
+
     }
 
     return;
@@ -119,10 +157,20 @@ sub usage {
     my $msg = shift;
 
     if ( defined $msg ) {
+
+        ## no critic
+
+        #Violates 'InputOutput::RequireCheckedSyscalls'
         print "$msg\n";
+
+        ## use critic
+
     }
 
-    print<<'EOT';
+    ## no critic
+
+    #Violates 'InputOutput::RequireCheckedSyscalls'
+    print <<'EOT';
 
 check_lm_sensors [--help] [--verbose] [--version] [OPTIONS]
 
@@ -174,6 +222,8 @@ Options:
   --version       prints the version and exits
 
 EOT
+
+    ## use critic
 
     $plugin->nagios_exit( UNKNOWN, 'Invalid arguments' );
 
@@ -238,16 +288,26 @@ sub parse_drives {
 
         my @disks;
 
+        ## no critic
+
         open $IN, '<', '/proc/partitions'
           or $plugin->nagios_exit( UNKNOWN, 'Cannot open /proc/partitions' );
+
+        ## use critic
+
         while (<$IN>) {
             chomp;
             my ( $major, $minor, $blocs, $name ) = split;
-            if ( !defined $major || $major eq 'major' || $major eq q{} || $name =~ /[0-9]$/mxs ) {
+            if (   !defined $major
+                || $major eq 'major'
+                || $major eq q{}
+                || $name =~ /[0-9]$/mxs )
+            {
                 next;
             }
             push @disks, $name;
         }
+
         close $IN
           or $plugin->nagios_exit( UNKNOWN, "Cannot close input: $OS_ERROR\n" );
 
@@ -260,9 +320,10 @@ sub parse_drives {
             my $output;
 
             my $temp;
-            
+
             my $pid = open $output, q{-|}, "$command 2>&1"
-              or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+              or $plugin->nagios_exit( UNKNOWN,
+                "Cannot execute $command: $OS_ERROR" );
             while (<$output>) {
                 chomp;
                 $temp = $_;
@@ -271,7 +332,7 @@ sub parse_drives {
             close $output
               or $plugin->nagios_exit( UNKNOWN,
                 "Error while executing $command: $OS_ERROR\n" );
-                
+
             if ( $temp =~ /^[0-9]+$/mxs ) {
 
                 # check if the sensor has to be renamed
@@ -282,15 +343,13 @@ sub parse_drives {
                 $sensor_values{$name} = $temp;
 
                 verbose "found temperature for drive $name ($name = $_)\n";
-                
+
             }
             else {
-                verbose
-                    "warning: temperature for /dev/$name not available\n";
+                verbose "warning: temperature for /dev/$name not available\n";
             }
 
         }
-
 
     }
     else {
@@ -328,30 +387,26 @@ sub parse_sensors {
 
         my $name;
 
+        #<<<
+
         # get device name
         my $name_handler;
         open $name_handler, q{<}, "$dev_dir/$device/device/name"
           or $plugin->nagios_exit( UNKNOWN,
             "Error reading $dev_dir/$device/device/name: $OS_ERROR" );
-        
         while (<$name_handler>) {
-            chomp;
-            $name = $_;
-            last;
+            chomp; $name = $_; last;
         }
-        
         close $name_handler
           or $plugin->nagios_exit( UNKNOWN,
             "Error closing $dev_dir/$device/device/name: $OS_ERROR" );
 
+        #>>>
         # list sensors
         opendir $dir_handle, "$dev_dir/$device/device/"
           or return;
-
-        my @sensors =
-          apply { s/_input//mxs; }
+        my @sensors = apply { s/_input//mxs; }
         grep { m/^[^\.].*_input/mxs } readdir $dir_handle;
-
         closedir $dir_handle
           or $plugin->nagios_exit( UNKNOWN,
             "Error closing $dev_dir/$device/device: $OS_ERROR" );
@@ -362,24 +417,22 @@ sub parse_sensors {
             my $sensor_handler;
             my $value;
 
-            open $sensor_handler, q{<}, "$dev_dir/$device/device/$sensor"
-              . '_input'
-              or $plugin->nagios_exit( UNKNOWN,
-                    "Error reading $dev_dir/$device/device/$sensor"
-                  . "_input: $OS_ERROR"
+            #<<<
+            
+            open $sensor_handler, q{<}, "$dev_dir/$device/device/$sensor" . '_input'
+              or $plugin->nagios_exit(
+                  UNKNOWN,
+                  "Error reading $dev_dir/$device/device/$sensor" . "_input: $OS_ERROR"
               );
-
             while (<$sensor_handler>) {
-                chomp;
-                $value = $_;
-                last;
+                chomp; $value = $_; last;
             }
-
             close $sensor_handler
               or $plugin->nagios_exit( UNKNOWN,
                     "Error closing $dev_dir/$device/device/$sensor"
                   . "_input: $OS_ERROR" );
 
+            #>>>
             my $full_name = $name . q{_} . $sensor;
 
             # check if the sensor has to be renamed
@@ -388,9 +441,16 @@ sub parse_sensors {
             }
 
             $sensor_values{$full_name} = $value;
-            
-            if ( $verbosity ) {
+
+            if ($verbosity) {
+
+                ## no critic
+
+                #Violates 'InputOutput::RequireCheckedSyscalls'
                 print "found sensor $full_name ($value)\n";
+
+                ## use critic
+
             }
 
         }
@@ -401,27 +461,52 @@ sub parse_sensors {
 
 }
 
+##############################################################################
+# Usage     : convert_values()
+# Purpose   : converts raw values to standard units
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
 sub convert_values {
 
     for my $sensor ( keys %sensor_values ) {
 
-        if ($sensor =~ /\w+_(in|cpu|temp|curr)[0-9]+/mxs ) {
-            
+        if ( $sensor =~ /\w+_(in|cpu|temp|curr)[0-9]+/mxs ) {
+
             # convert from millidegrees, milliamperes or millivolts
-            
+
+            ## no critic
+
+            #Violates 'ValuesAndExpressions::ProhibitMagicNumbers'
             $sensor_values{$sensor} = $sensor_values{$sensor} / 1_000;
 
-        } elsif ($sensor =~ /\w+_(power|energy)[0-9]+/mxs ) {
+            ## use critic
+
+        }
+        elsif ( $sensor =~ /\w+_(power|energy)[0-9]+/mxs ) {
 
             # convert from microJoule or microWarr
 
+            ## no critic
+
+            #Violates 'ValuesAndExpressions::ProhibitMagicNumbers'
             $sensor_values{$sensor} = $sensor_values{$sensor} / 1_000_000;
-            
-        } elsif ($sensor =~ /\w+_pwm[0-9]+/mxs ) {
+
+            ## use critic
+
+        }
+        elsif ( $sensor =~ /\w+_pwm[0-9]+/mxs ) {
 
             # value (0-255) is a percentage
 
+            ## no critic
+
+            #Violates 'ValuesAndExpressions::ProhibitMagicNumbers'
             $sensor_values{$sensor} = $sensor_values{$sensor} / 2.55;
+
+            ## use critic
 
         }
 
@@ -450,7 +535,18 @@ $result = GetOptions(
     'raw'           => \$raw,
     'sensors!'      => \$sensors,
     'verbose|v+'    => \$verbosity,
-    'version' => sub { print "check_lm_sensors version $VERSION\n"; exit UNKNOWN; }
+    'version'       => sub {
+
+        ## no critic
+
+        #Violates 'InputOutput::RequireCheckedSyscalls'
+        print "check_lm_sensors version $VERSION\n";
+
+        ## use critic
+
+        exit UNKNOWN;
+
+    }
 );
 
 if ( !$result ) {
@@ -480,142 +576,104 @@ if ($drives) {
 
 parse_sensors();
 
-if (! $raw ) {
+if ( !$raw ) {
     convert_values();
 }
 
-if ( $list ) {
-    for my $sensor (keys %sensor_values) {
+if ($list) {
+    for my $sensor ( sort keys %sensor_values ) {
+
+        ## no critic
+
+        #Violates 'InputOutput::RequireCheckedSyscalls'
         print "$sensor -> $sensor_values{$sensor}\n";
+
+        ## use critic
+
     }
 }
+
+###############
+# sanity checks
+
+## no critic
+
+#Violate 'ValuesAndExpressions::ProhibitMagicNumbers'
+check_arguments( \%highs,  2 );
+check_arguments( \%lows,   2 );
+check_arguments( \%ranges, 3 );
+
+## use critic
 
 ################
 # perform checks
 
-# lows
-while ( ( $name, $limits ) = each %lows ) {
+my $criticals;
+my $warnings;
 
-    $converted_name = $name;
-    $converted_name =~ s/_/\ /gmxs;
-
-    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
-        $name = $converted_name;
-    }
-    if ( !$sensor_values{$name} ) {
-        $unknowns = $unknowns . " $name";
-        next;
-    }
-
-    my ( $warn, $crit ) = split /,/mxs, $limits;
-
-    my $value = $sensor_values{$name};
-
-    if ( $value < $crit ) {
-        $criticals = $criticals . " $name=" . $sensor_values{$name};
-    }
-    elsif ( $value < $warn ) {
-        $warnings = $warnings . " $name=" . $sensor_values{$name};
-    }
-
-    if ($space) {
-        $status = $status . q{ };
-    }
-    $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc . "$name=$value";
-    $space  = 1;
-
-}
+my @status;
+my @desc;
 
 # highs
 while ( ( $name, $limits ) = each %highs ) {
 
-    $converted_name = $name;
-    $converted_name =~ s/_/\ /gmxs;
+    my ( $warn, $crit ) = split /,/mxs, $limits;
 
-    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
-        $name = $converted_name;
-    }
-    if ( !$sensor_values{$name} ) {
-        $unknowns = $unknowns . " $name";
-        next;
-    }
+    my $value = $sensor_values{$name};
+
+    push @status, "$name=$value;$warn;$crit;;";
+    push @desc,   "$name=$value";
+
+    $criticals = $criticals || ( $value > $crit );
+    $warnings  = $warnings  || ( $value > $warn );
+
+}
+
+# lows
+while ( ( $name, $limits ) = each %lows ) {
 
     my ( $warn, $crit ) = split /,/mxs, $limits;
 
     my $value = $sensor_values{$name};
 
-    if ( $value > $crit ) {
-        $criticals = $criticals . " $name=" . $sensor_values{$name};
-    }
-    elsif ( $value > $warn ) {
-        $warnings = $warnings . " $name=" . $sensor_values{$name};
-    }
+    push @status, "$name=$value;$warn;$crit;;";
+    push @desc,   "$name=$value";
 
-    if ($space) {
-        $status = $status . q{ };
-        $desc   = $desc . q{ };
-    }
-    $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc . "$name=$value";
-    $space  = 1;
+    $criticals = $criticals || ( $value < $crit );
+    $warnings  = $warnings  || ( $value < $warn );
 
 }
 
 # ranges
 while ( ( $name, $limits ) = each %ranges ) {
 
-    $converted_name = $name;
-    $converted_name =~ s/_/\ /gmxs;
-
-    if ( !$sensor_values{$name} && $sensor_values{$converted_name} ) {
-        $name = $converted_name;
-    }
-    if ( !$sensor_values{$name} ) {
-        $unknowns = $unknowns . " $name";
-        next;
-    }
-
     my ( $warn, $crit, $ref ) = split /,/mxs, $limits;
 
     my $value = $sensor_values{$name};
-    my $diff  = $value;
+    my $diff  = abs( $value - $ref );    ## no critic
 
-    $diff = abs( $value - $ref );
+    push @status, "$name=$value;$warn;$crit;;";
+    push @desc,   "$name=$value";
 
-    if ( $diff > $crit ) {
-        $criticals = $criticals . " $name=" . $sensor_values{$name};
-    }
-    elsif ( $diff > $warn ) {
-        $warnings = $warnings . " $name=" . $sensor_values{$name};
-    }
-
-    if ($space) {
-        $status = $status . q{ };
-        $desc   = $desc . q{ };
-    }
-    $status = $status . "$name=$value;$warn;$crit;;";
-    $desc   = $desc . "$name=$value";
-    $space  = 1;
+    $criticals = $criticals || ( $diff > $crit );
+    $warnings  = $warnings  || ( $diff > $warn );
 
 }
 
 #########################
 # build the status string
 
-if ( $criticals ne q{} ) {
-    $plugin->nagios_exit( CRITICAL, "$desc|$status" );
+my $output = ( join q{ }, @desc ) . q{|} . ( join q{ }, @status );
+
+if ($criticals) {
+    $plugin->nagios_exit( CRITICAL, $output );
 }
 
-if ( $warnings ne q{} ) {
-    $plugin->nagios_exit( WARNING, "$desc|$status" );
+if ($warnings) {
+    $plugin->nagios_exit( WARNING, $output );
 }
 
-if ( $unknowns ne q{} ) {
-    $plugin->nagios_exit( UNKNOWN, "$desc|$status" );
-}
-
-$plugin->nagios_exit( OK, "$desc|$status" );
+$plugin->nagios_exit( OK, $output );
 
 1;
 
