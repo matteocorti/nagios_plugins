@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # (c) Matteo Corti, ETH Zurich, 2007
 #
@@ -40,6 +40,7 @@ usage() {
     echo "Usage: check_vpp_logs [-hvV?] -w warning -c critical -f log_file"
     echo
     echo "   -c         critical threshold"
+    echo "   -d         debugging output"
     echo "   -h, -?     this help message"
     echo "   -f file    log file"
     echo "   -v         verbose output"
@@ -58,9 +59,10 @@ usage() {
 ################################################################################
 
 # process command line options
-while getopts "vh?Vc:w:f:" opt; do
+while getopts "vh?Vc:w:f:d" opt; do
     case $opt in
         c )      CRITICAL=$OPTARG;  ;;
+        d )      DEBUG=1            ;;
         h | \? ) usage ; exit 3;    ;;
         f )      FILE=$OPTARG       ;;
         V )      echo "check_vpp_logs version ${VERSION}"; exit 3; ;;
@@ -100,29 +102,51 @@ fi
 
 CURRENT=`date +"%s"`
 
-LAST=`grep -E 'End\ update:\ [0-9]+\ new\ jobs\ processed\ in\ [0-9]+\ seconds' $FILE | tail -n 1 | sed -e "s/\ End\ update.*//"`
+if [ -n "$DEBUG" ] ; then
+    echo "[DBG] \$CURRENT    = $CURRENT"
+fi
+
+LAST=$(grep -E 'End\ update:\ [0-9]+\ new\ jobs\ processed\ in\ [0-9]+\ seconds' $FILE | tail -n 1 | sed -e "s/\ End\ update.*//")
 
 if [ -n "$VERBOSE" ] ; then echo $LAST; fi
 
 LAST_UNIX=`date -d "$LAST" +"%s"`
 
-(( DIFFERENCE = $CURRENT - $LAST_UNIX ))
+if [ -n "$DEBUG" ] ; then
+    echo "[DBG] \$LAST_UNIX  = $LAST_UNIX"
+fi
+
+# the clock on the VPP server or on the AdminTool server could be skewed
+if [ $CURRENT -gt $LAST_UNIX ] ; then
+    (( DIFFERENCE = $CURRENT - $LAST_UNIX ))
+else
+    if [ -n "$DEBUG" ] ; then
+        echo "[DBG] negative difference"
+    fi
+    DIFFERENCE=0
+fi
+
+if [ -n "$DEBUG" ] ; then
+    echo "[DBG] \$DIFFERENCE = $DIFFERENCE"
+fi
 
 ####################
 # Perform the checks
 
 PERF="Latency=${DIFFERENCE}s;${WARNING};${CRITICAL};;"
 
-LAST=`date -d "$LAST" +"%Y-%m-%dT%H:%M"`
+LAST=$(date -d "$LAST" +"%Y-%m-%dT%H:%M")
 
-COMPARISON=`echo "if($DIFFERENCE>$CRITICAL) 1 else 0;" | bc`
-if [ $COMPARISON -eq 1 ] ; then
+if [ -n "$DEBUG" ] ; then
+    echo "[DBG] \$CRITICAL   = $CRITICAL"
+fi
+
+if [ $DIFFERENCE -gt $CRITICAL ] ; then
     echo "VPP_LOG CRITICAL LAST UPDATE: $LAST | $PERF"
     exit 2
 fi
 
-COMPARISON=`echo "if($DIFFERENCE>$WARNING) 1 else 0;" | bc`
-if [ $COMPARISON -eq 1 ] ; then
+if [ $DIFFERENCE -gt $WARNING ] ; then
     echo "VPP_LOG WARNING LAST UPDATE: $LAST | $PERF"
     exit 1
 fi
