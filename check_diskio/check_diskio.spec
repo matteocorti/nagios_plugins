@@ -1,4 +1,4 @@
-%define version 3.0.0
+%define version 3.0.1
 %define release 0
 %define name    check_diskio
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -37,6 +37,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Fri May 15 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.1-0
+- embedded perl -> package variables
+
 * Tue Jan 20 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-0
 - multiple devices and LVM
 

@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '3.0.0';
+use version; our $VERSION = '3.0.1';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -52,17 +52,25 @@ Readonly my $bytes_per_kilobyte => 1_024;
 Readonly my $bytes_per_megabit  => 131_072;
 Readonly my $bytes_per_megabyte => 1_048_576;
 
-my $format;
-my $plugin;
-my $threshold;
-my $options;
-
-my %tmp_files;
-my %diskio;
-my %diskio_w;
-my %diskio_r;
-
-my @stat_file;
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+use vars qw(
+  $format
+  $plugin
+  $threshold
+  $options
+  %tmp_files
+  %diskio
+  %diskio_w
+  %diskio_r
+  @stat_file
+);
 
 ##############################################################################
 # subroutines
@@ -639,7 +647,7 @@ for my $device ( @{ $options->device() } ) {
         }
         else {
 
-            print { *STDERR } "Warning: cannot check LVM volumes if not root\n";
+            print {*STDERR} "Warning: cannot check LVM volumes if not root\n";
 
             verbose "Not root: skipping LVM check\n";
 
