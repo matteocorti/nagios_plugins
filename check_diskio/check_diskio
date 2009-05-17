@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '3.0.1';
+use version; our $VERSION = '3.0.2';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -678,6 +678,10 @@ verbose "Checking: @devices\n";
 my $multiplier;
 my $UOM;
 
+if ($options->uom()) {
+   $format = $options->uom();
+}
+
 if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
 
     #sectors
@@ -728,7 +732,10 @@ elsif ( $format eq 'Mb' ) {
 
 }
 else {
-    usage( -message => "Uknown unit of measurement: $format", );
+    $plugin->nagios_exit(
+        UNKNOWN,
+        "Uknown unit of measurement: $format"
+    );
 }
 
 ################
