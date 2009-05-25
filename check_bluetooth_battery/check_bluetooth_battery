@@ -1,0 +1,220 @@
+#!/bin/sh
+#
+# check_ssl_cert
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, 2008 ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_ssl_cert 1055 2009-03-31 20:17:13Z corti $
+#   $Revision: 1055 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_ssl_cert/check_ssl_cert $
+#   $Date: 2009-03-31 22:17:13 +0200 (Tue, 31 Mar 2009) $
+
+VERSION=1.0.0
+NAME="BLUETOOTH BATTERY"
+
+################################################################################
+# Functions
+
+################################################################################
+# Prints usage information
+# Params
+#   $1 error message (optional)
+usage() {
+
+    if [ -n "$1" ] ; then
+        echo "Error: $1" 1>&2
+    fi
+    
+    echo
+    echo "Usage: check_ssl_cert [OPTIONS] -c critical -w warning"
+    echo
+    echo "Options:"
+    echo "   -c critical"
+    echo "   -w warning"
+    echo "   -h, -?     this help message"
+    echo "   -V         version"
+    echo
+    echo "Report bugs to: Matteo Corti <matteo.corti@id.ethz.ch>"
+    echo
+
+    exit 3
+
+}
+
+################################################################################
+# Exits with a critical message
+# Params
+#   $1 error message
+critical() {
+    echo "${NAME}T CRITICAL: $1"
+    exit 2
+}
+
+################################################################################
+# Exits with a warning message
+# Param
+#   $1 warning message
+warning() {
+    echo "${NAME}T WARN: $1"
+    exit 1
+}
+
+################################################################################
+# Exits with an 'unkown' status
+# Param
+#   $1 message
+unknown() {
+    echo "${NAME}T UNKNOWN: $1"
+    exit 3
+}
+
+check_value() {
+
+    VALUE=$1
+
+    if ! echo ${VALUE} | grep -q '^[0-9][0-9]*$' ; then
+        critical "${VALUE} is not a positive number"
+    fi
+
+    if [ ${VALUE} -gt 100 ] ; then
+        critical "${VALUE} is larger than 100"
+    fi
+
+}
+
+################################################################################
+# Checks if a given program is available and executable
+# Params
+#   $1 program name
+# Returns 1 if the program exists and is executable
+check_required_prog() {
+
+    PROG=$(which $1)
+
+    if [ -z "$PROG" ] ; then
+        critical "cannot find $1"
+    fi
+
+    if [ ! -x "$PROG" ] ; then
+        critical "$PROG is not executable"
+    fi
+
+}
+
+get_level() {
+
+    NAME=$1
+
+    ioreg -n "$1" | grep  '"BatteryPercent"\ =' | sed 's/[^[:digit:]]//g' 
+
+}
+
+################################################################################
+# Main
+################################################################################
+
+# process command line options
+while getopts "c:w:h?Vv" opt; do
+    case $opt in
+        c )      CRITICAL=$OPTARG ;;
+        w )      WARNING=$OPTARG  ;;
+        h | \? ) usage ; exit 3;  ;;
+        v )      VERBOSE=1        ;;
+        V )      echo "check_bluetooth_battery version ${VERSION}"; exit 3; ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+################################################################################
+# sanity checks
+
+if [ -z "${CRITICAL}" ] ; then
+    usage
+    exit 3
+fi
+
+if [ -z "${WARNING}" ] ; then
+    usage
+    exit 3
+fi
+
+check_value ${CRITICAL}
+check_value ${WARNING}
+
+#######################
+# Check needed programs
+
+check_required_prog ioreg
+IOREG=$PROG
+
+##############################################################################
+# Keyboard
+
+KEYBOARD=$(get_level IOAppleBluetoothHIDDriver)
+
+if [ -n "${KEYBOARD}" ] ; then
+    if [ -n "${VERBOSE}" ] ; then
+        echo "bluetooth keyboard detected (battery ${KEYBOARD}%)"
+    fi
+    PERFORMANCE=" keyboard=${KEYBOARD};${WARNING};${CRITICAL};;"
+    STATUS="keyboard ${KEYBOARD}%"
+    if [ ${KEYBOARD} -lt ${WARNING} ] ; then
+        EXITW=1
+    fi
+    if [ ${KEYBOARD} -lt ${CRITICAL} ] ; then
+        EXITC=1
+    fi
+fi
+
+##############################################################################
+# Mouse
+
+MOUSE=$(get_level AppleBluetoothHIDMouse)
+
+if [ -n "${MOUSE}" ] ; then
+    if [ -n "${VERBOSE}" ] ; then
+        echo "bluetooth mouse detected (battery ${MOUSE}%)"
+    fi
+    PERFORMANCE="${PERFORMANCE} mouse=${MOUSE};${WARNING};${CRITICAL};;"
+    if [ -n "${STATUS}" ] ; then
+        STATUS="${STATUS}, mouse ${MOUSE}%"
+    else
+        STATUS="mouse ${MOUSE}%"
+    fi
+    if [ ${MOUSE} -lt ${WARNING} ] ; then
+        EXITW=1
+    fi
+    if [ ${MOUSE} -lt ${CRITICAL} ] ; then
+        EXITC=1
+    fi
+fi
+
+##############################################################################
+# Checks
+
+if [ -z "${MOUSE}" -a -z "${KEYBOARD}" ] ; then
+    critical "no device detected"
+fi
+
+if [ -n "${EXITC}" ] ; then
+    echo "${NAME} CRITICAL - ${STATUS} |${PERFORMANCE}"
+    exit 2
+fi
+    
+if [ -n "${EXITW}" ] ; then
+    echo "${NAME} WARNING - ${STATUS} |${PERFORMANCE}"
+    exit 1
+fi
+
+echo "${NAME} OK - ${STATUS} |${PERFORMANCE}"
+exit 0
