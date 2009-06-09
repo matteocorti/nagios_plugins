@@ -4,3 +4,4 @@ Many thanks to
 * Jeff Potter for pointing out an overflow problem
 * Wilco for the RAID patch
 * Toni Van Remortel for the UOM correction and suggestions
+* Simon Kuhn for HP Smart Array cards fix

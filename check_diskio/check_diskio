@@ -25,7 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
-use version; our $VERSION = '3.0.2';
+use version; our $VERSION = '3.0.3';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -585,7 +585,7 @@ for my $device ( @{ $options->device() } ) {
         }
 
         # device found: strip the partition number
-        $device =~ s/[0-9]+$//mxs;
+        $device =~ s/p?[0-9]+$//mxs;
 
         verbose "Mount point $mount_point corresponds to device $device\n";
 
