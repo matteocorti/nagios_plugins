@@ -1,3 +1,7 @@
+2009-06-15  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_procs_multi: removed dep on Net::DNS
+
 2008-06-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_procs_multi: grepping in perl and keeping ps output

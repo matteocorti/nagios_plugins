@@ -21,9 +21,8 @@ use English qw(-no_match_vars);
 use File::Slurp;
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
-use Net::DNS::Resolver;
 
-use version; our $VERSION = '1.0.0';
+use version; our $VERSION = '1.0.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the

@@ -1,3 +1,4 @@
+2009-06-15: 1.0.1  removed unnecessary module dependece
 2008-06-09: 1.0.0  grepping in Perl (ps executed once). Better process selection
 2008-06-06: 0.9.6  fixed a bug in the process count (some processes where not
                    correctly detected

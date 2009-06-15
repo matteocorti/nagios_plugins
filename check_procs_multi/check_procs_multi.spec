@@ -1,9 +1,9 @@
-%define version 1.0.0
+%define version 1.0.1
 %define release 0
 %define name    check_procs_multi
 %define _prefix /usr/lib/nagios/plugins/contrib
 
-Summary:   Nagios plugin that checks the available bandwidth
+Summary:   Nagios plugin similar to check_procs able to check several processes at once.
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Mon Jun 15 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.1-0
+- removed dep on Net::DNS
+
 * Mon Jun  9 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.0.0-0
 - grepping in perl
 

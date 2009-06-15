@@ -12,7 +12,7 @@ check several processes at once.
 
 =head1 VERSION
 
-Version 1.0.0
+Version 1.0.1
 
 =head1 SYNOPSIS
 
