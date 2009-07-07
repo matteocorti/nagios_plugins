@@ -1,3 +1,4 @@
+2009-07-07: 1.1.0  tries to use pgrep -f when ps -e -o comm fails
 2009-06-15: 1.0.1  removed unnecessary module dependece
 2008-06-09: 1.0.0  grepping in Perl (ps executed once). Better process selection
 2008-06-06: 0.9.6  fixed a bug in the process count (some processes where not
