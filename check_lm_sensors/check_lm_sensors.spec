@@ -1,4 +1,4 @@
-%define version 3.1.1
+%define version 4.0.0
 %define release 0
 %define name    check_lm_sensors
 %define _prefix /usr/lib/nagios/plugins/contrib

@@ -1,4 +1,4 @@
-%define version 1.8
+%define version 1.9
 %define release 0
 %define name    nagios-plugins-ethz
 
@@ -24,6 +24,7 @@ Requires: check_free_mem
 Requires: check_lm_sensors
 Requires: check_nagios_latency
 Requires: check_procs_multi
+Requires: check_rbl
 Requires: check_ssl_cert
 Requires: check_tcptraffic
 Requires: check_topology
@@ -52,6 +53,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Wed Jan  7 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.9-0
+- added dependency on check_rbl
+
 * Mon Feb 11 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.8-0
 - included dep on check_procs_multi
 

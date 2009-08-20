@@ -24,4 +24,6 @@ install_script  'check_connections';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
+    INSTALLBIN           => '/usr/lib/nagios/plugins/contrib',
+    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',	    
 );

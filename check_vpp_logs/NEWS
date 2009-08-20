@@ -1,1 +1,1 @@
-
+1.2.0: removed the dependency on bc (and reset the time difference in case of a negative difference)

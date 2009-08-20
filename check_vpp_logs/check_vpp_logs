@@ -16,12 +16,12 @@
 # enable substitution with:
 #   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
 #
-#   $Id$
-#   $Revision$
-#   $HeadURL$
-#   $Date$
+# $Id$
+# $Revision$
+# $HeadURL$
+# $Date$
 
-VERSION='1.1.0'
+VERSION='1.2.0'
 
 ################################################################################
 # Functions

@@ -23,7 +23,7 @@ Nagios plugin to monitor the number of network connections
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN1DIR=%{buildroot}/usr/share/man/man1
+%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN1DIR=%{buildroot}/usr/share/man/man1 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
 make
 
 %install
