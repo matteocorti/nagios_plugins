@@ -24,7 +24,6 @@ use Carp;
 
 use version; our $VERSION = '1.0.0';
 
-use Data::Dumper;
 use DBI;
 use English qw(-no_match_vars);
 use Nagios::Plugin::Getopt;
