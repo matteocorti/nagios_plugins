@@ -1,3 +1,4 @@
+2009-09-25 Remove max time restriction on 64 bit systems
 2007-11-30 Major rewrite which is compatible with embedded perl and uses the Nagios::Plugin modules
 2007-04-02 Retest if the time difference is too small
 2007-02-23 Overflow bug fixed: first release 1.0

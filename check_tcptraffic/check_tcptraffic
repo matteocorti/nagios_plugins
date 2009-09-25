@@ -28,11 +28,11 @@ use warnings;
 use 5.008;
 
 use English qw(-no_match_vars);
-use Getopt::Long;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
+use Nagios::Plugin::Getopt;
 
-use version; our $VERSION = '2.0.3';
+use version; our $VERSION = '2.1.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -43,19 +43,15 @@ use version; our $VERSION = '2.0.3';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
-  $critical
   $help
-  $interface
+  $options
   $plugin
-  $reset
   $result
   $threshold
-  $speed
   $status
   $status_msg
   $tmp
-  $verbosity
-  $warning
+  $os_64_bit
 );
 
 ##############################################################################
@@ -63,48 +59,52 @@ use vars qw(
 
 use subs qw(verbose);
 
-
 ##############################################################################
-# Usage     : usage( -message => 'some text', -exitval => 1 )
-# Purpose   : prints a usage message
-# Returns   : n/a
-# Arguments : -message : an optional error message
-#             -exitval : the exit code (defaults to 0)
+# Usage     : running_on_linux()
+# Purpose   : check if running on a Linux system
+# Returns   : true if runnint on Linux
+# Arguments : n/a
 # Throws    : n/a
-# Comments  : n/a
+# Comments  : also checks if the OS is 64 bit capable and sets $os_64_bit
 # See also  : n/a
-sub usage {
+sub running_on_linux {
 
-    my %args = @_;
-
-    my $exitval = 0;
-    if ($args{-exitval}) {
-        $exitval = $args{-exitval};
-    }
+    my $output;
+    my $pid;
+    my $linux;
     
-    if ($args{-message}) {
-        print $args{-message};
+    # check the system
+    $pid = open $output, q{-|}, 'uname'
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot determine the system: $OS_ERROR" );
+
+    while (<$output>) {
+        chomp;
+        verbose "running on $_\n";
+        $linux = $_ eq 'Linux';
+
+        close $output;
+        
+        # check the OS (32 or 64 bit)
+        $pid = open $output, q{-|}, 'uname -m';
+        if (! $pid ) {
+            warn "Cannot determine if the system is 64 bit capable: $OS_ERROR";
+            return $linux;
+        }
+        
+        while (<$output>) {
+            chomp;
+            $os_64_bit = ($_ eq 'x86_64');
+            return $linux;
+        }
+    
+        warn "Cannot determine if the system is 64 bit capable: $OS_ERROR";
+        return $linux;
+        
     }
 
-    print<<'EOT';
-check_tcptraffic --critical=crit --warning=warn --interface=iface --speed=speed
-                 [--verbose] [--reset] [--help]
-
-Required arguments
- --critical,c  crit      critical
- --warning,w   warn      warning
- --interface,i iface     network interface
- --speed,s               speed (in Mbit/s)
-
-Options
- --help,-h,-?            this help message
- --reset,r               initialize counter
- --version,V             print version and exit
- --verbose,v             verbose
-EOT
-
-    exit $exitval;
-    
+    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the system' );
+        
 }
 
 ##############################################################################
@@ -131,6 +131,7 @@ sub whoami {
     $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
 
     return;
+    
 }
 
 ##############################################################################
@@ -223,7 +224,7 @@ sub read_proc {
             
             my ( $name, $bytes_in ) = split /:/mx, $combined;
 
-            if ( $name eq $interface ) {
+            if ( $name eq $options->interface() ) {
                 
                 $found = 1;
 
@@ -246,7 +247,7 @@ sub read_proc {
                 $data{bytes_in}       = $bytes_in;
 
                 # get the time difference
-                if ( $reset || !open $TMP, q{<}, $tmp ) {
+                if ( $options->reset() || !open $TMP, q{<}, $tmp ) {
                     write_timer( $bytes_in, $bytes_out );
                     $plugin->nagios_exit( UNKNOWN, 'Initializing timer' );
                 }
@@ -274,7 +275,7 @@ sub read_proc {
     }
 
     if ( !$found ) {
-        $plugin->nagios_exit( UNKNOWN, "Interface $interface not found" );
+        $plugin->nagios_exit( UNKNOWN, 'Interface '.$options->interface().' not found' );
     }
 
     close $IN
@@ -308,7 +309,7 @@ sub verbose {
         $level = 0;
     }
 
-    if ( $level < $verbosity ) {
+    if ( $level < $options->verbose() ) {
         print $message;
     }
 
@@ -324,95 +325,111 @@ sub verbose {
 ################
 # Initialization
 
-$critical   = 0;
-$help       = q{};
-$interface  = q{};
+$os_64_bit  = 0;
 $plugin     = Nagios::Plugin->new( shortname => 'TCPTRAFFIC' );
-$reset      = q{};
-$speed      = q{};
 $status     = 0;
 $status_msg = q{};
-$verbosity  = 0;
-$warning    = 0;
 
 ########################
 # Command line arguments
 
-Getopt::Long::Configure( 'bundling', 'no_ignore_case' );
-
-$result = GetOptions(
-    'critical|c=i'  => \$critical,
-    'interface|i=s' => \$interface,
-    'help'          => \$help,
-    'reset|r'       => \$reset,
-    'speed|s=i'     => \$speed,
-    'warning|w=i'   => \$warning,
-    'verbose|v+'    => \$verbosity,
-    'version|V'     => sub { print "check_tcptraffic version $VERSION\n"; exit 3; }
+$options = Nagios::Plugin::Getopt->new(
+    usage   => 'Usage: %s [OPTIONS]',
+    version => $VERSION,
+    url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
+    blurb   => 'Monitors the amount of traffic on a given interface', 
 );
 
-if ( !$result || $help) {
-    usage(
-        -exitval => UNKNOWN,
-    );
+$options->arg(
+    spec     => 'critical|c=i',
+    help     => 'Exit with CRITICAL status if traffic is more than this value',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'warning|w=i',
+    help     => 'Exit with WARNING status if traffic is more than this value',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'interface|i=s',
+    help     => 'network interface to monitor',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'speed|s=i',
+    help     => 'speed (in Mbit/s)',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'reset|r',
+    help     => 'initialize counter',
+);
+
+$options->arg(
+    spec     => 'reset|r',
+    help     => 'initialize counter',
+);
+
+$options->getopts();
+
+###############
+# Sanity checks
+
+if (! running_on_linux() ) {
+    $plugin->nagios_exit( UNKNOWN, 'Not running on a Linux system' );
 }
 
-if ( $critical <= 0 ) {
-    usage(
-        -exitval => UNKNOWN,
-        -message => 'Could not parse "critical"',
-    );
+if ($options->critical() <= 0) {
+    $plugin->nagios_exit( UNKNOWN, '"critical" must be a positive integer' );
 }
 
-if ( !$interface ) {
-    usage(
-        -exitval => UNKNOWN,
-        -message => 'Could not parse "interface"',
-    );
+if ($options->warning() <= 0) {
+    $plugin->nagios_exit( UNKNOWN, '"warning" must be a positive integer' );
 }
 
-if ( !$speed ) {
-    usage(
-        -exitval => UNKNOWN,
-        -message => 'Could not parse "speed"',
-    );
+if ( $options->critical() < $options->warning() ) {
+    $plugin->nagios_exit( UNKNOWN, '"critical" has to be greater than "warning"' );
 }
 
-if ( $warning <= 0 ) {
-    usage(
-        -exitval => UNKNOWN,
-        -message => 'Could not parse "warning"',
-   );
+# check the speed (depending on the counter size in bits)
+
+my $max_check_time; # in seconds
+
+# size    max (bytes)  max (bits)       max (Mbits)
+# -----------------------------------------------------------
+# 64 bit  2^32         2^64*8 -> 2^67   2^67 / 1024^2 -> 2^47
+# 32 bit  2^32         2^32*8 -> 2^35   2^38 / 1024^2 -> 2^15
+
+if ($os_64_bit) {
+    $max_check_time = int ( (2**47-1) / $options->speed() );
+} else {
+    $max_check_time = int ( (2**15-1) / $options->speed() );
 }
 
-if ( $critical < $warning ) {
-    usage(
-        -exitval => UNKNOWN,
-        -message => '"critical" has to be greater than "warning"',
-    );
-}
-
-# check the speed
-my $max_check_time = int ( 32_768 / $speed ) ;    # in seconds
+verbose "the counters can hold data for $max_check_time seconds before overflow\n";
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $warning,
-    critical => $critical,
+    warning  => $options->warning(),
+    critical => $options->critical(),
 );
 
-$tmp = "/tmp/check_tcptraffic_status-$interface" . whoami();
+$tmp = '/tmp/check_tcptraffic_status-'.$options->interface() . whoami();
 
 ########################
 # Check the proc entry
 
-my %data = read_proc($interface);
+my %data = read_proc($options->interface());
 
 if ( $data{diff} > $max_check_time ) {
 
     verbose 'the time from last check ('
         . $data{diff}
         . 's) is greater than the maximum check time allowed with speed '
-        . $speed
+        . $options->speed()
         . ' ('
         . $max_check_time
         . "s):\nsleeping 1s to gather data again\n";
@@ -426,7 +443,7 @@ if ( $data{diff} > $max_check_time ) {
 
     sleep 1;
 
-    %data = read_proc($interface);
+    %data = read_proc($options->interface());
 
 }
 
@@ -437,8 +454,21 @@ if ( $data{diff} == 0 ) {
     
 }
 
-my $traffic_in  = abs( int( ( $data{bytes_in} - $data{in} ) / $data{diff} ) );
-my $traffic_out = abs( int( ( $data{bytes_out} - $data{out} ) / $data{diff} ) );
+my $traffic_in;
+my $traffic_out;
+
+if ( $data{bytes_in} >= $data{in} ) {
+    $traffic_in  = int( ( $data{bytes_in} - $data{in} ) / $data{diff} );
+} else {
+    $traffic_in  = int( ( $data{in} - $data{bytes_in} ) / $data{diff} );
+}
+
+if ( $data{bytes_out} >= $data{out} ) {
+    $traffic_out = int( ( $data{bytes_out} - $data{out} ) / $data{diff} );
+} else {
+    $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} );
+}
+
 my $traffic = $traffic_in + $traffic_out;
 
 $plugin->add_perfdata(
@@ -468,7 +498,7 @@ $plugin->add_perfdata(
 
 $plugin->nagios_exit(
     $threshold->get_status($traffic),
-    "$interface " . sprintf( '%.0f', $traffic ) . " bytes/s"
+    $options->interface() . q{ } . sprintf( '%.0f', $traffic ) . " bytes/s"
 );
 
 1;

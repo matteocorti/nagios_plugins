@@ -1,1 +1,4 @@
 * FEATURE: support different platforms (other than Linux)
+* FEATURE: support the simultaneous check of more than one interface
+* FEATURE: support different units for critical and warnings (e.g., Mbit/s instead of bytes/s)
+

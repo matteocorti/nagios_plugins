@@ -1,3 +1,9 @@
+2009-09-25  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: system check (must be Linux)
+	* check_tcptraffic  max check time larger computed for 32 or 64 bits
+	* check_tcptraffic: Nagios::Plugin::Getopt
+
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: ePN compatibility (POD in a separate file)

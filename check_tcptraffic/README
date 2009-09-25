@@ -20,6 +20,9 @@ check_tcptraffic uses the /proc/net/dev Linux entry to compute the
 amount of transferred bytes from the last plugin execution (temporary
 data is stored in the /tmp/check_tcptraffic-iface file)
 
+32 bit kernels
+==============
+
 Since /proc/net/dev uses 32bit counters overflows are a problem
 (especially on a fast interface)
 
