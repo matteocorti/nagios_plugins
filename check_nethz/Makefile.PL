@@ -4,8 +4,8 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name         'check_nethz.pl';
-version_from 'check_nethz.pl';
+name         'check_nethz';
+version_from 'check_nethz';
 all_from     'check_nethz.pod';
 
 ##############################################################################
@@ -19,11 +19,10 @@ requires 'DBI'                       => 0;
 requires 'Nagios::Plugin'            => 0;
 requires 'Nagios::Plugin::Getopt'    => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
-requires 'Number::Format'            => 0;
 requires 'Readonly'                  => 0;
 requires 'version'                   => 0;
 
-install_script  'check_nethz.pl';
+install_script  'check_nethz';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',

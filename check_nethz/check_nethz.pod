@@ -2,24 +2,25 @@
 
 =head1 NAME
 
-C<check_nethz.pl> - a Nagios plugin to check the health of nethz DB
+C<check_nethz> - a Nagios plugin to check the health of nethz DB
 
 =head1 DESCRIPTION
 
-check_nethz.pl is a Nagios plugin to check the health of nethz DB
+check_nethz is a Nagios plugin to check the health of nethz DB
 
 =head1 VERSION
 
-Version 1.0.0
+Version 1.1.0
 
 =head1 SYNOPSIS
 
- check_nethz.pl [OPTIONS]
+ check_nethz [OPTIONS]
 
  Options
   --user,u            DB user
   --password,p        DB password
   --dbname,d          DB name
+  --oracle-home       ORACLE_HOME environment variable
   --help,-h,-?        this help message
   --verbose,-v        verbose output
   --version,-V        print version
@@ -44,9 +45,9 @@ Version 1.0.0
 =head1 EXAMPLE
 
  export TNS_ADMIN=/usr/lib/oracle/11.1/client/network/admin
- check_nethz.pl -u mutator -p ******* -d dbinfra.bd.ethz.ch
+ check_nethz -u mutator -p ******* -d dbinfra.bd.ethz.ch
 
-check_nethz.pl checks if nethz is OK
+check_nethz checks if nethz is OK
 
 =head1 DIAGNOSTICS
 
@@ -60,7 +61,7 @@ in case of an unkown problem
 
 =head1 DEPENDENCIES
 
-check_nethz.pl depends on
+check_nethz depends on
 
 =over 4
 

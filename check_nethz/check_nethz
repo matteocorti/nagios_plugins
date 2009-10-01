@@ -22,7 +22,7 @@ use warnings;
 
 use Carp;
 
-use version; our $VERSION = '1.0.0';
+use version; our $VERSION = '1.1.0';
 
 use DBI;
 use English qw(-no_match_vars);
@@ -185,7 +185,23 @@ $options->arg(
 	required => 1,
 );
 
+$options->arg(
+	spec     => 'oracle-home=s',
+	help     => 'ORACLE_HOME',
+);
+
 $options->getopts();
+
+if ($options->get('oracle-home')) {
+    $ENV{ORACLE_HOME} = $options->get('oracle-home');
+}
+
+##############################################################################
+# sanity checks
+
+if ( ! $ENV{ORACLE_HOME} ) {
+    $plugin->nagios_exit( UNKNOWN, '$ORACLE_HOME is not set' );
+}
 
 ##############################################################################
 

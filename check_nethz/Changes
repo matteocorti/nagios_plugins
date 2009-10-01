@@ -1,4 +1,8 @@
+2009-10-01  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_nethz: option to set the ORACLE_HOME environment variable
+
 2009-08-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
-	* check_nethz.pl: first version
+	* check_nethz: first version
 
