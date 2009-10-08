@@ -10,7 +10,7 @@ check_nethz is a Nagios plugin to check the health of nethz DB
 
 =head1 VERSION
 
-Version 1.1.0
+Version 1.1.1
 
 =head1 SYNOPSIS
 

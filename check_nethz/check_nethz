@@ -22,7 +22,7 @@ use warnings;
 
 use Carp;
 
-use version; our $VERSION = '1.1.0';
+use version; our $VERSION = '1.1.1';
 
 use DBI;
 use English qw(-no_match_vars);
@@ -63,24 +63,24 @@ use vars qw(
 # See also  : n/a
 sub verbose {
 
-	# arguments
-	my $message = shift;
-	my $level   = shift;
+    # arguments
+    my $message = shift;
+    my $level   = shift;
 
-	if ( !defined $message ) {
-		$plugin->nagios_exit( UNKNOWN,
-			q{Internal error: not enough parameters for 'verbose'} );
-	}
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'verbose'} );
+    }
 
-	if ( !defined $level ) {
-		$level = 0;
-	}
+    if ( !defined $level ) {
+        $level = 0;
+    }
 
-	if ( $level < $options->verbose ) {
-		print $message;
-	}
+    if ( $level < $options->verbose ) {
+        print $message;
+    }
 
-	return;
+    return;
 
 }
 
@@ -94,19 +94,16 @@ sub verbose {
 # See also  : n/a
 sub db_connect {
 
-	my $dbh = DBI->connect(
-		"dbi:Oracle:$options->{dbname}",
-		$options->{user},
-		$options->{password}
-	) or $plugin->nagios_exit( UNKNOWN, 'Cannot connect to DB' );
+    my $dbh = DBI->connect( "dbi:Oracle:$options->{dbname}",
+        $options->{user}, $options->{password} )
+      or $plugin->nagios_exit( UNKNOWN, 'Cannot connect to DB' );
 
-	# disable auto commit
-	$dbh->{AutoCommit} = 0;
+    # disable auto commit
+    $dbh->{AutoCommit} = 0;
 
-	return $dbh;
+    return $dbh;
 
 }
-
 
 ##############################################################################
 # Usage     : check_free_uuids
@@ -117,42 +114,47 @@ sub db_connect {
 # Comments  : fills the @criticals, @warnings and @oks lists of messages
 # See also  : n/a
 sub check_free_uuids {
-	
-	my $sql = <<'EOT';
+
+    my $sql = <<'EOT';
 SELECT
-  max_value - min_value - (
-    SELECT
-      COUNT(*)
-    FROM
-      uname u
-    WHERE
-      u.uuid IS NOT NULL
+  (
+    s.max_value - s.min_value - (
+      SELECT
+        COUNT(*)
+      FROM
+        uname u
+      WHERE
+        u.uuid IS NOT NULL
+    )
   ) AS free_uuids
 FROM
-  nethz_sequences
+  all_sequences s
 WHERE
-  sequence_name LIKE 'SEQ_UUID'
+  sequence_owner = 'NETHZ' AND
+  sequence_name = 'SEQ_UUID'
 EOT
 
-	my $sth = $dbh->prepare( $sql );
-	
-	$sth->execute();
-	
-	if ($sth->err()) {
-		$plugin->nagios_exit( UNKNOWN, 'Query error: ' . $sth->errstr());
-	}
-	
-	 my $res = $sth->fetchrow_hashref;
-	 if ($res->{FREE_UUIDS} < $CRITICAL_UUIDS) {
-	 	push @criticals, "low number of free UUIDs ($res->{FREE_UUIDS})";
-	 } elsif ($res->{FREE_UUIDS} < $WARNING_UUIDS) {
-	 	push @warnings, "low number of free UUIDs ($res->{FREE_UUIDS})";
-	 } else {
-	 	push @oks, "$res->{FREE_UUIDS} free UUIDs";
-	 }
-	 
-	return;	 
-	 
+    my $sth = $dbh->prepare($sql);
+
+    $sth->execute();
+
+    if ( $sth->err() ) {
+        $plugin->nagios_exit( UNKNOWN, 'Query error: ' . $sth->errstr() );
+    }
+
+    my $res = $sth->fetchrow_hashref;
+    if ( $res->{FREE_UUIDS} < $CRITICAL_UUIDS ) {
+        push @criticals, "low number of free UUIDs ($res->{FREE_UUIDS})";
+    }
+    elsif ( $res->{FREE_UUIDS} < $WARNING_UUIDS ) {
+        push @warnings, "low number of free UUIDs ($res->{FREE_UUIDS})";
+    }
+    else {
+        push @oks, "$res->{FREE_UUIDS} free UUIDs";
+    }
+
+    return;
+
 }
 
 ##############################################################################
@@ -161,45 +163,45 @@ EOT
 $plugin = Nagios::Plugin->new( shortname => 'CHECK_NETHZ' );
 
 $options = Nagios::Plugin::Getopt->new(
-	usage   => 'Usage: %s [OPTIONS]',
-	version => $VERSION,
-	url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
-	blurb   => 'Checks if the nethz DB is in a stable state'
+    usage   => 'Usage: %s [OPTIONS]',
+    version => $VERSION,
+    url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
+    blurb   => 'Checks if the nethz DB is in a stable state'
 );
 
 $options->arg(
-	spec     => 'user|u=s',
-	help     => 'DB user',
-	required => 1,
+    spec     => 'user|u=s',
+    help     => 'DB user',
+    required => 1,
 );
 
 $options->arg(
-	spec     => 'password|p=s',
-	help     => 'DB password',
-	required => 1,
+    spec     => 'password|p=s',
+    help     => 'DB password',
+    required => 1,
 );
 
 $options->arg(
-	spec     => 'dbname|d=s',
-	help     => 'DB name',
-	required => 1,
+    spec     => 'dbname|d=s',
+    help     => 'DB name',
+    required => 1,
 );
 
 $options->arg(
-	spec     => 'oracle-home=s',
-	help     => 'ORACLE_HOME',
+    spec => 'oracle-home=s',
+    help => 'ORACLE_HOME',
 );
 
 $options->getopts();
 
-if ($options->get('oracle-home')) {
+if ( $options->get('oracle-home') ) {
     $ENV{ORACLE_HOME} = $options->get('oracle-home');
 }
 
 ##############################################################################
 # sanity checks
 
-if ( ! $ENV{ORACLE_HOME} ) {
+if ( !$ENV{ORACLE_HOME} ) {
     $plugin->nagios_exit( UNKNOWN, '$ORACLE_HOME is not set' );
 }
 
@@ -214,12 +216,13 @@ $dbh->disconnect();
 ##############################################################################
 
 if (@criticals) {
-    $plugin->nagios_exit( CRITICAL, join (q{,}, @criticals) );	
-} elsif (@warnings) {
-    $plugin->nagios_exit( WARNING, join(q{,}, @warnings) );		
+    $plugin->nagios_exit( CRITICAL, join( q{,}, @criticals ) );
+}
+elsif (@warnings) {
+    $plugin->nagios_exit( WARNING, join( q{,}, @warnings ) );
 }
 
-$plugin->nagios_exit( OK, join ( q{,} , @oks ) );
+$plugin->nagios_exit( OK, join ( q{,}, @oks ) );
 
 1;
 

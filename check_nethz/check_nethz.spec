@@ -1,4 +1,4 @@
-%define version 1.1.0
+%define version 1.1.1
 %define release 0
 %define name    check_nethz
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
 
 %changelog
+* Thu Oct  8 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.1-0
+- version 1.1.1 (new query which makes the NETHZ_SEQUENCES no more needed)
+
 * Thu Oct  1 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.0-0
 - updated to 1.1.0
 
