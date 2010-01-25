@@ -1,20 +1,37 @@
-%define version 1.1.0
+################################################################################
+# File version information:
+# $Id$
+# $Revision$
+# $HeadURL4
+# $Date$
+################################################################################
+
+
+%define version 1.1.1
 %define release 0
 %define name    check_procs_multi
-%define _prefix /usr/lib/nagios/plugins/contrib
+%define nagiospluginsdir %{_libdir}/nagios/plugins
+
+# No binaries in this package
+%define debug_package %{nil}
+
+# DEL %define _prefix /usr/lib/nagios/plugins/contrib
 
 Summary:   Nagios plugin similar to check_procs able to check several processes at once.
 Name:      %{name}
 Version:   %{version}
-Release:   %{release}
-License:   GPL
+Release:   %{release}%{?dist}
+License:   GPLv3+
 Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+URL:       http://trac.id.ethz.ch/projects/nagios_plugins/wiki/check_procs_multi
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
-BuildArch: noarch
 
-Requires: perl
+# Fedora build requirement (not needed for EPEL{4,5})
+BuildRequires: perl(ExtUtils::MakeMaker)
+
+Requires:  nagios-plugins
 
 %description
 check_procs_multi is a Nagios plugin similar to check_procs able to
@@ -24,22 +41,34 @@ check several processes at once.
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
-make
+
+%build
+%{__perl} Makefile.PL INSTALLDIRS=vendor \
+    INSTALLSCRIPT=%{nagiospluginsdir} \
+    INSTALLVENDORSCRIPT=%{nagiospluginsdir}
+make %{?_smp_mflags}
 
 %install
-make install
+rm -rf %{buildroot}
+make pure_install PERL_INSTALL_ROOT=%{buildroot}
+find %{buildroot} -type f -name .packlist -exec rm -f {} \;
+find %{buildroot} -type f -name "*.pod" -exec rm -f {} \;
+find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null \;
+%{_fixperms} %{buildroot}/*
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
-%defattr(-, root, root, 0644)
-%doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
-%attr(0755, root, root) %{_prefix}/%{name}
-%attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
+%defattr(-,root,root,-)
+%doc AUTHORS Changes NEWS README INSTALL  TODO COPYING COPYRIGHT VERSION
+%{nagiospluginsdir}/%{name}
+%{_mandir}/man1/%{name}.1*
 
 %changelog
+* Mon Jan 25 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.1-0
+- Updated to 1.1.1 + several spec file fixes 
+
 * Tue Jul  7 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.0-0
 - check with pgrep if ps fails
 

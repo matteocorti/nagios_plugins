@@ -23,7 +23,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Readonly;
 
-use version; our $VERSION = '1.1.0';
+use version; our $VERSION = '1.1.1';
 
 Readonly my $NAME  => 0;
 Readonly my $W_MIN => 1;
@@ -270,14 +270,14 @@ for my $proc (@procs) {
         if ( $wmin && !$wmin =~ /[0-9]+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $wmin is not a number" );
         }
-        if ( $wmax && !$wmin =~ /[0-9]+/mxs ) {
+        if ( $wmax && !$wmax =~ /[0-9]+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $wmax is not a number" );
         }
 
-        if ( $cmin && !$wmin =~ /[0-9]+/mxs ) {
+        if ( $cmin && !$cmin =~ /[0-9]+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $cmin is not a number" );
         }
-        if ( $cmax && !$wmin =~ /[0-9]+/mxs ) {
+        if ( $cmax && !$cmax =~ /[0-9]+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $cmax is not a number" );
         }
 
