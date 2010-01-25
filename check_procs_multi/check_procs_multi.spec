@@ -8,14 +8,12 @@
 
 
 %define version 1.1.1
-%define release 0
+%define release 1
 %define name    check_procs_multi
 %define nagiospluginsdir %{_libdir}/nagios/plugins
 
 # No binaries in this package
 %define debug_package %{nil}
-
-# DEL %define _prefix /usr/lib/nagios/plugins/contrib
 
 Summary:   Nagios plugin similar to check_procs able to check several processes at once.
 Name:      %{name}
@@ -41,11 +39,7 @@ check several processes at once.
 %setup -q
 
 %build
-
-%build
-%{__perl} Makefile.PL INSTALLDIRS=vendor \
-    INSTALLSCRIPT=%{nagiospluginsdir} \
-    INSTALLVENDORSCRIPT=%{nagiospluginsdir}
+%{__perl} Makefile.PL INSTALLDIRS=vendor INSTALLSCRIPT=%{nagiospluginsdir} INSTALLVENDORSCRIPT=%{nagiospluginsdir}
 make %{?_smp_mflags}
 
 %install

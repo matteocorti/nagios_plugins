@@ -4,6 +4,7 @@ check_procs_multi
 check_procs_multi.pod
 check_procs_multi.spec
 COPYING
+COPYRIGHT
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Include.pm
