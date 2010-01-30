@@ -1,3 +1,8 @@
+2010-01-30  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: removed double -r command line option
+	* check_tcptraffic: several RPM spec file fixes (builds on 64 bit systems, build ad non root, ...)
+
 2009-09-25  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: system check (must be Linux)

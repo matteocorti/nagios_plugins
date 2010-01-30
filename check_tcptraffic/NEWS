@@ -1,3 +1,4 @@
+2010-01-30 Removed double -r command line option definition
 2009-09-25 Remove max time restriction on 64 bit systems
 2007-11-30 Major rewrite which is compatible with embedded perl and uses the Nagios::Plugin modules
 2007-04-02 Retest if the time difference is too small

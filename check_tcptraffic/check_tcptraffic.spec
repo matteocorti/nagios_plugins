@@ -1,18 +1,31 @@
-%define version 2.1.0
-%define release 1
+################################################################################
+# File version information:
+# $Id: check_updates.spec 1112 2009-12-10 16:35:09Z corti $
+# $Revision: 1112 $
+# $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_updates/check_updates.spec $
+# $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
+################################################################################
+
+%define version 2.1.1
+%define release 0
 %define name    check_tcptraffic
-%define _prefix /usr/lib/nagios/plugins/contrib
+%define nagiospluginsdir %{_libdir}/nagios/plugins
+
+# No binaries in this package
+%define debug_package %{nil}
 
 Summary:   A Nagios plugin to monitor the amount of TCP traffic
 Name:      %{name}
 Version:   %{version}
-Release:   %{release}
-License:   GPL
+Release:   %{release}%{?dist}
+License:   GPLv3+
 Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
-BuildArch: noarch
+
+# Fedora build requirement (not needed for EPEL{4,5})
+BuildRequires: perl(ExtUtils::MakeMaker)
 
 %description
 check_tcptraffic is a Nagios plugin to monitor the amount of TCP traffic
@@ -25,22 +38,32 @@ data is stored in the /tmp/check_tcptraffic-iface file)
 %setup -q
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
-make
+%{__perl} Makefile.PL INSTALLDIRS=vendor \
+    INSTALLSCRIPT=%{nagiospluginsdir} \
+    INSTALLVENDORSCRIPT=%{nagiospluginsdir}
+make %{?_smp_mflags}
 
 %install
-make install
+rm -rf %{buildroot}
+make pure_install PERL_INSTALL_ROOT=%{buildroot}
+find %{buildroot} -type f -name .packlist -exec rm -f {} \;
+find %{buildroot} -type f -name "*.pod" -exec rm -f {} \;
+find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null \;
+%{_fixperms} %{buildroot}/*
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
-%defattr(-, root, root, 0644)
-%doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
-%attr(0755, root, root) %{_prefix}/%{name}
-%attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
+%defattr(-,root,root,-)
+%doc AUTHORS Changes NEWS README TODO COPYING COPYRIGHT
+%{nagiospluginsdir}/%{name}
+%{_mandir}/man1/%{name}.1*
 
 %changelog
+* Sat Jan 30 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.1-1
+- updated to 2.1.1 (removed the double -r command line argument definition)
+
 * Fri Sep 25 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.0-1
 - updated to 2.1.0
 
