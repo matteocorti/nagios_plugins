@@ -4,6 +4,7 @@ check_tcptraffic
 check_tcptraffic.pod
 check_tcptraffic.spec
 COPYING
+COPYRIGHT
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Include.pm
