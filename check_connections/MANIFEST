@@ -4,6 +4,7 @@ check_connections
 check_connections.pod
 check_connections.spec
 COPYING
+COPYRIGHT
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Include.pm
