@@ -15,10 +15,10 @@
 # enable substitution with:
 #   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
 #
-#   $Id: check_updates 966 2008-02-28 15:47:36Z corti $
-#   $Revision: 966 $
-#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_updates/check_updates $
-#   $Date: 2008-02-28 16:47:36 +0100 (Thu, 28 Feb 2008) $
+#   $Id$
+#   $Revision$
+#   $HeadURL$
+#   $Date$
 
 use strict;
 use warnings;
@@ -31,7 +31,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Getopt;
 use version;
 
-our $VERSION = '2.1.0';
+our $VERSION = '2.1.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -42,15 +42,31 @@ our $VERSION = '2.1.0';
 # All variables are therefore declared as package variables...
 #
 use vars qw(
-  $help
-  $netstat
-  $options
-  $plugin
-  %states
-  $status
-  $status_msg
-  $threshold
-  $verbosity
+               $command
+               $help
+               $icmp
+               $icmp_in
+               @lines
+               $local
+               $netstat
+               $options
+               $output
+               $pid
+               $plugin
+               $protocol
+               $recv
+               $remote
+               $send
+               $state
+               %states
+               $status
+               $status_msg
+               $tcp
+               $threshold
+               $total
+               $udp
+               $udp_in
+               $verbosity
 );
 
 ##############################################################################
@@ -312,16 +328,15 @@ $threshold = Nagios::Plugin::Threshold->set_thresholds(
 
 ################################################################################
 
-my $command = "$netstat -an";
-my $output;
+$command = "$netstat -an";
 
 verbose qq{Executing "$command"\n};
 
-my $pid = open $output, q{-|}, "$command 2>&1"
+$pid = open $output, q{-|}, "$command 2>&1"
   or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
 # read the whole file
-my @lines = read_file($output);
+@lines = read_file($output);
 
 if ( $verbosity > 2 ) {
     for my $line (@lines) {
@@ -338,18 +353,11 @@ shift @lines;
 #   UTP
 #   ICMP
 
-my $protocol;
-my $recv;
-my $send;
-my $local;
-my $remote;
-my $state;
-
-my $tcp     = 0;
-my $udp     = 0;
-my $udp_in  = 0;
-my $icmp    = 0;
-my $icmp_in = 0;
+$tcp     = 0;
+$udp     = 0;
+$udp_in  = 0;
+$icmp    = 0;
+$icmp_in = 0;
 
 initialize_state_table();
 
@@ -408,7 +416,7 @@ if (  !( close $output )
         "Error while closing pipe to $command: $OS_ERROR" );
 }
 
-my $total = $udp + $tcp + $icmp;
+$total = $udp + $tcp + $icmp;
 
 for my $state ( keys %states ) {
 
@@ -459,143 +467,3 @@ $plugin->add_perfdata(
 $plugin->nagios_exit( $threshold->get_status($total), "$total connections" );
 
 1;
-
-__END__
-
-=pod
-
-=head1 NAME
-
-C<check_connections> - a Nagios plugin to check for the number of
-network connections
-
-=head1 DESCRIPTION
-
-check_connections is a Nagios plugin to check for the number of
-network connections
-
-=head1 VERSION
-
-Version 2.1.0
-
-=head1 SYNOPSIS
-
-check_connections [OPTIONS] --critical c --warning w
-
- Options
-  --critical,-c  n       connection limit for a critical warning
-  --help,-h,-?           this help message
-  --verbose,-v           verbose output
-  --version,-V           print version
-  --warning,-w   n       connection limit for a warning    
-
-=head1 REQUIRED ARGUMENTS
-
-  --critical,-c  n       connection limit for a critical warning
-
-  --warning,-w   n       connection limit for a warning    
-
-=head1 OPTIONS
-
-  --help,-h,-?           this help message
-
-  --verbose,-v           verbose output
-
-  --version,-V           print version
-
-=head1 EXAMPLE
-
- check_connections -w 500 -c 1000
-
-check_connections will warn with more the 500 connections and issue
-a critical error with more than 1000 connections
-
-=head1 DIAGNOSTICS
-
-You can specify multiple --verbose options to increase the program
-verbosity.
-
-=head1 EXIT STATUS
-
-0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
-in case of an unkown problem
-
-=head1 DEPENDENCIES
-
-check_updates depends on
-
-=over 4
-
-=item * Carp
-
-=item * English
-
-=item * File::Slurp
-
-=item * Getopt::Long
-
-=item * Nagios::Plugin
-
-=item * Nagios::Plugin::Threshold
-
-=item * Pod::Usage
-
-=item * version
-
-=back
-
-=head1 CONFIGURATION
-
-=head1 INCOMPATIBILITIES
-
-None reported.
-
-=head1 SEE ALSO
-
-Nagios documentation
-
-=head1 BUGS AND LIMITATIONS
-
-No bugs have been reported.
-
-Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
-or through the web interface at
-https://svn.id.ethz.ch/trac/bd_webhosting/newticket
-
-=head1 AUTHOR
-
-Matteo Corti <matteo.corti@id.ethz.ch>
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright (c) 2007, ETH Zurich.
-
-This module is free software; you can redistribute it and/or modify it
-under the terms of GNU general public license (gpl) version 3.
-See the LICENSE file for details.
-
-=head1 DISCLAIMER OF WARRANTY
-
-BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
-FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
-WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
-PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
-EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
-SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
-THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
-
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
-REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
-TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
-SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
-RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
-FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
-SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
-DAMAGES.
-
-=head1 ACKNOWLEDGMENTS
-

@@ -1,11 +1,21 @@
 # Load the Module::Install bundled in ./inc/
 use inc::Module::Install;
 
+################################################################################
+# Version information:
+#
+# $Id$
+# $Revision$
+# $HeadURL$
+# $Date$
+#
+
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name     'check_connections';
-all_from 'check_connections';
+name         'check_connections';
+version_from 'check_connections';
+all_from     'check_connections.pod';
 
 ##############################################################################
 # Specific dependencies
@@ -24,6 +34,7 @@ install_script  'check_connections';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
-    INSTALLBIN           => '/usr/lib/nagios/plugins/contrib',
-    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',	    
+    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',
+    MAN1PODS             => { 'check_connections.pod' => 'blib/man1/check_connections.1', },
+    MAN3PODS             => { },
 );
