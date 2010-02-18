@@ -4,6 +4,7 @@ check_diskio
 check_diskio.pod
 check_diskio.spec
 COPYING
+COPYRIGHT
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Include.pm
