@@ -2,10 +2,12 @@
 abstract: ~
 author:
   - 'Matteo Corti <matteo.corti@id.ethz.ch>'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.77'
+generated_by: 'Module::Install version 0.91'
 license: gpl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,13 +18,9 @@ no_index:
     - inc
 requires:
   Array::Unique: 0
-  Carp: 0
-  Class::Accessor::Fast: 0
   English: 0
   File::Slurp: 0
-  Getopt::Long: 0
   List::MoreUtils: 0
-  List::Util: 0
   Nagios::Plugin: 0
   Nagios::Plugin::Getopt: 0
   Nagios::Plugin::Threshold: 0
@@ -30,4 +28,6 @@ requires:
   POSIX: 0
   Readonly: 0
   version: 0
-version: 3.0.0
+resources:
+  license: http://opensource.org/licenses/gpl-license.php
+version: 3.1.0

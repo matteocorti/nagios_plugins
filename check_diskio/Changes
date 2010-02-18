@@ -1,3 +1,17 @@
+2010-02-18  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: unit handling rewrite (Nikolaus Filus)
+
+This new version introduces a rewrite of the unit handling with the
+following changes:
+- option uom is reduced to bits, bytes and sectors
+- new option factor specifies the multiplier for thresholds (binary and
+decimal)
+- plugin output is automatically scaled to human readable format using the
+units from factor
+- perfdata is never scaled
+- perfdata uses UOM B for bytes according to developer guideline	
+
 2009-06-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: works with HP Smart Array Cards which have a 'p'

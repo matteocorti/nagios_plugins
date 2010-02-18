@@ -23,16 +23,12 @@
 use 5.008;
 use strict;
 use warnings;
-use Carp;
 
-use version; our $VERSION = '3.0.3';
+use version; our $VERSION = '3.1.0';
 
 use Array::Unique;
 use English qw(-no_match_vars);
-use Getopt::Long;
 use File::Slurp;
-use List::MoreUtils qw(any);
-use List::Util qw(first);
 use List::MoreUtils qw(any);
 use Nagios::Plugin::Getopt;
 use Nagios::Plugin::Threshold;
@@ -41,16 +37,10 @@ use Number::Format qw(format_number);
 use POSIX qw(uname);
 use Readonly;
 
-use Data::Dumper;
+Readonly my $OVERFLOW => 2**32;
 
-Readonly my $overflow => 2**32;
-
-Readonly my $bits_per_byte      => 8;
-Readonly my $bytes_per_kilobit  => 128;
-Readonly my $bytes_per_sector   => 512;
-Readonly my $bytes_per_kilobyte => 1_024;
-Readonly my $bytes_per_megabit  => 131_072;
-Readonly my $bytes_per_megabyte => 1_048_576;
+Readonly my $BITS_PER_BYTE    => 8;
+Readonly my $BYTES_PER_SECTOR => 512;
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -61,6 +51,7 @@ Readonly my $bytes_per_megabyte => 1_048_576;
 # All variables are therefore declared as package variables...
 #
 use vars qw(
+  $factor
   $format
   $plugin
   $threshold
@@ -166,16 +157,20 @@ sub write_timer {
 
     my $TMP_FH;
 
-    verbose 'writing data: '
-      . format_number( $in,   0, 0, ) . q{/}
-      . format_number( $out,  0, 0, ) . q{ @ }
-      . format_number( $time, 0, 0, )
+    verbose 'saving data:  read='
+      . format_number( $in, 0, 0, )
+      . ' write='
+      . format_number( $out, 0, 0, )
+      . ' timestamp='
+      . $time
       . "\n", 1;
 
     open $TMP_FH, q{>}, $tmp
       or $plugin->nagios_exit( UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
-    print {$TMP_FH} $time . " $in $out\n";
+    print {$TMP_FH} $time . " $in $out\n"
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot write timer ($tmp): $OS_ERROR" );
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
@@ -213,13 +208,15 @@ sub read_timer {
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
-    verbose 'reading data: '
-      . format_number( $in,   0, 0, ) . q{/}
-      . format_number( $out,  0, 0, ) . q{ @ }
-      . format_number( $time, 0, 0, )
-      . ' (diff '
+    verbose 'reading data: read='
+      . format_number( $in, 0, 0, )
+      . ' write='
+      . format_number( $out, 0, 0, )
+      . ' timestamp='
+      . $time
+      . ' (step '
       . format_number( $diff, 0, 0, )
-      . ")\n", 1;
+      . "s)\n", 1;
 
     return ( $diff, $in, $out );
 
@@ -426,11 +423,41 @@ sub whoami {
 }
 
 ##############################################################################
+# Usage     : shortenrate()
+# Purpose   : shortens a number by a multiple of binary prefixes
+# Returns   : number, binary prefix
+# Arguments : number, factor (1024 or 1000)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub shortenrate {
+    my $rate   = shift;
+    my $factor = shift;
+    my $unit   = q{};
+
+    if ( $rate > $factor ) {
+        $rate /= $factor;
+        $unit = 'K';
+        if ( $rate > $factor ) {
+            $rate /= $factor;
+            $unit = 'M';
+        }
+        if ( $rate > $factor ) {
+            $rate /= $factor;
+            $unit = 'G';
+        }
+    }
+
+    return ( $rate, $unit );
+}
+
+##############################################################################
 # main
 #
 
 ################
 # initialization
+$factor = 1;
 $format = q{s};
 $plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
 
@@ -440,7 +467,7 @@ $plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
 my $usage = <<'EOT';
 check_diskio --device=devicename --critical=critical --warning=warning
              [--help] [--reset] [--silent] [--ssize=size]
-             [--verbose] [--version] [--uom=unit]
+             [--verbose] [--version] [--uom=unit] [--factor=unit]
 EOT
 
 my $extra = <<'EOT';
@@ -453,10 +480,18 @@ unit                       description
 sector,sectors,s           sectors/s
 bit,bits,b        bps      bits per second
 byte,bytes,B      Bps      bytes per second
-Kb                Kbps     Kbits per second
-KB,K              KBbps    Kbytes per second
-Mb                Mbps     Mbits per second
-MB,M              MBps     Mbytes per second
+
+Units of thresholds:
+
+unit                       description
+---------------------------------------------
+ 
+Ki,Kibi                    kilo binary
+Mi,Mebi                    mega binary
+Gi,Gibi                    giga binary
+K,kilo                     kilo
+M,mega                     mega
+G,giga                     giga
 
 EOT
 
@@ -502,12 +537,18 @@ $options->arg(
     spec     => 'ssize=i',
     help     => 'specify the sector size in bytes (default 512)',
     required => 0,
-    default  => $bytes_per_sector,
+    default  => $BYTES_PER_SECTOR,
 );
 
 $options->arg(
     spec     => 'uom=s',
     help     => 'unit of measurement',
+    required => 0,
+);
+
+$options->arg(
+    spec     => 'factor=s',
+    help     => 'unit of threshold',
     required => 0,
 );
 
@@ -678,72 +719,76 @@ verbose "Checking: @devices\n";
 my $multiplier;
 my $UOM;
 
-if ($options->uom()) {
-   $format = $options->uom();
+if ( $options->uom() ) {
+    $format = $options->uom();
 }
 
+# according to the guidelines only [TGMK]B (Bytes) are valid UOM
+#   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+my $perfdata_UOM = 'B';
 if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
 
     #sectors
-    $multiplier = 1;
-    $UOM        = 'sectors/s';
+    $multiplier   = 1;
+    $UOM          = 'sectors';
+    $perfdata_UOM = q{};
 
 }
 elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
 
     # bits
-    $multiplier = $options->ssize() * $bits_per_byte;
-    $UOM        = 'bps';
+    $multiplier   = $options->ssize() * $BITS_PER_BYTE;
+    $UOM          = 'b';
+    $perfdata_UOM = q{};
 
 }
 elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
 
     # bytes
     $multiplier = $options->ssize();
-    $UOM        = 'Bps';
-
-}
-elsif ( $format eq 'K' || $format eq 'KB' ) {
-
-    # KB
-    $multiplier = $options->ssize() / $bytes_per_kilobyte;
-    $UOM        = 'KBps';
-
-}
-elsif ( $format eq 'Kb' ) {
-
-    # Kb ( * 8 / 1024 )
-    $multiplier = $options->ssize() / $bytes_per_kilobit;
-    $UOM        = 'Kbps';
-
-}
-elsif ( $format eq 'M' || $format eq 'MB' ) {
-
-    # MB ( / 1024 / 1024 )
-    $multiplier = $options->ssize() / $bytes_per_megabyte;
-    $UOM        = 'MBps';
-
-}
-elsif ( $format eq 'Mb' ) {
-
-    # Mb ( * 8 / 1024 / 1024 )
-    $multiplier = $options->ssize() / $bytes_per_megabit;
-    $UOM        = 'Mbps';
+    $UOM        = 'B';
 
 }
 else {
-    $plugin->nagios_exit(
-        UNKNOWN,
-        "Uknown unit of measurement: $format"
-    );
+    $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
+}
+
+my $unit = 1024;
+if ( $options->factor() ) {
+    $format = $options->factor();
+
+    if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
+        $factor = 1024;
+    }
+    elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
+        $factor = 1024 * 1024;
+    }
+    elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
+        $factor = 1024 * 1024 * 1024;
+    }
+    elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
+        $factor = 1000;
+        $unit   = 1000;
+    }
+    elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
+        $factor = 1000 * 1000;
+        $unit   = 1000;
+    }
+    elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
+        $factor = 1000 * 1000 * 1000;
+        $unit   = 1000;
+    }
+    else {
+        $plugin->nagios_exit( UNKNOWN, "Uknown unit of threshold: $format" );
+    }
 }
 
 ################
 # Initialization
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $options->warning(),
-    critical => $options->critical(),
+    warning  => $options->warning() * $factor,
+    critical => $options->critical() * $factor,
 );
 
 my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
@@ -791,8 +836,9 @@ for my $device (@devices) {
         ( $s_read, $s_write ) = read_24($device);
     }
 
-    verbose 'current data: '
-      . format_number( $s_read,  0, 0 ) . q{/}
+    verbose 'current data: read='
+      . format_number( $s_read, 0, 0 )
+      . ' write='
       . format_number( $s_write, 0, 0 )
       . "\n", 1;
 
@@ -819,7 +865,7 @@ for my $device (@devices) {
 
     write_timer( $tmp_files{$device}, $s_write, $s_read );
 
-    verbose "time difference: $diff\n", 1;
+    verbose 'time difference: ' . $diff . "s\n", 1;
 
     if ( $diff == 0 ) {
 
@@ -831,7 +877,7 @@ for my $device (@devices) {
     if ( $s_write < $in ) {
 
         # overflow
-        $diskio_w{$device} = $overflow - $in + $s_write;
+        $diskio_w{$device} = $OVERFLOW - $in + $s_write;
     }
     else {
         $diskio_w{$device} = $s_write - $in;
@@ -840,22 +886,15 @@ for my $device (@devices) {
     if ( $s_read < $out ) {
 
         # overflow
-        $diskio_r{$device} = $overflow - $out + $s_read;
+        $diskio_r{$device} = $OVERFLOW - $out + $s_read;
     }
     else {
         $diskio_r{$device} = $s_read - $out;
     }
 
-    $diskio_w{$device} = int( $diskio_w{$device} / $diff );
-    $diskio_r{$device} = int( $diskio_r{$device} / $diff );
-
-    $diskio_w{$device} = $diskio_w{$device} * $multiplier;
-    $diskio_r{$device} = $diskio_r{$device} * $multiplier;
-
-    $diskio{$device} = $diskio_w{$device} + $diskio_r{$device};
-
-    # no UOM according to the guidelines
-    #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN203
+    $diskio_w{$device} = int( $diskio_w{$device} * $multiplier / $diff );
+    $diskio_r{$device} = int( $diskio_r{$device} * $multiplier / $diff );
+    $diskio{$device}   = $diskio_w{$device} + $diskio_r{$device};
 
     my $suffix = q{};
 
@@ -865,24 +904,26 @@ for my $device (@devices) {
         $suffix = "_\U$device";
     }
 
+    # use unscaled values for performance data - will be scaled by rrdtool
+
     $plugin->add_perfdata(
         label     => "WRITE$suffix",
         value     => sprintf( '%.0f', $diskio_w{$device} ),
-        uom       => q{},
+        uom       => $perfdata_UOM,
         threshold => $threshold,
     );
 
     $plugin->add_perfdata(
         label     => "READ$suffix",
         value     => sprintf( '%.0f', $diskio_r{$device} ),
-        uom       => q{},
+        uom       => $perfdata_UOM,
         threshold => $threshold,
     );
 
     $plugin->add_perfdata(
         label     => "TOTAL$suffix",
         value     => sprintf( '%.0f', $diskio{$device} ),
-        uom       => q{},
+        uom       => $perfdata_UOM,
         threshold => $threshold,
     );
 
@@ -894,8 +935,8 @@ for my $device (@devices) {
         $status = WARNING;
     }
 
-    push @status_lines,
-      "$device " . sprintf( '%.0f', $diskio{$device} ) . " $UOM";
+    my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
+    push @status_lines, "$device " . sprintf( '%.2f', $val ) . " $prefix$UOM/s";
 
 }
 

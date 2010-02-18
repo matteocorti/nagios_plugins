@@ -14,39 +14,62 @@ on Linux 2.6 and 2.4 systems
 
 =head1 VERSION
 
-Version 3.0.3
+Version 3.1.0
 
 =head1 SYNOPSIS
 
  check_diskio --device=devicename --critical=critical --warning=warning
-            [--byte] [--ssize=size]
-            [--reset] [--verbose] [--silent]
-            [--version|--help]
+             [--help] [--reset] [--silent] [--ssize=size]
+             [--verbose] [--version] [--uom=unit] [--factor=unit]
 
- Required arguments:
-  --device=name,-d name         device name (or mount point)
-  --critical=value,-c value     critical number of sectors/s
-  --warning=value,-w value      number of sectors/s which generates a warning
+ -?, --usage   Print usage information
+ -h, --help
+   Print detailed help screen
+ -V, --version
+   Print version information
+ --extra-opts=[<section>[@<config_file>]]
+   Section and/or config_file from which to load extra options (may repeat)
+ -d, --device=STRING
+   device name(s) (or mount point(s))
+ -c, --critical=INTEGER
+   critical number of sectors/s
+ -w, --warning=INTEGER
+   number of sectors/s which generates a warning
+ -r, --reset
+   reset the counter(s)
+ -s, --silent
+   no warnings or critials are issued
+ --ssize=INTEGER
+   specify the sector size in bytes (default 512)
+ --uom=STRING
+   unit of measurement
+ --factor=STRING
+   unit of threshold
+ -t, --timeout=INTEGER
+   Seconds before plugin times out (default: 15)
+ -v, --verbose
+   Show details for command-line debugging (can repeat up to 3 times)
 
- Options
-  --help,-h,-?                  this help message
-  --reset,-r                    reset the counter
-  --silent,-s                   no warnings or critials are issued
-  --ssize=size                  specify the sector size in bytes (default 512)
-  --verbose,-v                  verbose output
-  --version,-V                  print version
-  --uom=unit                    unit of measurement:
+ Units of measurement:
 
-                                  unit              description
-                                  =============================================
+ unit                       description
+ ---------------------------------------------
+   
+ sector,sectors,s           sectors/s
+ bit,bits,b        bps      bits per second
+ byte,bytes,B      Bps      bytes per second
 
-                                  sector,sectors,s  sdectors/s
-                                  bit,bits,b        bps      bits per second
-                                  byte,bytes,B      Bps      bytes per second
-                                  Kb                Kbps     Kbits per second
-                                  KB,K              KBbps    Kbytes per second
-                                  Mb                Mbps     Mbits per second
-                                  MB,M              MBps     Mbytes per second
+ Units of thresholds:
+
+ unit                       description
+ ---------------------------------------------
+  
+ Ki,Kibi                    kilo binary
+ Mi,Mebi                    mega binary
+ Gi,Gibi                    giga binary
+ K,kilo                     kilo
+ M,mega                     mega
+ G,giga                     giga
 
 =head1 REQUIRED ARGUMENTS
 
@@ -54,37 +77,27 @@ Version 3.0.3
 
 =head1 OPTIONS
 
-  --device=name,-d name         device name
-
-  --critical=value,-c value     critical number of sectors/s
-
-  --warning=value,-w value      number of sectors/s which generates a warning
-
-  --uom=unit                    unit of measurement
-
-                                  unit              description
-                                  =============================================
-
-                                  sector,sectors,s  sdectors/s
-                                  bit,bits,b        bps      bits per second
-                                  byte,bytes,B      Bps      bytes per second
-                                  Kb                Kbps     Kbits per second
-                                  KB,K              KBbps    Kbytes per second
-                                  Mb                Mbps     Mbits per second
-                                  MB,M              MBps     Mbytes per second
-
-  --ssize=size                  sector size in bytes (default 512)
-
-  --reset,-r                    reset the counter
-
-  --silent,-s                   no warnings or critials are issued
-
-  --version,-V                  print version
-
-  --verbose,-v                  verbose output
-
-  --help,-h,-?                  this help message
-
+ -?, --usage   Print usage information
+ -h, --help
+   Print detailed help screen
+ -V, --version
+   Print version information
+ --extra-opts=[<section>[@<config_file>]]
+   Section and/or config_file from which to load extra options (may repeat)
+ -r, --reset
+   reset the counter(s)
+ -s, --silent
+   no warnings or critials are issued
+ --ssize=INTEGER
+   specify the sector size in bytes (default 512)
+ --uom=STRING
+   unit of measurement
+ --factor=STRING
+   unit of threshold
+ -t, --timeout=INTEGER
+   Seconds before plugin times out (default: 15)
+ -v, --verbose
+   Show details for command-line debugging (can repeat up to 3 times)
 
 =head1 EXAMPLE
 
@@ -109,17 +122,17 @@ check_diskio depends on
 
 =over 4
 
-=item * Carp
+=item * Array::Unique
 
 =item * English
 
-=item * Getopt::Long
+=item * File::Slurp
 
 =item * List::MoreUtils
 
-=item * List::Util
-
 =item * Nagios::Plugin
+
+=item * Nagios::Plugin::Getopt
 
 =item * Nagios::Plugin::Threshold
 
@@ -127,7 +140,7 @@ check_diskio depends on
 
 =item * POSIX
 
-=item * Pod::Usage
+=item * Readonly
 
 =item * version
 
@@ -195,6 +208,12 @@ Many thanks to
 =item * Jeff Potter for pointing out an overflow problem
 
 =item * Wilco for the RAID patch
+
+=item * Toni Van Remortel for the UOM correction and suggestions
+
+=item * Simon Kuhn for HP Smart Array cards fix
+
+=item * Nikolaus Filus for the UOM enhancements
 
 =back
 
