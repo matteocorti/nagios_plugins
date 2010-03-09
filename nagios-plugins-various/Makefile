@@ -1,6 +1,6 @@
 PLUGIN=nagios-plugins-various
-FILES=check_afsspace  check_bos  check_cpu.pl  check_mailq  check_mem  check_rxdebug  check_udebug check_dhcp.pl check_open_files.pl
-VERSION=1.4
+FILES=check_cpu.pl check_mailq check_mem check_dhcp.pl check_open_files.pl
+VERSION=1.5
 DIST_DIR=$(PLUGIN)-$(VERSION)
 DIST_FILES=$(PLUGIN).spec ${FILES} Makefile
 

@@ -1,4 +1,4 @@
-%define version 1.4
+%define version 1.5
 %define release 0
 %define name    nagios-plugins-various
 %define _prefix /usr/lib/nagios/plugins/contrib
@@ -19,14 +19,10 @@ Requires:  perl(Net::DHCP::Watch)
 %description
 A collection of various nagios plugins
 
-check_afsspace
-check_bos
 check_cpu.pl
 check_dhcp.pl
 check_mailq
 check_mem
-check_rxdebug
-check_udebu
 check_open_files
 
 %prep
@@ -42,17 +38,16 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root, 0644)
-%attr(0755, root, root) %{_prefix}/check_afsspace
-%attr(0755, root, root) %{_prefix}/check_bos
 %attr(0755, root, root) %{_prefix}/check_cpu.pl
 %attr(4755, root, root) %{_prefix}/check_dhcp.pl
 %attr(0755, root, root) %{_prefix}/check_mailq
 %attr(0755, root, root) %{_prefix}/check_mem
-%attr(0755, root, root) %{_prefix}/check_rxdebug
-%attr(0755, root, root) %{_prefix}/check_udebug
 %attr(0755, root, root) %{_prefix}/check_open_files.pl
 
 %changelog
+* Wed Nov 25 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.5-0
+- removed AFS plugins
+
 * Fri Dec  5 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 1.3-1
 - removed check_procs
 
