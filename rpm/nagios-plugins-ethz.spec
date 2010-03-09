@@ -1,4 +1,4 @@
-%define version 1.9
+%define version 1.10
 %define release 0
 %define name    nagios-plugins-ethz
 
@@ -13,9 +13,6 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
 BuildArch: noarch
 
-Requires: check_afs_offline_volumes
-Requires: check_afs_vol
-Requires: check_bandwidth
 Requires: check_connections
 Requires: check_cpu
 Requires: check_dir
@@ -27,9 +24,7 @@ Requires: check_procs_multi
 Requires: check_rbl
 Requires: check_ssl_cert
 Requires: check_tcptraffic
-Requires: check_topology
 Requires: check_updates
-Requires: check_vpp_logs
 Requires: check_writable
 Requires: nagios-plugins-various
 
@@ -53,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog NEWS README TODO COPYING VERSION
 
 %changelog
+* Wed Nov 25 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.10-0
+- removed deprecated plugins
+
 * Wed Jan  7 2009 Matteo Corti <matteo.corti@id.ethz.ch> - 1.9-0
 - added dependency on check_rbl
 
