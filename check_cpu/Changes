@@ -1,3 +1,7 @@
+2010-04-09  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_cpu: print the wait value
+
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_cpu: fixed the missing usage message
