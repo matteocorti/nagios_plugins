@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version 3.1.0
+%define version 3.1.1
 %define release 0
 %define name    check_diskio
 %define nagiospluginsdir %{_libdir}/nagios/plugins

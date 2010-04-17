@@ -24,7 +24,7 @@ use 5.008;
 use strict;
 use warnings;
 
-use version; our $VERSION = '3.1.0';
+our $VERSION = '3.1.1';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -90,7 +90,11 @@ sub verbose {
         $level = 0;
     }
 
-    if ( $level < $options->verbose() ) {
+    if ( $options->debug() ) {
+        print '[DEBUG] ';
+    }
+
+    if ( $level < $options->verbose() || $options->debug() ) {
         print $message;
     }
 
@@ -168,9 +172,15 @@ sub write_timer {
     open $TMP_FH, q{>}, $tmp
       or $plugin->nagios_exit( UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
+
     print {$TMP_FH} $time . " $in $out\n"
       or
       $plugin->nagios_exit( UNKNOWN, "Cannot write timer ($tmp): $OS_ERROR" );
+
+    if ( $options->debug() ) {
+        print "[DEBUG] writing $tmp: |$time $in $out|\n";
+    }
+
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
@@ -200,9 +210,16 @@ sub read_timer {
       or $plugin->nagios_exit( UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
 
     while (<$TMP_FH>) {
+
         chomp;
+
+        if ( $options->debug() ) {
+            print "[DEBUG] reading $tmp: |$_|\n";
+        }
+
         ( $time, $in, $out ) = split;
         $diff = time - $time;
+
     }
 
     close $TMP_FH
@@ -233,13 +250,16 @@ sub read_timer {
 sub kernel_version {
 
     my ( $sysname, $nodename, $release, $version, $machine ) = uname;
+
+    if ( $options->debug() ) {
+        print "[DEBUG] kernel $release\n";
+    }
     if ( $release =~ /^2.4/mxs ) {
         return '2.4';
     }
     if ( $release =~ /^2.6/mxs ) {
         return '2.6';
     }
-
     $plugin->nagios_exit( UNKNOWN,
         "Error: unsupported kernel version ($release)" );
 
@@ -263,42 +283,88 @@ sub read_26 {
 
         # kernel version 2.6
 
-# /proc/diskstats format
-#
-# major         Major number
-# minor         Minor number
-# name          Name
-# reads         This is the total number of reads completed successfully.
-# merged        Reads and writes which are adjacent to each other may be merged for
-#               efficiency.  Thus two 4K reads may become one 8K read before it is
-#               ultimately handed to the disk, and so it will be counted (and queued)
-#               as only one I/O.  This field lets you know how often this was done.
-# s_read        This is the total number of sectors read successfully.
-# ms_read       This is the total number of milliseconds spent by all reads.
-# writes        This is the total number of writes completed successfully.
-# s_write       This is the total number of sectors written successfully.
-# ms_write      This is the total number of milliseconds spent by all writes.
-# ios           The only field that should go to zero. Incremented as requests are
-#               given to appropriate request_queue_t and decremented as they finish.
-# ms_io         This field is increases so long as field 9 is nonzero.
-# ms_weighted   This field is incremented at each I/O start, I/O completion, I/O
-#               merge, or read f these stats by the number of I/Os in progress
-#               times the number of milliseconds spent doing I/O since the
-#               last update of this field.  This can provide an easy measure of both
-#               I/O completion time and the backlog that may be accumulating.
+     # /proc/diskstats format
+     #
+     # Disks
+     # =====
+     #
+     # Field  1 -- # of reads issued
+     #     This is the total number of reads completed successfully.
+     # Field  2 -- # of reads merged, field 6 -- # of writes merged
+     #     Reads and writes which are adjacent to each other may be merged for
+     #     efficiency.  Thus two 4K reads may become one 8K read before it is
+     #     ultimately handed to the disk, and so it will be counted (and queued)
+     #     as only one I/O.  This field lets you know how often this was done.
+     # Field  3 -- # of sectors read
+     #     This is the total number of sectors read successfully.
+     # Field  4 -- # of milliseconds spent reading
+     #     This is the total number of milliseconds spent by all reads (as
+     #     measured from __make_request() to end_that_request_last()).
+     # Field  5 -- # of writes completed
+     #     This is the total number of writes completed successfully.
+     # Field  7 -- # of sectors written
+     #     This is the total number of sectors written successfully.
+     # Field  8 -- # of milliseconds spent writing
+     #     This is the total number of milliseconds spent by all writes (as
+     #     measured from __make_request() to end_that_request_last()).
+     # Field  9 -- # of I/Os currently in progress
+     #     The only field that should go to zero. Incremented as requests are
+     #     given to appropriate request_queue_t and decremented as they finish.
+     # Field 10 -- # of milliseconds spent doing I/Os
+     #     This field is increases so long as field 9 is nonzero.
+     # Field 11 -- weighted # of milliseconds spent doing I/Os
+     #     This field is incremented at each I/O start, I/O completion, I/O
+     #     merge, or read of these stats by the number of I/Os in progress
+     #     (field 9) times the number of milliseconds spent doing I/O since the
+     #     last update of this field.  This can provide an easy measure of both
+     #     I/O completion time and the backlog that may be accumulating.
+     #
+     # Partitions
+     # ==========
+     #
+     # Field  1 -- # of reads issued
+     #     This is the total number of reads issued to this partition.
+     # Field  2 -- # of sectors read
+     #     This is the total number of sectors requested to be read from this
+     #     partition.
+     # Field  3 -- # of writes issued
+     #     This is the total number of writes issued to this partition.
+     # Field  4 -- # of sectors written
+     #     This is the total number of sectors requested to be written to
+     #     this partition.
 
     # set $_ to line to be able to use the default split on whitespace *skipping
     # any leading whitespace*
-        $_ = $line;
+        $_  = $line;
+
         my (
-            $major,       $minor,   $name,     $reads,
-            $merge_read,  $s_read,  $ms_read,  $writes,
-            $merge_write, $s_write, $ms_write, $ios,
-            $ms_io,       $ms_weighted
+            $major, $minor, $name, $f01, $f02, $f03, $f04,
+            $f05,   $f06,   $f07,  $f08, $f09, $f10, $f11
         ) = split;
 
         if ( $name eq $device ) {
-            return ( $s_read, $s_write );
+
+            if ( $options->debug() ) {
+                print "[DEBUG] Device info found: |$_|\n";
+            }
+
+            # In theory with 2.6 kernels we should get only 4 fields but
+            # on some distributions we get 11 of them
+
+            if (defined $f05) {
+                # 11 fields
+                if ( $options->debug() ) {
+                    print "[DEBUG] 11 fields diskstats entry (reading the 3rd and the 7th)\n";
+                }
+                return ( $f03, $f07 );
+            } else {
+                # 4 fields
+                if ( $options->debug() ) {
+                    print "[DEBUG] 4 fields diskstats entry (reading the 2nd and the 4th)\n";
+                }
+                return ( $f02, $f04 );
+            }
+
         }
 
     }
@@ -552,6 +618,12 @@ $options->arg(
     required => 0,
 );
 
+$options->arg(
+    spec     => 'debug',
+    help     => 'debugging output',
+    required => 0,
+);
+
 $options->getopts();
 
 ################################################################################
@@ -584,6 +656,20 @@ if ( -r '/proc/diskstats' ) {
 }
 else {
     @stat_file = File::Slurp::read_file('/proc/partitions');
+}
+
+if ( $options->debug() ) {
+    for my $line (@stat_file) {
+        chomp $line;
+        my $filename;
+        if ( -r '/proc/diskstats' ) {
+            $filename = '/proc/diskstats';
+        }
+        else {
+            $filename = '/proc/partitions';
+        }
+        print "[DEBUG] $filename |$line|\n";
+    }
 }
 
 #########
