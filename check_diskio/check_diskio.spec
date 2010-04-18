@@ -60,6 +60,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Sun Apr 18 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.1-0%{?dist}
+- Updated to 3.1.1 (--debug option and fix for different /proc/diskstats formats)
+
 * Thu Feb 18 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.0-0
 - Updated to 3.1.0 and fixed build on 64 systems
 

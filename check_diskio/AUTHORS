@@ -6,3 +6,4 @@ Many thanks to
 * Toni Van Remortel for the UOM correction and suggestions
 * Simon Kuhn for HP Smart Array cards fix
 * Nikolaus Filus for the UOM enhancements
+* Vitaliy Zhhuta for the help with /proc/diskstats formatting issues

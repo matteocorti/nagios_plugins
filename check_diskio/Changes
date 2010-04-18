@@ -1,6 +1,7 @@
 2010-04-16  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: --debug option
+        * check_diskio: supports both formats for partitions in /proc/diskstats (11 and 4 fields)
 
 2010-02-18  Matteo Corti  <matteo.corti@id.ethz.ch>
 
