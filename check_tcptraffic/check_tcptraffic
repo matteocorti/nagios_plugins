@@ -95,6 +95,14 @@ sub running_on_linux {
         while (<$output>) {
             chomp;
             $os_64_bit = ($_ eq 'x86_64');
+            if ($options->debug()) {
+                if ($os_64_bit) {
+                    print '[DEBUG] 64';
+                } else {
+                    print '[DEBUG] 32';
+                }
+                print "bit system\n";
+            }                    
             return $linux;
         }
     
@@ -125,6 +133,9 @@ sub whoami {
 
     while (<$output>) {
         chomp;
+        if ($options->debug()) {
+            print "[DEBUG] user $_\n";
+        }
         return $_;
     }
 
@@ -149,10 +160,22 @@ sub write_timer {
 
     my $TMP;    # file handler
 
-    open $TMP, q{>}, $tmp
-      or $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
+    if ($options->debug()) {
+        print "[DEBUG] initializing timer $tmp\n";
+    }
 
-    print {$TMP} time . " $in $out\n";
+    if (! open $TMP, q{>}, $tmp ) {
+        if ($options->debug()) {
+            print "[DEBUG]   error: $OS_ERROR\n";
+        }
+        $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
+    }
+
+    my $line = time . " $in $out\n";
+    print {$TMP} $line;
+    if ($options->debug()) {
+        print "[DEBUG]   $line";
+    }
 
     close $TMP
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
@@ -309,7 +332,13 @@ sub verbose {
         $level = 0;
     }
 
-    if ( $level < $options->verbose() ) {
+    if ($options->debug()) {
+        print '[DEBUG] ';
+    }
+    
+    if ( $level < $options->verbose() ||
+         $options->debug()
+     ) {
         print $message;
     }
 
@@ -367,6 +396,12 @@ $options->arg(
 $options->arg(
     spec     => 'reset|r',
     help     => 'initialize counter',
+);
+
+$options->arg(
+    spec     => 'debug',
+    help     => 'debugging output',
+    required => 0,
 );
 
 $options->getopts();

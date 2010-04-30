@@ -1,3 +1,7 @@
+2010-04-30  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: --debug option
+
 2010-01-30  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: removed double -r command line option
@@ -37,3 +41,5 @@
 2007-02-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* VERSION 0.9: initial release (beta)
+
+	
