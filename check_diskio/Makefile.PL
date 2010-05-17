@@ -23,7 +23,6 @@ requires 'Nagios::Plugin::Threshold' => 0;
 requires 'Number::Format'            => 0;
 requires 'POSIX'                     => 0;
 requires 'Readonly'                  => 0;
-requires 'version'                   => 0;
 
 install_script  'check_diskio';
 

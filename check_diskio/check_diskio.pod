@@ -98,6 +98,8 @@ Version 3.1.1
    Seconds before plugin times out (default: 15)
  -v, --verbose
    Show details for command-line debugging (can repeat up to 3 times)
+ --debug
+   Shows debugging information
 
 =head1 EXAMPLE
 
@@ -109,7 +111,8 @@ critical and warning values
 =head1 DIAGNOSTICS
 
 You can specify multiple --verbose options to increase the program
-verbosity.
+verbosity. With --debug the script will generate detailed information
+to be submitted along with bug reports.
 
 =head1 EXIT STATUS
 
@@ -164,13 +167,15 @@ Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
 or through the web interface at
 https://svn.id.ethz.ch/trac/bd_webhosting/newticket
 
+Include the output of the script with the --debug command line option
+
 =head1 AUTHOR
 
 Matteo Corti <matteo.corti@id.ethz.ch>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007, ETH Zurich.
+Copyright (c) 2007-2010, ETH Zurich.
 
 This module is free software; you can redistribute it and/or modify it
 under the terms of GNU general public license (gpl) version 3.
