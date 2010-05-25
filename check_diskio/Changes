@@ -1,3 +1,8 @@
+2010-05-25  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: partion numbers are stripped
+	                only if the --strip-partition-number option is specified
+
 2010-05-17  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio.pod: added info on --debug
@@ -94,3 +99,8 @@ units from factor
 
 	* Initial release
 
+
+# $Id$
+# $Revision$
+# $HeadURL$
+# $Date$

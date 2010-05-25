@@ -1,3 +1,4 @@
+2010-05-25 3.2.0: partion numbers are stripped only if the --strip-partition-number option is specified
 2010-04-18 3.1.1: --debug handling and fix for different /proc/diskstats formats
 2010-02-18 3.1.0: new unit handling (see --help)
 2009-01-20 3.0.0: supports multiple devices (-d can be specified more than once)
@@ -20,3 +21,8 @@
 2007-03-30 1.2:   check for overflows
 2007-02-23 1.1:   removed the max interval check
 2007-02-19 1.0:   initial release
+
+# $Id$
+# $Revision$
+# $HeadURL$
+# $Date$
