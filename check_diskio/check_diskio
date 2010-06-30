@@ -23,7 +23,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '3.2.0';
+our $VERSION = '3.2.1';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -707,9 +707,9 @@ for my $device ( @{ $options->device() } ) {
 
         my $MTAB_FH;
         my $mount_point = $device;
-	
+
         undef $device;
-	
+
         open $MTAB_FH, q{<}, '/etc/mtab'
           or
           $plugin->nagios_exit( UNKNOWN, "Cannot open /etc/mtab: $OS_ERROR" );
@@ -745,7 +745,7 @@ for my $device ( @{ $options->device() } ) {
 
         my $dev_name = $device;
         $dev_name =~ s/^\/dev\///mxs;
-        
+
         if ( $options->debug ) {
             print "[DEBUG] device name: $dev_name\n";
         }
@@ -795,279 +795,275 @@ for my $device ( @{ $options->device() } ) {
                             }
 
                         }
-			
+
                     }
-		    
+
                 }
-		
+
             }
             else {
 
-                print {*STDERR}
-		"Warning: cannot check LVM volumes if not root\n";
-		
-                verbose "Not root: skipping LVM check\n";
-		
+                $plugin->nagios_exit( UNKNOWN,
+                    "Cannot check LVM volume $device if not root" );
+
             }
 
         }
         else {
-	    
+
             push @devices, $device;
-	    
+
         }
-	
+
     }
- 
+
 }
-   
+
 # check if the devices exist
 
 for my $device (@devices) {
     if ( !-e $device ) {
-	$plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+        $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
     }
 }
 
-    verbose "Checking: @devices\n";
+verbose "Checking: @devices\n";
 
-    #####
-    # UOM
+#####
+# UOM
 
-    my $multiplier;
-    my $UOM;
+my $multiplier;
+my $UOM;
 
-    if ( $options->uom() ) {
-        $format = $options->uom();
+if ( $options->uom() ) {
+    $format = $options->uom();
+}
+
+# according to the guidelines only [TGMK]B (Bytes) are valid UOM
+#   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+my $perfdata_UOM = 'B';
+if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
+
+    #sectors
+    $multiplier   = 1;
+    $UOM          = 'sectors';
+    $perfdata_UOM = q{};
+
+}
+elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
+
+    # bits
+    $multiplier   = $options->ssize() * $BITS_PER_BYTE;
+    $UOM          = 'b';
+    $perfdata_UOM = q{};
+
+}
+elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
+
+    # bytes
+    $multiplier = $options->ssize();
+    $UOM        = 'B';
+
+}
+else {
+    $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
+}
+
+my $unit = 1024;
+if ( $options->factor() ) {
+    $format = $options->factor();
+
+    if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
+        $factor = 1024;
     }
-
-    # according to the guidelines only [TGMK]B (Bytes) are valid UOM
-    #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
-    my $perfdata_UOM = 'B';
-    if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
-	
-        #sectors
-        $multiplier   = 1;
-        $UOM          = 'sectors';
-        $perfdata_UOM = q{};
-
+    elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
+        $factor = 1024 * 1024;
     }
-    elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
-
-        # bits
-        $multiplier   = $options->ssize() * $BITS_PER_BYTE;
-        $UOM          = 'b';
-        $perfdata_UOM = q{};
-
+    elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
+        $factor = 1024 * 1024 * 1024;
     }
-    elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
-
-        # bytes
-        $multiplier = $options->ssize();
-        $UOM        = 'B';
-
+    elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
+        $factor = 1000;
+        $unit   = 1000;
+    }
+    elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
+        $factor = 1000 * 1000;
+        $unit   = 1000;
+    }
+    elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
+        $factor = 1000 * 1000 * 1000;
+        $unit   = 1000;
     }
     else {
-        $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
+        $plugin->nagios_exit( UNKNOWN, "Uknown unit of threshold: $format" );
+    }
+}
+
+################
+# Initialization
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $options->warning() * $factor,
+    critical => $options->critical() * $factor,
+);
+
+my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
+
+# strip /dev/
+for (@devices) {
+    s/^\/dev\///mxs;
+}
+
+for my $device (@devices) {
+
+    # we need one temporary file per device
+    my ( $controller, $disk ) = split /\//mxs, $device;
+    if ( !$disk ) {
+        $tmp_files{$device} = "$tmp_file_prefix-$controller";
+    }
+    else {
+        $tmp_files{$device} = "$tmp_file_prefix--$disk";
     }
 
-    my $unit = 1024;
-    if ( $options->factor() ) {
-        $format = $options->factor();
-	
-        if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
-            $factor = 1024;
-        }
-        elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
-            $factor = 1024 * 1024;
-        }
-        elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
-            $factor = 1024 * 1024 * 1024;
-        }
-        elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
-            $factor = 1000;
-            $unit   = 1000;
-        }
-        elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
-            $factor = 1000 * 1000;
-            $unit   = 1000;
-        }
-        elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
-            $factor = 1000 * 1000 * 1000;
-            $unit   = 1000;
-        }
-        else {
-            $plugin->nagios_exit( UNKNOWN,
-                "Uknown unit of threshold: $format" );
-        }
-    }
-    
-    ################
-    # Initialization
-    
-    $threshold = Nagios::Plugin::Threshold->set_thresholds(
-        warning  => $options->warning() * $factor,
-        critical => $options->critical() * $factor,
-	);
-    
-    my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
-    
-    # strip /dev/
-    for (@devices) {
-        s/^\/dev\///mxs;
-    }
-    
-    for my $device (@devices) {
-	
-        # we need one temporary file per device
-        my ( $controller, $disk ) = split /\//mxs, $device;
-        if ( !$disk ) {
-            $tmp_files{$device} = "$tmp_file_prefix-$controller";
-        }
-        else {
-            $tmp_files{$device} = "$tmp_file_prefix--$disk";
-        }
-	
-    }
-    
-    ########################
-    # Check the proc entry
-    
-    my $diff;
-    my $found = 0;
-    my $in;
-    my $out;
-    my $time;
-    
-    my $s_read;
-    my $s_write;
+}
 
-    my $TMP_FH;
-    my $status = OK;
-    my @status_lines;
+########################
+# Check the proc entry
 
-    for my $device (@devices) {
+my $diff;
+my $found = 0;
+my $in;
+my $out;
+my $time;
 
+my $s_read;
+my $s_write;
+
+my $TMP_FH;
+my $status = OK;
+my @status_lines;
+
+for my $device (@devices) {
+
+    if ( $kversion eq '2.6' && $proc_diskstats_available ) {
+        ( $s_read, $s_write ) = read_26($device);
+    }
+    else {
+        ( $s_read, $s_write ) = read_24($device);
+    }
+
+    verbose 'current data: read='
+      . format_number( $s_read, 0, 0 )
+      . ' write='
+      . format_number( $s_write, 0, 0 )
+      . "\n", 1;
+
+    if ( !-f $tmp_files{$device} ) {
+        verbose "temporary file not available resetting and waiting\n";
+        write_timer( $tmp_files{$device}, $s_write, $s_read );
+        sleep 1;
         if ( $kversion eq '2.6' && $proc_diskstats_available ) {
             ( $s_read, $s_write ) = read_26($device);
         }
         else {
             ( $s_read, $s_write ) = read_24($device);
         }
+    }
 
-        verbose 'current data: read='
-	    . format_number( $s_read, 0, 0 )
-	    . ' write='
-	    . format_number( $s_write, 0, 0 )
-	    . "\n", 1;
-	
-        if ( !-f $tmp_files{$device} ) {
-            verbose "temporary file not available resetting and waiting\n";
-            write_timer( $tmp_files{$device}, $s_write, $s_read );
-            sleep 1;
-            if ( $kversion eq '2.6' && $proc_diskstats_available ) {
-                ( $s_read, $s_write ) = read_26($device);
-            }
-            else {
-                ( $s_read, $s_write ) = read_24($device);
-            }
-        }
-	
-        ( $diff, $in, $out ) = read_timer( $tmp_files{$device} );
-	
-        if ( $diff < 1 ) {
-	    
-            # wait a little bit
-            sleep 1;
-            ( $diff, $in, $out ) = read_timer();
-	    
-        }
+    ( $diff, $in, $out ) = read_timer( $tmp_files{$device} );
 
-        write_timer( $tmp_files{$device}, $s_write, $s_read );
-	
-        verbose 'time difference: ' . $diff . "s\n", 1;
-	
-        if ( $diff == 0 ) {
-	    
-            # round up
-            $diff = 1;
-	    
-        }
-	
-        # check for overflows (2^32 sectors)
-        if ( $s_write < $in ) {
-	    
-            # overflow
-            $diskio_w{$device} = $OVERFLOW - $in + $s_write;
+    if ( $diff < 1 ) {
 
-        }
-        else {
-            $diskio_w{$device} = $s_write - $in;
-        }
-
-        if ( $s_read < $out ) {
-
-            # overflow
-            $diskio_r{$device} = $OVERFLOW - $out + $s_read;
-        }
-        else {
-            $diskio_r{$device} = $s_read - $out;
-        }
-	
-        $diskio_w{$device} = int( $diskio_w{$device} * $multiplier / $diff );
-        $diskio_r{$device} = int( $diskio_r{$device} * $multiplier / $diff );
-        $diskio{$device}   = $diskio_w{$device} + $diskio_r{$device};
-	
-        my $suffix = q{};
-	
-        # we append the device name to the labels only if there is more
-        # than one device to maintain backwards compatibility
-        if ( @devices > 1 ) {
-            $suffix = "_\U$device";
-        }
-
-        # use unscaled values for performance data - will be scaled by rrdtool
-
-        $plugin->add_perfdata(
-            label     => "WRITE$suffix",
-            value     => sprintf( '%.0f', $diskio_w{$device} ),
-            uom       => $perfdata_UOM,
-            threshold => $threshold,
-        );
-
-        $plugin->add_perfdata(
-            label     => "READ$suffix",
-            value     => sprintf( '%.0f', $diskio_r{$device} ),
-            uom       => $perfdata_UOM,
-            threshold => $threshold,
-	    );
-	
-        $plugin->add_perfdata(
-            label     => "TOTAL$suffix",
-            value     => sprintf( '%.0f', $diskio{$device} ),
-            uom       => $perfdata_UOM,
-            threshold => $threshold,
-        );
-
-        my $device_status = $threshold->get_status( $diskio{$device} );
-        if ( $device_status == CRITICAL ) {
-            $status = CRITICAL;
-        }
-        elsif ( $device_status == WARNING && $status != CRITICAL ) {
-            $status = WARNING;
-        }
-
-        my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
-        push @status_lines,
-          "$device " . sprintf( '%.2f', $val ) . " $prefix$UOM/s";
+        # wait a little bit
+        sleep 1;
+        ( $diff, $in, $out ) = read_timer();
 
     }
 
-    if ( $options->silent() ) {
-        $plugin->nagios_exit( OK, ( join ', ', @devices ) . 'OK' );
+    write_timer( $tmp_files{$device}, $s_write, $s_read );
+
+    verbose 'time difference: ' . $diff . "s\n", 1;
+
+    if ( $diff == 0 ) {
+
+        # round up
+        $diff = 1;
+
+    }
+
+    # check for overflows (2^32 sectors)
+    if ( $s_write < $in ) {
+
+        # overflow
+        $diskio_w{$device} = $OVERFLOW - $in + $s_write;
+
     }
     else {
-        $plugin->nagios_exit( $status, join ', ', @status_lines, );
+        $diskio_w{$device} = $s_write - $in;
     }
 
-    1;
+    if ( $s_read < $out ) {
+
+        # overflow
+        $diskio_r{$device} = $OVERFLOW - $out + $s_read;
+    }
+    else {
+        $diskio_r{$device} = $s_read - $out;
+    }
+
+    $diskio_w{$device} = int( $diskio_w{$device} * $multiplier / $diff );
+    $diskio_r{$device} = int( $diskio_r{$device} * $multiplier / $diff );
+    $diskio{$device}   = $diskio_w{$device} + $diskio_r{$device};
+
+    my $suffix = q{};
+
+    # we append the device name to the labels only if there is more
+    # than one device to maintain backwards compatibility
+    if ( @devices > 1 ) {
+        $suffix = "_\U$device";
+    }
+
+    # use unscaled values for performance data - will be scaled by rrdtool
+
+    $plugin->add_perfdata(
+        label     => "WRITE$suffix",
+        value     => sprintf( '%.0f', $diskio_w{$device} ),
+        uom       => $perfdata_UOM,
+        threshold => $threshold,
+    );
+
+    $plugin->add_perfdata(
+        label     => "READ$suffix",
+        value     => sprintf( '%.0f', $diskio_r{$device} ),
+        uom       => $perfdata_UOM,
+        threshold => $threshold,
+    );
+
+    $plugin->add_perfdata(
+        label     => "TOTAL$suffix",
+        value     => sprintf( '%.0f', $diskio{$device} ),
+        uom       => $perfdata_UOM,
+        threshold => $threshold,
+    );
+
+    my $device_status = $threshold->get_status( $diskio{$device} );
+    if ( $device_status == CRITICAL ) {
+        $status = CRITICAL;
+    }
+    elsif ( $device_status == WARNING && $status != CRITICAL ) {
+        $status = WARNING;
+    }
+
+    my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
+    push @status_lines, "$device " . sprintf( '%.2f', $val ) . " $prefix$UOM/s";
+
+}
+
+if ( $options->silent() ) {
+    $plugin->nagios_exit( OK, ( join ', ', @devices ) . 'OK' );
+}
+else {
+    $plugin->nagios_exit( $status, join ', ', @status_lines, );
+}
+
+1;
