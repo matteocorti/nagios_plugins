@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version 3.2.1
+%define version 3.2.2
 %define release 0
 %define name    check_diskio
 %define nagiospluginsdir %{_libdir}/nagios/plugins
@@ -60,14 +60,19 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Tue Jul  6 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.2-0
+- Updated to 3.2.2 (does not ignore devices specified with -d /dev)
+
 * Wed Jun 30 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.1-0
 - Updated to 3.2.1 (UNKNOWN if not able to check LVM)
 
 * Tue May 25 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.0-0
-- updated to 3.2.0 (partion numbers are stripped only if the --strip-partition-number option is specified)
+- updated to 3.2.0 (partion numbers are stripped only if the
+  --strip-partition-number option is specified)
 
 * Sun Apr 18 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.1-0
-- Updated to 3.1.1 (--debug option and fix for different /proc/diskstats formats)
+- Updated to 3.1.1 (--debug option and fix for different
+  /proc/diskstats formats)
 
 * Thu Feb 18 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.1.0-0
 - Updated to 3.1.0 and fixed build on 64 systems

@@ -1,5 +1,7 @@
+2010-07-06 3.2.2: fixes a bug which ignored devices specified with -d /dev
 2010-06-30 3.2.1: exits with UNKNOWN if not able to read LVM stats
-2010-05-25 3.2.0: partion numbers are stripped only if the --strip-partition-number option is specified
+2010-05-25 3.2.0: partion numbers are stripped only if the --strip-partition-number
+                  option is specified
 2010-04-18 3.1.1: --debug handling and fix for different /proc/diskstats formats
 2010-02-18 3.1.0: new unit handling (see --help)
 2009-01-20 3.0.0: supports multiple devices (-d can be specified more than once)

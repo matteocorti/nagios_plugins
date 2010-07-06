@@ -23,7 +23,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '3.2.1';
+our $VERSION = '3.2.2';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -809,14 +809,18 @@ for my $device ( @{ $options->device() } ) {
             }
 
         }
-        else {
+
+    }
+    else {
 
             push @devices, $device;
 
-        }
-
     }
 
+}
+
+if ( $options->debug() ) {
+    print "[DEBUG] devices: @devices\n";
 }
 
 # check if the devices exist
