@@ -1,0 +1,145 @@
+=pod
+
+=head1 NAME
+
+C<check_writable> is a Nagios plugin that checks if one or more
+directories are writable.
+
+=head1 DESCRIPTION
+
+C<check_writable> is a Nagios plugin that checks if one or more
+directories are writable by:
+
+ - checking that the supplied directory is indeed a directory
+ - checking if the the filesystem permissions are OK
+ - creating a temporary file
+ - writing random data to the temporary file (and reading it back)
+
+It return a critical status if one of the tests fails
+
+=head1 VERSION
+
+Version 2.0.1
+
+=head1 SYNOPSIS
+
+ check_writeable --dir=DIRECTORY
+
+ Options:
+  --help,-h,-?                  this help message
+  --dir,-d                      directory to check
+  --verbose,-v                  verbose output
+  --version                     prints version and exits
+
+=head1 REQUIRED ARGUMENTS
+
+--dir
+
+=head1 OPTIONS
+
+  --help,-h,-?                  this help message
+    
+  --dir,-d                      directory to check
+    
+  --verbose,-v                  verbose output
+    
+  --version                     prints version and exits
+
+=head1 EXAMPLE
+
+check_dir --dir=/tmp
+
+check_diskio checks if /tmp is writable
+
+=head1 DIAGNOSTICS
+
+You can specify multiple --verbose options to increase the program
+verbosity.
+
+=head1 EXIT STATUS
+
+0 if OK, 1 in case of a warning, 2 in case of a critical status and 3
+in case of an unkown problem
+
+=head1 DEPENDENCIES
+
+check_writable depends on
+
+=over 4
+
+=item * Carp
+
+=item * Data::Random
+
+=item * File::Temp
+
+=item * English
+
+=item * Getopt::Long
+
+=item * Nagios::Plugin
+
+=item * Nagios::Plugin::Threshold
+
+=item * POSIX
+
+=item * Pod::Usage
+
+=item * version
+
+=back
+
+=head1 CONFIGURATION
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 SEE ALSO
+
+Nagios documentation
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+or through the web interface at
+https://svn.id.ethz.ch/trac/bd_webhosting/newticket
+
+=head1 AUTHOR
+
+Matteo Corti <matteo.corti@id.ethz.ch>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2007, ETH Zurich.
+
+This module is free software; you can redistribute it and/or modify it
+under the terms of GNU general public license (gpl) version 3.
+See the LICENSE file for details.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=head1 ACKNOWLEDGMENTS
