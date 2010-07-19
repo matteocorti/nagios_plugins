@@ -1,4 +1,4 @@
-%define version 1.0.3
+%define version 1.1.0
 %define release 1
 %define name    check_cpu
 %define _prefix /usr/lib/nagios/plugins/contrib
