@@ -27,7 +27,7 @@ Since /proc/net/dev uses 32bit counters overflows are a problem
 
 =head1 VERSION
 
-Version 2.1.1
+Version 2.2.0
 
 =head1 SYNOPSIS
 
@@ -35,8 +35,8 @@ Version 2.1.1
                   [--verbose] [--reset] [--help]
 
  Required arguments
-  --critical,c  crit      critical
-  --warning,w   warn      warning
+  --critical,c  crit      critical range
+  --warning,w   warn      warning range
   --interface,i iface     network interface
   --speed,s               speed (in Mbit/s)
 
@@ -98,6 +98,8 @@ check_diskio depends on
 =item * Nagios::Plugin::Getopt
 
 =item * Nagios::Plugin::Threshold
+
+=item * Nagios::Plugin::Range
 
 =item * version
 

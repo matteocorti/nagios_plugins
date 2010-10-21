@@ -6,7 +6,7 @@
 # $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
 ################################################################################
 
-%define version 2.1.1
+%define version 2.2.0
 %define release 0
 %define name    check_tcptraffic
 %define nagiospluginsdir %{_libdir}/nagios/plugins
@@ -61,6 +61,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Thu Oct 21 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.0-0
+- --critical and --warning now accept ranges (low:high)
+
 * Sat Jan 30 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.1-1
 - updated to 2.1.1 (removed the double -r command line argument definition)
 

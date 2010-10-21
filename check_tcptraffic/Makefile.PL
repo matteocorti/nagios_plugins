@@ -24,6 +24,7 @@ include 'version';
 
 requires 'English'                   => 0;
 requires 'Nagios::Plugin'            => 0;
+requires 'Nagios::Plugin::Range'     => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
 requires 'version'                   => 0;
 

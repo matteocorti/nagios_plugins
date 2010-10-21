@@ -25,14 +25,14 @@
 
 use strict;
 use warnings;
-use 5.008;
 
 use English qw(-no_match_vars);
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
+use Nagios::Plugin::Range;
 use Nagios::Plugin::Getopt;
 
-use version; our $VERSION = '2.1.1';
+our $VERSION = '2.2.0';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -370,14 +370,14 @@ $options = Nagios::Plugin::Getopt->new(
 );
 
 $options->arg(
-    spec     => 'critical|c=i',
-    help     => 'Exit with CRITICAL status if traffic is more than this value',
+    spec     => 'critical|c=s',
+    help     => 'Exit with CRITICAL status if traffic is outside of the specified range',
     required => 1,
 );
 
 $options->arg(
-    spec     => 'warning|w=i',
-    help     => 'Exit with WARNING status if traffic is more than this value',
+    spec     => 'warning|w=s',
+    help     => 'Exit with WARNING status if traffic is outside of the specified range',
     required => 1,
 );
 
@@ -413,16 +413,15 @@ if (! running_on_linux() ) {
     $plugin->nagios_exit( UNKNOWN, 'Not running on a Linux system' );
 }
 
-if ($options->critical() <= 0) {
-    $plugin->nagios_exit( UNKNOWN, '"critical" must be a positive integer' );
+# parse the critical and warning ranges
+my $critical_range = Nagios::Plugin::Range->parse_range_string( $options->critical() );
+if (! ($critical_range && $critical_range->is_set()) ) {
+    $plugin->nagios_exit( UNKNOWN, 'Could not parse "critical"');
 }
 
-if ($options->warning() <= 0) {
-    $plugin->nagios_exit( UNKNOWN, '"warning" must be a positive integer' );
-}
-
-if ( $options->critical() < $options->warning() ) {
-    $plugin->nagios_exit( UNKNOWN, '"critical" has to be greater than "warning"' );
+my $warning_range = Nagios::Plugin::Range->parse_range_string( $options->warning() );
+if (! ($warning_range && $warning_range->is_set()) ) {
+    $plugin->nagios_exit( UNKNOWN, 'Could not parse "warning"');
 }
 
 # check the speed (depending on the counter size in bits)
@@ -443,8 +442,8 @@ if ($os_64_bit) {
 verbose "the counters can hold data for $max_check_time seconds before overflow\n";
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $options->warning(),
-    critical => $options->critical(),
+    warning  => $warning_range,
+    critical => $critical_range,
 );
 
 $tmp = '/tmp/check_tcptraffic_status-'.$options->interface() . whoami();
