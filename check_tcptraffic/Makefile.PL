@@ -22,6 +22,7 @@ all_from     'check_tcptraffic.pod';
 
 include 'version';
 
+requires 'Carp'                      => 0;
 requires 'English'                   => 0;
 requires 'Nagios::Plugin'            => 0;
 requires 'Nagios::Plugin::Range'     => 0;

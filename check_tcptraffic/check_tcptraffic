@@ -26,6 +26,7 @@
 use strict;
 use warnings;
 
+use Carp;
 use English qw(-no_match_vars);
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
@@ -42,6 +43,9 @@ our $VERSION = '2.2.0';
 #
 # All variables are therefore declared as package variables...
 #
+
+## no critic (ProhibitPackageVars)
+
 use vars qw(
   $help
   $options
@@ -67,12 +71,12 @@ use subs qw(verbose);
 # Throws    : n/a
 # Comments  : also checks if the OS is 64 bit capable and sets $os_64_bit
 # See also  : n/a
-sub running_on_linux {
+sub running_on_linux {    ## no critic (RequireFinalReturn)
 
     my $output;
     my $pid;
     my $linux;
-    
+
     # check the system
     $pid = open $output, q{-|}, 'uname'
       or
@@ -83,36 +87,38 @@ sub running_on_linux {
         verbose "running on $_\n";
         $linux = $_ eq 'Linux';
 
-        close $output;
-        
+        close $output
+          or $plugin->nagios_exit( UNKOWN, "Cannot close output: $OS_ERROR" );
+
         # check the OS (32 or 64 bit)
-        $pid = open $output, q{-|}, 'uname -m';
-        if (! $pid ) {
-            warn "Cannot determine if the system is 64 bit capable: $OS_ERROR";
+        $pid = open $output, q{-|}, 'uname -m';  ## no critic (RequireBriefOpen)
+        if ( !$pid ) {
+            carp "Cannot determine if the system is 64 bit capable: $OS_ERROR";
             return $linux;
         }
-        
+
         while (<$output>) {
             chomp;
-            $os_64_bit = ($_ eq 'x86_64');
-            if ($options->debug()) {
+            $os_64_bit = ( $_ eq 'x86_64' );
+            if ( $options->debug() ) {
                 if ($os_64_bit) {
-                    print '[DEBUG] 64';
-                } else {
-                    print '[DEBUG] 32';
+                    print '[DEBUG] 64';    ## no critic (RequireCheckedSyscalls)
                 }
-                print "bit system\n";
-            }                    
+                else {
+                    print '[DEBUG] 32';    ## no critic (RequireCheckedSyscalls)
+                }
+                print "bit system\n";      ## no critic (RequireCheckedSyscalls)
+            }
             return $linux;
         }
-    
-        warn "Cannot determine if the system is 64 bit capable: $OS_ERROR";
+
+        carp "Cannot determine if the system is 64 bit capable: $OS_ERROR";
         return $linux;
-        
+
     }
 
     $plugin->nagios_exit( UNKNOWN, 'Cannot determine the system' );
-        
+
 }
 
 ##############################################################################
@@ -127,14 +133,14 @@ sub whoami {
 
     my $output;
 
-    my $pid = open $output, q{-|}, 'whoami'
+    my $pid = open $output, q{-|}, 'whoami'    ## no critic (RequireBriefOpen)
       or
       $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
 
     while (<$output>) {
         chomp;
-        if ($options->debug()) {
-            print "[DEBUG] user $_\n";
+        if ( $options->debug() ) {
+            print "[DEBUG] user $_\n";    ## no critic (RequireCheckedSyscalls)
         }
         return $_;
     }
@@ -142,7 +148,7 @@ sub whoami {
     $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
 
     return;
-    
+
 }
 
 ##############################################################################
@@ -160,21 +166,21 @@ sub write_timer {
 
     my $TMP;    # file handler
 
-    if ($options->debug()) {
-        print "[DEBUG] initializing timer $tmp\n";
+    if ( $options->debug() ) {
+        print "[DEBUG] initializing timer $tmp\n";     ## no critic (RequireCheckedSyscalls)
     }
 
-    if (! open $TMP, q{>}, $tmp ) {
-        if ($options->debug()) {
-            print "[DEBUG]   error: $OS_ERROR\n";
+    if ( !open $TMP, q{>}, $tmp ) {    ## no critic (RequireBriefOpen)
+        if ( $options->debug() ) {
+            print "[DEBUG]   error: $OS_ERROR\n";                        ## no critic (RequireCheckedSyscalls)
         }
         $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
     }
 
     my $line = time . " $in $out\n";
-    print {$TMP} $line;
-    if ($options->debug()) {
-        print "[DEBUG]   $line";
+    print {$TMP} $line;                ## no critic (RequireCheckedSyscalls)
+    if ( $options->debug() ) {
+        print "[DEBUG]   $line";       ## no critic (RequireCheckedSyscalls)
     }
 
     close $TMP
@@ -208,34 +214,34 @@ sub read_proc {
 
     my $dev_file = '/proc/net/dev';
 
-    open $IN, q{<}, $dev_file
+    open $IN, q{<}, $dev_file    ## no critic (RequireBriefOpen)
       or $plugin->nagios_exit( UNKNOWN, "Cannot open $dev_file: $OS_ERROR" );
 
     while (<$IN>) {
-        
+
         chomp;
 
-        if (/:/mx) {
+        if (/:/mxs) {
 
-            # /proc/net/dev format
-            #
-            # bytes:      The total number of bytes of data transmitted or received
-            #             by the interface.
-            # packets:    The total number of packets of data transmitted or
-            #             received by the interface.
-            # errs:       The total number of transmit or receive errors detected
-            #             by the device driver.
-            # drop:       The total number of packets dropped by the device driver.
-            # fifo        The number of FIFO buffer errors.
-            # frame:      The number of packet framing errors.
-            # compressed: The number of compressed packets transmitted or received
-            #             by the device driver.
-            # multicast:  The number of multicast frames transmitted or received by
-            #             the device driver.
+         # /proc/net/dev format
+         #
+         # bytes:      The total number of bytes of data transmitted or received
+         #             by the interface.
+         # packets:    The total number of packets of data transmitted or
+         #             received by the interface.
+         # errs:       The total number of transmit or receive errors detected
+         #             by the device driver.
+         # drop:       The total number of packets dropped by the device driver.
+         # fifo        The number of FIFO buffer errors.
+         # frame:      The number of packet framing errors.
+         # compressed: The number of compressed packets transmitted or received
+         #             by the device driver.
+         # multicast:  The number of multicast frames transmitted or received by
+         #             the device driver.
 
-            # hack: some kernels now put some whitespace between the colon and bytes in
-            s/:\s+/:/mx;
-            
+     # hack: some kernels now put some whitespace between the colon and bytes in
+            s/:\s+/:/mxs;
+
             my (
                 $combined,      $packets_in,   $errs_in,
                 $drop_in,       $fifo_in,      $frame_in,
@@ -244,11 +250,11 @@ sub read_proc {
                 $fifo_out,      $frame_out,    $compressed_out,
                 $multicast_out
             ) = split;
-            
-            my ( $name, $bytes_in ) = split /:/mx, $combined;
+
+            my ( $name, $bytes_in ) = split /:/mxs, $combined;
 
             if ( $name eq $options->interface() ) {
-                
+
                 $found = 1;
 
                 $data{combined}       = $combined;
@@ -270,7 +276,8 @@ sub read_proc {
                 $data{bytes_in}       = $bytes_in;
 
                 # get the time difference
-                if ( $options->reset() || !open $TMP, q{<}, $tmp ) {
+                if ( $options->reset() || !open $TMP, q{<}, $tmp )
+                {    ## no critic (RequireBriefOpen)
                     write_timer( $bytes_in, $bytes_out );
                     $plugin->nagios_exit( UNKNOWN, 'Initializing timer' );
                 }
@@ -298,7 +305,8 @@ sub read_proc {
     }
 
     if ( !$found ) {
-        $plugin->nagios_exit( UNKNOWN, 'Interface '.$options->interface().' not found' );
+        $plugin->nagios_exit( UNKNOWN,
+            'Interface ' . $options->interface() . ' not found' );
     }
 
     close $IN
@@ -332,20 +340,19 @@ sub verbose {
         $level = 0;
     }
 
-    if ($options->debug()) {
-        print '[DEBUG] ';
+    if ( $options->debug() ) {
+        print '[DEBUG] ';    ## no critic (RequireCheckedSyscalls)
     }
-    
-    if ( $level < $options->verbose() ||
-         $options->debug()
-     ) {
-        print $message;
+
+    if (   $level < $options->verbose()
+        || $options->debug() )
+    {
+        print $message;      ## no critic (RequireCheckedSyscalls)
     }
 
     return;
 
 }
-
 
 ##############################################################################
 # main
@@ -366,18 +373,20 @@ $options = Nagios::Plugin::Getopt->new(
     usage   => 'Usage: %s [OPTIONS]',
     version => $VERSION,
     url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
-    blurb   => 'Monitors the amount of traffic on a given interface', 
+    blurb   => 'Monitors the amount of traffic on a given interface',
 );
 
 $options->arg(
-    spec     => 'critical|c=s',
-    help     => 'Exit with CRITICAL status if traffic is outside of the specified range',
+    spec => 'critical|c=s',
+    help =>
+      'Exit with CRITICAL status if traffic is outside of the specified range',
     required => 1,
 );
 
 $options->arg(
-    spec     => 'warning|w=s',
-    help     => 'Exit with WARNING status if traffic is outside of the specified range',
+    spec => 'warning|w=s',
+    help =>
+      'Exit with WARNING status if traffic is outside of the specified range',
     required => 1,
 );
 
@@ -394,8 +403,8 @@ $options->arg(
 );
 
 $options->arg(
-    spec     => 'reset|r',
-    help     => 'initialize counter',
+    spec => 'reset|r',
+    help => 'initialize counter',
 );
 
 $options->arg(
@@ -409,24 +418,26 @@ $options->getopts();
 ###############
 # Sanity checks
 
-if (! running_on_linux() ) {
+if ( !running_on_linux() ) {
     $plugin->nagios_exit( UNKNOWN, 'Not running on a Linux system' );
 }
 
 # parse the critical and warning ranges
-my $critical_range = Nagios::Plugin::Range->parse_range_string( $options->critical() );
-if (! ($critical_range && $critical_range->is_set()) ) {
-    $plugin->nagios_exit( UNKNOWN, 'Could not parse "critical"');
+my $critical_range =
+  Nagios::Plugin::Range->parse_range_string( $options->critical() );
+if ( !( $critical_range && $critical_range->is_set() ) ) {
+    $plugin->nagios_exit( UNKNOWN, 'Could not parse "critical"' );
 }
 
-my $warning_range = Nagios::Plugin::Range->parse_range_string( $options->warning() );
-if (! ($warning_range && $warning_range->is_set()) ) {
-    $plugin->nagios_exit( UNKNOWN, 'Could not parse "warning"');
+my $warning_range =
+  Nagios::Plugin::Range->parse_range_string( $options->warning() );
+if ( !( $warning_range && $warning_range->is_set() ) ) {
+    $plugin->nagios_exit( UNKNOWN, 'Could not parse "warning"' );
 }
 
 # check the speed (depending on the counter size in bits)
 
-my $max_check_time; # in seconds
+my $max_check_time;    # in seconds
 
 # size    max (bytes)  max (bits)       max (Mbits)
 # -----------------------------------------------------------
@@ -434,34 +445,37 @@ my $max_check_time; # in seconds
 # 32 bit  2^32         2^32*8 -> 2^35   2^38 / 1024^2 -> 2^15
 
 if ($os_64_bit) {
-    $max_check_time = int ( (2**47-1) / $options->speed() );
-} else {
-    $max_check_time = int ( (2**15-1) / $options->speed() );
+    $max_check_time =
+      int( ( 2**47 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
+}
+else {
+    $max_check_time =
+      int( ( 2**15 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
 }
 
-verbose "the counters can hold data for $max_check_time seconds before overflow\n";
+verbose
+  "the counters can hold data for $max_check_time seconds before overflow\n";
 
 $threshold = Nagios::Plugin::Threshold->set_thresholds(
     warning  => $warning_range,
     critical => $critical_range,
 );
 
-$tmp = '/tmp/check_tcptraffic_status-'.$options->interface() . whoami();
+$tmp = '/tmp/check_tcptraffic_status-' . $options->interface() . whoami();
 
 ########################
 # Check the proc entry
 
-my %data = read_proc($options->interface());
+my %data = read_proc( $options->interface() );
 
 if ( $data{diff} > $max_check_time ) {
 
     verbose 'the time from last check ('
-        . $data{diff}
-        . 's) is greater than the maximum check time allowed with speed '
-        . $options->speed()
-        . ' ('
-        . $max_check_time
-        . "s):\nsleeping 1s to gather data again\n";
+      . $data{diff}
+      . 's) is greater than the maximum check time allowed with speed '
+      . $options->speed() . ' ('
+      . $max_check_time
+      . "s):\nsleeping 1s to gather data again\n";
 
     # time difference is > max_check_time
     # since the counter could overflow
@@ -472,7 +486,7 @@ if ( $data{diff} > $max_check_time ) {
 
     sleep 1;
 
-    %data = read_proc($options->interface());
+    %data = read_proc( $options->interface() );
 
 }
 
@@ -480,21 +494,23 @@ if ( $data{diff} == 0 ) {
 
     # round up
     $data{diff} = 1;
-    
+
 }
 
 my $traffic_in;
 my $traffic_out;
 
 if ( $data{bytes_in} >= $data{in} ) {
-    $traffic_in  = int( ( $data{bytes_in} - $data{in} ) / $data{diff} );
-} else {
-    $traffic_in  = int( ( $data{in} - $data{bytes_in} ) / $data{diff} );
+    $traffic_in = int( ( $data{bytes_in} - $data{in} ) / $data{diff} );
+}
+else {
+    $traffic_in = int( ( $data{in} - $data{bytes_in} ) / $data{diff} );
 }
 
 if ( $data{bytes_out} >= $data{out} ) {
     $traffic_out = int( ( $data{bytes_out} - $data{out} ) / $data{diff} );
-} else {
+}
+else {
     $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} );
 }
 
@@ -508,26 +524,24 @@ $plugin->add_perfdata(
 );
 
 $plugin->add_perfdata(
-    label     => 'IN',
-    value     => sprintf( '%.0f', $traffic_in ),
-    uom       => q{},
+    label => 'IN',
+    value => sprintf( '%.0f', $traffic_in ),
+    uom   => q{},
 );
 
 $plugin->add_perfdata(
-    label     => 'OUT',
-    value     => sprintf( '%.0f', $traffic_out ),
-    uom       => q{},
+    label => 'OUT',
+    value => sprintf( '%.0f', $traffic_out ),
+    uom   => q{},
 );
 
 $plugin->add_perfdata(
-    label     => 'TIME',
-    value     => sprintf( '%.0f', $data{diff}  ),
-    uom       => q{},
+    label => 'TIME',
+    value => sprintf( '%.0f', $data{diff} ),
+    uom   => q{},
 );
 
-$plugin->nagios_exit(
-    $threshold->get_status($traffic),
-    $options->interface() . q{ } . sprintf( '%.0f', $traffic ) . " bytes/s"
-);
+$plugin->nagios_exit( $threshold->get_status($traffic),
+    $options->interface() . q{ } . sprintf( '%.0f', $traffic ) . ' bytes/s' );
 
 1;

@@ -91,6 +91,8 @@ check_diskio depends on
 
 =over 4
 
+=item * Carp
+
 =item * English
 
 =item * Nagios::Plugin
