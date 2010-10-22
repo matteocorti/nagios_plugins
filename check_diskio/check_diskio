@@ -23,7 +23,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '3.2.2';
+our $VERSION = '3.2.3';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -350,7 +350,7 @@ sub read_26 {
             # In theory with 2.6 kernels we should get only 4 fields but
             # on some distributions we get 11 of them
 
-            if ( defined $f05 ) {
+            if ( defined $f05 && $f05 =~ m/[0-9]/mxs ) {
 
                 # 11 fields
                 if ( $options->debug() ) {
@@ -364,7 +364,7 @@ sub read_26 {
                 # 4 fields
                 if ( $options->debug() ) {
                     print
-"[DEBUG] 4 fields diskstats entry (reading the 2nd and the 4th)\n";
+"[DEBUG] 4 fields diskstats entry: reading the 2nd ($f02) and the 4th ($f04)\n";
                 }
                 return ( $f02, $f04 );
             }
@@ -630,6 +630,13 @@ $options->arg(
 );
 
 $options->arg(
+    spec     => 'testfile=s',
+    help     => 'tests the plugin with the given disk statistics file (debugging)',
+    required => 0,
+);
+        
+
+$options->arg(
     spec => 'strip-partition-number',
     help =>
       'strips p[0-9]+ from the device number (needed for HP Smart Array cards)',
@@ -663,12 +670,30 @@ else {
     }
 }
 
-if ( -r '/proc/diskstats' ) {
-    @stat_file = File::Slurp::read_file('/proc/diskstats');
+if (! $options->testfile() ) {
+
+    if ( -r '/proc/diskstats' ) {
+        @stat_file = File::Slurp::read_file('/proc/diskstats');
+    }
+    else {
+        @stat_file = File::Slurp::read_file('/proc/partitions');
+    }
+    
+} else {
+
+    if ( ! -r $options->testfile() ) {
+        $plugin->nagios_exit(
+            UNKNOWN,
+            $options->testfile() . ' not readable'
+        );
+    }
+    
+    verbose 'Reading ' . $options->testfile() . "\n";
+    
+    @stat_file = File::Slurp::read_file($options->testfile());
+
 }
-else {
-    @stat_file = File::Slurp::read_file('/proc/partitions');
-}
+        
 
 if ( $options->debug() ) {
     for my $line (@stat_file) {
@@ -826,7 +851,7 @@ if ( $options->debug() ) {
 # check if the devices exist
 
 for my $device (@devices) {
-    if ( !-e $device ) {
+    if ( !-e $device && ! $options->testfile() ) {
         $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
     }
 }

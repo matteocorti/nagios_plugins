@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version 3.2.2
+%define version 3.2.3
 %define release 0
 %define name    check_diskio
 %define nagiospluginsdir %{_libdir}/nagios/plugins
@@ -60,6 +60,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Fri Oct 22 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.3-0
+- Fixed a bug in the statistics parsing
+
 * Tue Jul  6 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.2-0
 - Updated to 3.2.2 (does not ignore devices specified with -d /dev)
 

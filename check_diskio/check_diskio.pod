@@ -14,7 +14,7 @@ on Linux 2.6 and 2.4 systems
 
 =head1 VERSION
 
-Version 3.2.2
+Version 3.2.3
 
 =head1 SYNOPSIS
 
@@ -31,6 +31,8 @@ Version 3.2.2
    Section and/or config_file from which to load extra options (may repeat)
  -d, --device=STRING
    device name(s) (or mount point(s))
+ --debug
+   prints debugging information
  -c, --critical=INTEGER
    critical number of sectors/s
  -w, --warning=INTEGER
@@ -47,6 +49,8 @@ Version 3.2.2
    unit of threshold
  -t, --timeout=INTEGER
    Seconds before plugin times out (default: 15)
+ --testfile=STRING
+   Tests the plugin with the given disk statistics file
  -v, --verbose
    Show details for command-line debugging (can repeat up to 3 times)
 
