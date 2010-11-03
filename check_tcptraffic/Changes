@@ -1,3 +1,9 @@
+2010-11-03  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: fixed a minor bug which caused on error while
+                            displaying an error message
+	* check_tcptraffic: fixed copyright and licensing information
+
 2010-10-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: --critical and --warning now accept ranges (low:high)

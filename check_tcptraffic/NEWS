@@ -1,3 +1,4 @@
+2010-11-03 Fixed a minor bug in error handling
 2010-10-21 --critical and --warning now accept ranges (low:high)
 2010-01-30 Removed double -r command line option definition
 2009-09-25 Remove max time restriction on 64 bit systems

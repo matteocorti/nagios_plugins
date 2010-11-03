@@ -8,7 +8,7 @@
 #
 # See  the INSTALL file for installation instructions
 #
-# Copyright (c) 2007, ETH Zurich.
+# Copyright (c) 2010, ETH Zurich.
 #
 # This module is free software; you can redistribute it and/or modify it
 # under the terms of GNU general public license (gpl) version 3.
@@ -33,7 +33,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Range;
 use Nagios::Plugin::Getopt;
 
-our $VERSION = '2.2.0';
+our $VERSION = '2.2.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -88,7 +88,7 @@ sub running_on_linux {    ## no critic (RequireFinalReturn)
         $linux = $_ eq 'Linux';
 
         close $output
-          or $plugin->nagios_exit( UNKOWN, "Cannot close output: $OS_ERROR" );
+          or $plugin->nagios_exit( UNKNOWN, "Cannot close output: $OS_ERROR" );
 
         # check the OS (32 or 64 bit)
         $pid = open $output, q{-|}, 'uname -m';  ## no critic (RequireBriefOpen)
