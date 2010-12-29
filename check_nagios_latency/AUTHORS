@@ -1,4 +1,6 @@
 Matteo Corti <matteo.corti@id.ethz.ch>
 
-Thanks to cmies (?) who published a simple version of this script
-on Nagios Exchange
+* Thanks to cmies (?) who published a simple version of this script on
+  Nagios Exchange
+* Thanks to the anonymous programmer who submitted a patch to include the
+  -f option

@@ -1,3 +1,8 @@
+2010-12-29  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_nagios_latency: added the -f option
+	* check_nagios_latency: cleanup
+	
 2007-11-28  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_nagios_latency: cleaned up using bashcritic

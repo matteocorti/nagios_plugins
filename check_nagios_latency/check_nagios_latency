@@ -1,12 +1,29 @@
-#!/bin/bash
-
-# (c) Matteo Corti, ETH Zurich, 2007
+#!/bin/sh
 #
 # check_nagios_latency
 #
 # Checks the Nagios latency
+#
+# Copyright (c) 2007-2010 ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_ssl_cert 1212 2010-12-16 06:08:19Z corti $
+#   $Revision: 1212 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_ssl_cert/check_ssl_cert $
+#   $Date: 2010-12-16 07:08:19 +0100 (Thu, 16 Dec 2010) $
 
-VERSION=0.9.3
+################################################################################
+# Constants
+
+VERSION=1.0.0
+SHORTNAME="LATENCY"
 
 ################################################################################
 # Functions
@@ -22,9 +39,10 @@ usage() {
     fi
     
     echo
-    echo "Usage: check_nagios_latency [-hvV?] -w warning -c critical [-n path]"
+    echo "Usage: check_nagios_latency [-hvV?] -w warning -c critical [-n path ] [-f cfg_file ]"
     echo
     echo "   -c         critical threshold"
+    echo "   -f path    nagios config file path"
     echo "   -h, -?     this help message"
     echo "   -n path    nagiostats path"
     echo "   -v         verbose output"
@@ -45,16 +63,16 @@ usage() {
 check_prog() {
 
     if [ -z "$PROG" ] ; then
-        PROG=`which $1`
+        PROG=$(command -v $1)
     fi
 
     if [ -z "$PROG" ] ; then
-        echo "LATENCY CRITICAL - cannot find $1"
+        echo "${SHORTNAME} CRITICAL - cannot find $1"
         exit 2
     fi
 
     if [ ! -x "$PROG" ] ; then
-        echo "LATENCY CRICTICAL - $PROG is not executable"
+        echo "${SHORTNAME} CRICTICAL - $PROG is not executable"
         exit 2
     fi
 
@@ -64,10 +82,18 @@ check_prog() {
 # Main
 ################################################################################
 
+# initialize local variable (ovverride external definitions)
+CONFIG=
+CRITICAL=
+PROG=
+VERBOSE=
+WARNING=
+
 # process command line options
-while getopts "vh?Vc:w:n:" opt; do
+while getopts "vh?Vc:w:n:f:" opt; do
     case $opt in
         c )      CRITICAL=$OPTARG;  ;;
+        f )      CONFIG=$OPTARG;    ;;
         h | \? ) usage ; exit 3;    ;;
         n )      PROG=$OPTARG ;;
         V )      echo "check_nagios_latency version ${VERSION}"; exit 3; ;;
@@ -93,12 +119,12 @@ fi
 # Check number formats
 
 if ! echo $WARNING | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
-    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    echo "${SHORTNAME} UNKOWN - Wrong number: $WARNING"
     exit 3
 fi
 
 if ! echo $CRITICAL | grep -qE '^[0-9]+(\.[0-9]+)?$' ; then
-    echo "LATENCY UNKOWN - Wrong number: $WARNING"
+    echo "${SHORTNAME} UNKOWN - Wrong number: $WARNING"
     exit 3
 fi
 
@@ -107,7 +133,11 @@ fi
 
 check_prog nagiostats
 
-LATENCY=`$PROG | grep "Active Service Latency" |cut -f3 -d'/' | awk '{print $1}' | tr -d '\n'`;
+test -n "$CFG" && PROG="$PROG -c $CFG"
+
+# Check the latency
+
+LATENCY=$($PROG | grep "Active Service Latency" |cut -f3 -d'/' | awk '{print $1}' | tr -d '\n');
 
 if [ -n "${VERBOSE}" ] ; then echo "latency: ${LATENCY}"; fi
 
@@ -116,17 +146,17 @@ if [ -n "${VERBOSE}" ] ; then echo "latency: ${LATENCY}"; fi
 
 PERF="Latency=${LATENCY};${WARNING};${CRITICAL};;"
 
-COMPARISON=`echo "if($LATENCY>$CRITICAL) 1 else 0;" | bc`
+COMPARISON=$(echo "if($LATENCY>$CRITICAL) 1 else 0;" | bc)
 if [ $COMPARISON -eq 1 ] ; then
-    echo "LATENCY CRITICAL ${LATENCY}s | $PERF"
+    echo "${SHORTNAME} CRITICAL ${LATENCY}s | $PERF"
     exit 2
 fi
 
-COMPARISON=`echo "if($LATENCY>$WARNING) 1 else 0;" | bc`
+COMPARISON=$(echo "if($LATENCY>$WARNING) 1 else 0;" | bc)
 if [ $COMPARISON -eq 1 ] ; then
-    echo "LATENCY WARNING ${LATENCY}s | $PERF"
+    echo "${SHORTNAME} WARNING ${LATENCY}s | $PERF"
     exit 1
 fi
 
-echo "LATENCY OK ${LATENCY}s| $PERF"
+echo "${SHORTNAME} OK ${LATENCY}s| $PERF"
 exit 0;

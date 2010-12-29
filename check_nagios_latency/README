@@ -3,9 +3,10 @@ Checks the latency of the Nagios server
 Usage
 =====
 
-check_nagios_latency [-hvV?] -w warning -c critical
+check_nagios_latency [-hvV?] -w warning -c critical  [-n path ] [-f cfg_file]
 
    -c         critical threshold
+   -f path    nagios config file path
    -h, -?     this help message
    -n path    nagiostats path
    -v         verbose output
