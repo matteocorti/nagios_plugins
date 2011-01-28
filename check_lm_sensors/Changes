@@ -1,3 +1,8 @@
+2011-01-28  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_lm_sensors: applied a patch from Giles Westwood to support multiple --rename
+	                    arguments
+
 2008-10-17  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_lm_sensors: added 0.2s pause before reading the output of 'sensors'

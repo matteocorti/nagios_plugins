@@ -1,3 +1,7 @@
+2011-01-28 (Version 4.0.0)
+* code cleanup
+* multiple --rename options
+
 2008-10-17 (Version 3.1.1)
 * added a short pause while reading the output of 'sensors' to cope
   with some systems where a delay caused the plugin to fail
