@@ -52,6 +52,7 @@ my %lows;
 my %renames;
 my %ranges;
 my %sensor_values;
+my %sensor_names;
 
 # initialization
 $desc      = q{};
@@ -119,7 +120,7 @@ sub check_arguments {
 
     for my $sensor ( keys %{$checks_ref} ) {
 
-        if ( !defined $sensor_values{$sensor} ) {
+        if ( !defined $sensor_names{$sensor} ) {
             $plugin->nagios_exit( UNKNOWN, "unknown sensor $sensor" );
         }
         else {
@@ -332,6 +333,7 @@ sub parse_drives {
                 # check if the sensor has to be renamed
 
                 $sensor_values{$name} = $temp;
+		$sensor_names{$name} = $name;
 
                 verbose "found temperature for drive $name ($name = $_)\n";
 
@@ -378,8 +380,6 @@ sub parse_sensors {
 
         my $device_name;
 
-        #<<<
-
         # get device name
         my $name_handler;
         open $name_handler, q{<}, "$DEV_DIR/$device/device/name"
@@ -392,7 +392,6 @@ sub parse_sensors {
           or $plugin->nagios_exit( UNKNOWN,
             "Error closing $DEV_DIR/$device/device/name: $OS_ERROR" );
 
-        #>>>
         # list sensors
         opendir $dir_handle, "$DEV_DIR/$device/device/"
           or return;
@@ -408,8 +407,6 @@ sub parse_sensors {
             my $sensor_handler;
             my $value;
 
-            #<<<
-
             open $sensor_handler, q{<}, "$DEV_DIR/$device/device/$sensor" . '_input'
               or $plugin->nagios_exit(
                   UNKNOWN,
@@ -423,18 +420,15 @@ sub parse_sensors {
                     "Error closing $DEV_DIR/$device/device/$sensor"
                   . "_input: $OS_ERROR" );
 
-            #>>>
             my $full_name = $device_name . q{_} . $sensor;
 
             # check if the sensor has to be renamed
-            my $original_name;
-            my $chosen_name;
-            while ( ( $original_name, $chosen_name ) = each %renames ) {
+            $sensor_values{$full_name} = $value;
+            while ( my ( $original_name, $chosen_name ) = each %renames ) {
                 if ( $original_name eq $full_name ) {
-                    $full_name = $chosen_name;
+                    $sensor_names{$chosen_name} = $full_name;
                 }
             }
-            $sensor_values{$full_name} = $value;
 
             if ($verbosity) {
 
@@ -595,7 +589,7 @@ while ( ( $name, $limits ) = each %highs ) {
 
     my ( $warn, $crit ) = split /,/mxs, $limits;
 
-    my $value = $sensor_values{$name};
+    my $value = $sensor_values{$sensor_names{$name}};
 
     push @status, "$name=$value;$warn;$crit;;";
     push @desc,   "$name=$value";
@@ -610,7 +604,7 @@ while ( ( $name, $limits ) = each %lows ) {
 
     my ( $warn, $crit ) = split /,/mxs, $limits;
 
-    my $value = $sensor_values{$name};
+    my $value = $sensor_values{$sensor_names{$name}};
 
     push @status, "$name=$value;$warn;$crit;;";
     push @desc,   "$name=$value";
@@ -625,7 +619,7 @@ while ( ( $name, $limits ) = each %ranges ) {
 
     my ( $warn, $crit, $ref ) = split /,/mxs, $limits;
 
-    my $value = $sensor_values{$name};
+    my $value = $sensor_values{$sensor_names{$name}};
     my $diff  = abs( $value - $ref );  ## no critic (ProhibitParensWithBuiltins)
 
     push @status, "$name=$value;$warn;$crit;;";
