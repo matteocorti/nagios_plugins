@@ -51,6 +51,7 @@ my %highs;
 my %lows;
 my %renames;
 my %ranges;
+
 my %sensor_values;
 my %sensor_names;
 
@@ -334,6 +335,11 @@ sub parse_drives {
 
                 $sensor_values{$name} = $temp;
 		$sensor_names{$name} = $name;
+		while ( my ( $original_name, $chosen_name ) = each %renames ) {
+		  if ( $original_name eq $name ) {
+                    $sensor_names{$chosen_name} = $name;
+		  }
+		}
 
                 verbose "found temperature for drive $name ($name = $_)\n";
 
@@ -424,6 +430,7 @@ sub parse_sensors {
 
             # check if the sensor has to be renamed
             $sensor_values{$full_name} = $value;
+	    $sensor_names{$full_name} = $full_name;
             while ( my ( $original_name, $chosen_name ) = each %renames ) {
                 if ( $original_name eq $full_name ) {
                     $sensor_names{$chosen_name} = $full_name;
