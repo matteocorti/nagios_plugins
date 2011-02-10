@@ -6,26 +6,30 @@
 # $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
 ################################################################################
 
-%define version 2.2.2
-%define release 0
-%define name    check_tcptraffic
+%define version          2.2.2
+%define release          0
+%define sourcename       check_tcptraffic
+%define packagename      nagios-plugins-check-tcptraffic
 %define nagiospluginsdir %{_libdir}/nagios/plugins
 
 # No binaries in this package
-%define debug_package %{nil}
+%define debug_package    %{nil}
 
 Summary:   A Nagios plugin to monitor the amount of TCP traffic
-Name:      %{name}
+Name:      %{packagename}
 Version:   %{version}
+Obsoletes: check_tcptraffic
 Release:   %{release}%{?dist}
 License:   GPLv3+
 Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{packagename}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source:    http://www.id.ethz.ch/people/allid_list/corti/%{sourcename}-%{version}.tar.gz
 
 # Fedora build requirement (not needed for EPEL{4,5})
 BuildRequires: perl(ExtUtils::MakeMaker)
+
+Requires:  nagios-plugins
 
 %description
 check_tcptraffic is a Nagios plugin to monitor the amount of TCP traffic
@@ -57,10 +61,13 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS Changes NEWS README TODO COPYING COPYRIGHT nagiosgrapher
-%{nagiospluginsdir}/%{name}
-%{_mandir}/man1/%{name}.1*
+%{nagiospluginsdir}/%{sourcename}
+%{_mandir}/man1/%{sourcename}.1*
 
 %changelog
+* Thu Feb 10 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.2-0%{?dist}
+- Added the nagiosgrapher template and renamed the RPM
+
 * Wed Nov  3 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.1-0
 - fixed a minor bug in error handling
 
