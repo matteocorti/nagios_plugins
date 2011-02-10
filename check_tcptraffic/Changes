@@ -1,3 +1,7 @@
+2011-02-10  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* nagiosgrapher: added the nagiorgrapher template (thanks to Marcus Schopen)
+
 2010-11-03  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: fixed a minor bug which caused on error while

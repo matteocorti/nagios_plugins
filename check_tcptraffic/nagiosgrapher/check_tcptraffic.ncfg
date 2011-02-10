@@ -1,0 +1,170 @@
+#
+# NagiosGrapher Template
+#
+# Author: Marcus Schopen, marcus.schopen@uni-bielefeld.de
+#
+# Copyright (c) 2011 Marcus Schopen.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+
+# -- TOTAL
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	graph_perf_regex	TOTAL=(\d+)
+	graph_value		TOTAL
+	graph_units		Byte
+	graph_legend		TOTAL:
+	rrd_plottype		LINE2
+	rrd_color		FE0000
+	page			TOTAL
+}
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	type			GPRINT
+        print_source            TOTAL
+        print_description       Latest:
+        print_function          LAST
+	print_format            %2.2lf 
+}
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            TOTAL
+        print_description       Minimum:
+        print_function          MIN
+	print_format            %2.2lf
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            TOTAL
+        print_description       Maximum:
+        print_function          MAX
+	print_format            %2.2lf 
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            TOTAL
+        print_description       Average:
+        print_function          AVERAGE
+	print_format            %2.2lf
+        print_eol               left
+        }
+
+# -- IN
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	graph_perf_regex	IN=(\d+)
+	graph_value		IN
+	graph_units		Byte
+	graph_legend		IN:
+	rrd_plottype		LINE2
+	rrd_color		00008B
+	page			IN
+}
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	type			GPRINT
+        print_source            IN
+        print_description       Latest:
+        print_function          LAST
+	print_format            %2.2lf 
+}
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            IN
+        print_description       Minimum:
+        print_function          MIN
+	print_format            %2.2lf
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            IN
+        print_description       Maximum:
+        print_function          MAX
+	print_format            %2.2lf 
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            IN
+        print_description       Average:
+        print_function          AVERAGE
+	print_format            %2.2lf
+        print_eol               left
+        }
+
+# -- OUT
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	graph_perf_regex	OUT=(\d+)
+	graph_value		OUT
+	graph_units		Byte
+	graph_legend		OUT:
+	rrd_plottype		LINE2
+	rrd_color		00A000
+	page			OUT
+}
+
+define ngraph{
+	service_name		TCPTRAFFIC
+	type			GPRINT
+        print_source            OUT
+        print_description       Latest:
+        print_function          LAST
+	print_format            %2.2lf 
+}
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            OUT
+        print_description       Minimum:
+        print_function          MIN
+	print_format            %2.2lf
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            OUT
+        print_description       Maximum:
+        print_function          MAX
+	print_format            %2.2lf 
+        }
+
+define ngraph{
+        service_name            TCPTRAFFIC
+        type                    GPRINT
+        print_source            OUT
+        print_description       Average:
+        print_function          AVERAGE
+	print_format            %2.2lf
+        print_eol               left
+        }
+
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_tcptraffic 1204 2010-11-03 16:16:45Z corti $
+#   $Revision: 1204 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_tcptraffic/check_tcptraffic $
+#   $Date: 2010-11-03 17:16:45 +0100 (Wed, 03 Nov 2010) $

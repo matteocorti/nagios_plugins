@@ -6,7 +6,7 @@
 # $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
 ################################################################################
 
-%define version 2.2.1
+%define version 2.2.2
 %define release 0
 %define name    check_tcptraffic
 %define nagiospluginsdir %{_libdir}/nagios/plugins
@@ -56,7 +56,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS Changes NEWS README TODO COPYING COPYRIGHT
+%doc AUTHORS Changes NEWS README TODO COPYING COPYRIGHT nagiosgrapher
 %{nagiospluginsdir}/%{name}
 %{_mandir}/man1/%{name}.1*
 

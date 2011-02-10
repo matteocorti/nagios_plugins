@@ -25,4 +25,4 @@ requires:
   version: 0
 resources:
   license: http://opensource.org/licenses/gpl-license.php
-version: 2.2.1
+version: 2.2.2
