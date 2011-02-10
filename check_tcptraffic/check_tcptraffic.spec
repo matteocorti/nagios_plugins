@@ -39,7 +39,7 @@ amount of transferred bytes from the last plugin execution (temporary
 data is stored in the /tmp/check_tcptraffic-iface file)
 
 %prep
-%setup -q
+%setup -q -n %{sourcename}-%{version}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor \
