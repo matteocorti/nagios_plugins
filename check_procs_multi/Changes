@@ -1,3 +1,7 @@
+2011-02-11  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* renamed the RPM to nagios-plugins-check-procs-multi
+
 2010-01-25  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* COPYING: GPLv3

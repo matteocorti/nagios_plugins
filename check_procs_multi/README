@@ -1,2 +1,12 @@
 check_procs_multi is a Nagios plugin similar to check_procs able to
 check several processes at once.
+
+Note:
+=====
+
+Beware that if you are using nagiosgrapher, the tool is not able to distinguish between
+check_procs and check_procs_multi (since it looks for PROCS in the plugin name).
+
+To avoid the problem you can just rename the name of the plugin in the output:
+
+  $ check_procs_multi [arguments] | sed -e 's/CHECK_PROCS_MULTI/MULTIPROC/g'

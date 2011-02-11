@@ -1,5 +1,17 @@
 #!perl -w
 
+# check_procs_multi is a Nagios plugin similar to check_procs able to
+# check several processes at once.
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007-2010, Matteo Corti
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3,
+# or (at your option) any later version.
+# See the COPYING file for details.
+#
 # RCS information
 # enable substitution with:
 #   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
@@ -12,8 +24,6 @@
 use strict;
 use warnings;
 
-use 5.008;
-
 use Getopt::Long;
 use Carp;
 use English qw(-no_match_vars);
@@ -23,7 +33,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
 use Readonly;
 
-use version; our $VERSION = '1.1.1';
+our $VERSION = '1.1.2';
 
 Readonly my $NAME  => 0;
 Readonly my $W_MIN => 1;
@@ -267,17 +277,17 @@ for my $proc (@procs) {
         $cmax = $line[$C_MAX];
 
         # sanity checks
-        if ( $wmin && !$wmin =~ /[0-9]+/mxs ) {
+        if ( $wmin && !$wmin =~ /\d+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $wmin is not a number" );
         }
-        if ( $wmax && !$wmax =~ /[0-9]+/mxs ) {
+        if ( $wmax && !$wmax =~ /\d+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $wmax is not a number" );
         }
 
-        if ( $cmin && !$cmin =~ /[0-9]+/mxs ) {
+        if ( $cmin && !$cmin =~ /\d+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $cmin is not a number" );
         }
-        if ( $cmax && !$cmax =~ /[0-9]+/mxs ) {
+        if ( $cmax && !$cmax =~ /\d+/mxs ) {
             $plugin->nagios_exit( UNKNOWN, "Error: $cmax is not a number" );
         }
 
