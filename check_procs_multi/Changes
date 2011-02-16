@@ -1,3 +1,7 @@
+2011-02-16  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* README: added hint on adding data sources on RRD files
+
 2011-02-11  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* renamed the RPM to nagios-plugins-check-procs-multi
