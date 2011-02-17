@@ -33,7 +33,7 @@ use Nagios::Plugin;
 use Nagios::Plugin::Range;
 use Nagios::Plugin::Getopt;
 
-our $VERSION = '2.2.2';
+our $VERSION = '2.2.3';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -48,14 +48,15 @@ our $VERSION = '2.2.2';
 
 use vars qw(
   $help
+  $log_file
   $options
+  $os_64_bit
   $plugin
   $result
-  $threshold
   $status
   $status_msg
+  $threshold
   $tmp
-  $os_64_bit
 );
 
 ##############################################################################
@@ -64,9 +65,43 @@ use vars qw(
 use subs qw(verbose);
 
 ##############################################################################
+# Usage     : debug( "message" )
+# Purpose   : writes a debugging message to the console and optionally to the
+#             debugging log file
+# Returns   : n/a
+# Arguments : the debugging message
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub debug {
+
+    my $message = shift;
+
+    chomp $message;
+
+    if ( $options->debug() ) {
+        print "[DEBUG] $message\n"; ## no critic (RequireCheckedSyscalls)
+    }
+    
+    if ($options->debug_log()) {
+
+        open $log_file, '>>', $options->debug_log()
+            or $plugin->nagios_exit( UNKNOWN, 'Cannot open ' . $options->debug_log() . ": $OS_ERROR" );
+
+        print { $log_file } time . " $message\n"
+            or $plugin->nagios_exit( UNKNOWN, 'Cannot write to ' . $options->debug_log() . ": $OS_ERROR" );
+        
+        close $log_file;
+    }
+    
+    return;
+    
+}
+
+##############################################################################
 # Usage     : running_on_linux()
 # Purpose   : check if running on a Linux system
-# Returns   : true if runnint on Linux
+# Returns   : true if running on Linux
 # Arguments : n/a
 # Throws    : n/a
 # Comments  : also checks if the OS is 64 bit capable and sets $os_64_bit
@@ -100,15 +135,14 @@ sub running_on_linux {    ## no critic (RequireFinalReturn)
         while (<$output>) {
             chomp;
             $os_64_bit = ( $_ eq 'x86_64' );
-            if ( $options->debug() ) {
-                if ($os_64_bit) {
-                    print '[DEBUG] 64';    ## no critic (RequireCheckedSyscalls)
-                }
-                else {
-                    print '[DEBUG] 32';    ## no critic (RequireCheckedSyscalls)
-                }
-                print "bit system\n";      ## no critic (RequireCheckedSyscalls)
+            my $message;
+            if ($os_64_bit) {
+                $message = '64';
             }
+            else {
+                $message = '32';
+            }
+            debug( $message . 'bit system' );
             return $linux;
         }
 
@@ -139,9 +173,7 @@ sub whoami {
 
     while (<$output>) {
         chomp;
-        if ( $options->debug() ) {
-            print "[DEBUG] user $_\n";    ## no critic (RequireCheckedSyscalls)
-        }
+        debug("user $_");
         return $_;
     }
 
@@ -166,22 +198,16 @@ sub write_timer {
 
     my $TMP;    # file handler
 
-    if ( $options->debug() ) {
-        print "[DEBUG] initializing timer $tmp\n";     ## no critic (RequireCheckedSyscalls)
-    }
+    my $dbg_message = "witing to $tmp";
 
     if ( !open $TMP, q{>}, $tmp ) {    ## no critic (RequireBriefOpen)
-        if ( $options->debug() ) {
-            print "[DEBUG]   error: $OS_ERROR\n";                        ## no critic (RequireCheckedSyscalls)
-        }
+        debug("error: $OS_ERROR");
         $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
     }
 
     my $line = time . " $in $out\n";
     print {$TMP} $line;                ## no critic (RequireCheckedSyscalls)
-    if ( $options->debug() ) {
-        print "[DEBUG]   $line";       ## no critic (RequireCheckedSyscalls)
-    }
+    debug("$dbg_message: $line");
 
     close $TMP
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
@@ -340,9 +366,7 @@ sub verbose {
         $level = 0;
     }
 
-    if ( $options->debug() ) {
-        print '[DEBUG] ';    ## no critic (RequireCheckedSyscalls)
-    }
+    debug( $message );
 
     if (   $level < $options->verbose()
         || $options->debug() )
@@ -413,6 +437,12 @@ $options->arg(
     required => 0,
 );
 
+$options->arg(
+    spec     => 'debug_log=s',
+    help     => 'generates a log with debugging information',
+    required => 0,
+};
+
 $options->getopts();
 
 ###############
@@ -420,6 +450,10 @@ $options->getopts();
 
 if ( !running_on_linux() ) {
     $plugin->nagios_exit( UNKNOWN, 'Not running on a Linux system' );
+}
+
+if ( $options->debug_log() && ( ! -w $options->debug_log() ) {
+    $plugin->nagios_exit( UNKNOWN, $options->debug_log() . ' is not writable');
 }
 
 # parse the critical and warning ranges

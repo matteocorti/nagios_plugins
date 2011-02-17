@@ -27,7 +27,7 @@ Since /proc/net/dev uses 32bit counters overflows are a problem
 
 =head1 VERSION
 
-Version 2.2.2
+Version 2.2.3
 
 =head1 SYNOPSIS
 

@@ -6,7 +6,7 @@
 # $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
 ################################################################################
 
-%define version          2.2.2
+%define version          2.2.3
 %define release          0
 %define sourcename       check_tcptraffic
 %define packagename      nagios-plugins-check-tcptraffic
@@ -65,7 +65,10 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{sourcename}.1*
 
 %changelog
-* Thu Feb 10 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.2-0%{?dist}
+* Thu Feb 17 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.3-0
+- added an optional debug log
+
+* Thu Feb 10 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.2-0
 - Added the nagiosgrapher template and renamed the RPM
 
 * Wed Nov  3 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.1-0
