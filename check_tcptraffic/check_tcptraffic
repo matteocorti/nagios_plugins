@@ -80,22 +80,28 @@ sub debug {
     chomp $message;
 
     if ( $options->debug() ) {
-        print "[DEBUG] $message\n"; ## no critic (RequireCheckedSyscalls)
+        print "[DEBUG] $message\n";    ## no critic (RequireCheckedSyscalls)
     }
-    
-    if ($options->debug_log()) {
+
+    if ( $options->debug_log() ) {
 
         open $log_file, '>>', $options->debug_log()
-            or $plugin->nagios_exit( UNKNOWN, 'Cannot open ' . $options->debug_log() . ": $OS_ERROR" );
+          or $plugin->nagios_exit( UNKNOWN,
+            'Cannot open ' . $options->debug_log() . ": $OS_ERROR" );
 
-        print { $log_file } time . " $message\n"
-            or $plugin->nagios_exit( UNKNOWN, 'Cannot write to ' . $options->debug_log() . ": $OS_ERROR" );
-        
-        close $log_file;
+        print {$log_file} time
+          . " $message\n"
+          or $plugin->nagios_exit( UNKNOWN,
+            'Cannot write to ' . $options->debug_log() . ": $OS_ERROR" );
+
+        close $log_file
+          or $plugin->nagios_exit( UNKNOWN,
+            'Cannot close ' . $options->debug_log() . ": $OS_ERROR" );
+
     }
-    
+
     return;
-    
+
 }
 
 ##############################################################################
@@ -314,6 +320,7 @@ sub read_proc {
                     $data{diff} = time - $time;
                     $data{in}   = $in;
                     $data{out}  = $out;
+                    debug("reading old data: $time $in $out after $data{diff}");
                 }
 
                 close $TMP
@@ -366,12 +373,12 @@ sub verbose {
         $level = 0;
     }
 
-    debug( $message );
+    debug($message);
 
     if (   $level < $options->verbose()
         || $options->debug() )
     {
-        print $message;      ## no critic (RequireCheckedSyscalls)
+        print $message;    ## no critic (RequireCheckedSyscalls)
     }
 
     return;
@@ -441,19 +448,20 @@ $options->arg(
     spec     => 'debug_log=s',
     help     => 'generates a log with debugging information',
     required => 0,
-};
+);
 
 $options->getopts();
 
 ###############
 # Sanity checks
 
+if ( $options->debug_log() && ( !-w $options->debug_log() ) ) {
+    $plugin->nagios_exit( UNKNOWN, $options->debug_log() . ' is not writable' );
+}
+debug('------------------------------------------');
+
 if ( !running_on_linux() ) {
     $plugin->nagios_exit( UNKNOWN, 'Not running on a Linux system' );
-}
-
-if ( $options->debug_log() && ( ! -w $options->debug_log() ) {
-    $plugin->nagios_exit( UNKNOWN, $options->debug_log() . ' is not writable');
 }
 
 # parse the critical and warning ranges
@@ -478,15 +486,14 @@ my $max_check_time;    # in seconds
 # 64 bit  2^32         2^64*8 -> 2^67   2^67 / 1024^2 -> 2^47
 # 32 bit  2^32         2^32*8 -> 2^35   2^38 / 1024^2 -> 2^15
 
+#<<<
 if ($os_64_bit) {
-    $max_check_time =
-      int( ( 2**47 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
+    $max_check_time = int( ( 2**47 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
 }
 else {
-    $max_check_time =
-      int( ( 2**15 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
+    $max_check_time = int( ( 2**15 - 1 ) / $options->speed() ); ## no critic (ProhibitMagicNumbers)
 }
-
+#>>>
 verbose
   "the counters can hold data for $max_check_time seconds before overflow\n";
 
@@ -509,7 +516,7 @@ if ( $data{diff} > $max_check_time ) {
       . 's) is greater than the maximum check time allowed with speed '
       . $options->speed() . ' ('
       . $max_check_time
-      . "s):\nsleeping 1s to gather data again\n";
+      . "s): sleeping 1s to gather data again\n";
 
     # time difference is > max_check_time
     # since the counter could overflow
@@ -536,19 +543,32 @@ my $traffic_out;
 
 if ( $data{bytes_in} >= $data{in} ) {
     $traffic_in = int( ( $data{bytes_in} - $data{in} ) / $data{diff} );
+    debug(
+        "IN: $traffic_in = int( ( $data{bytes_in} - $data{in} ) / $data{diff} )"
+    );
 }
 else {
     $traffic_in = int( ( $data{in} - $data{bytes_in} ) / $data{diff} );
+    debug(
+"IN (overflow): $traffic_in = int( ( $data{in} - $data{bytes_in} ) / $data{diff} )"
+    );
 }
 
 if ( $data{bytes_out} >= $data{out} ) {
     $traffic_out = int( ( $data{bytes_out} - $data{out} ) / $data{diff} );
+    debug(
+"OUT: $traffic_out = int( ( $data{bytes_out} - $data{out} ) / $data{diff} )"
+    );
 }
 else {
     $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} );
+    debug(
+"OUT (overflow): $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} )"
+    );
 }
 
 my $traffic = $traffic_in + $traffic_out;
+debug("TOT: $traffic = $traffic_in + $traffic_out");
 
 $plugin->add_perfdata(
     label     => 'TOTAL',
