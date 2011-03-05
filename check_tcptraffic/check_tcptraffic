@@ -32,8 +32,14 @@ use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
 use Nagios::Plugin::Range;
 use Nagios::Plugin::Getopt;
+use Readonly;
+
+################################################################################
+# constants
 
 our $VERSION = '2.2.3';
+
+Readonly my $MAX_LONG => 2**32 - 1;
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -204,7 +210,7 @@ sub write_timer {
 
     my $TMP;    # file handler
 
-    my $dbg_message = "witing to $tmp";
+    my $dbg_message = "writing to $tmp";
 
     if ( !open $TMP, q{>}, $tmp ) {    ## no critic (RequireBriefOpen)
         debug("error: $OS_ERROR");
@@ -541,6 +547,8 @@ if ( $data{diff} == 0 ) {
 my $traffic_in;
 my $traffic_out;
 
+# in
+
 if ( $data{bytes_in} >= $data{in} ) {
     $traffic_in = int( ( $data{bytes_in} - $data{in} ) / $data{diff} );
     debug(
@@ -548,11 +556,16 @@ if ( $data{bytes_in} >= $data{in} ) {
     );
 }
 else {
-    $traffic_in = int( ( $data{in} - $data{bytes_in} ) / $data{diff} );
+
+    # the old value is larger than the new one: the counter overflowed
+    $traffic_in =
+      int( ( $MAX_LONG - $data{in} + $data{bytes_in} ) / $data{diff} );
     debug(
-"IN (overflow): $traffic_in = int( ( $data{in} - $data{bytes_in} ) / $data{diff} )"
+"IN (overflow): $traffic_in = int( ( $MAX_LONG - $data{in} + $data{bytes_in} ) / $data{diff} )"
     );
 }
+
+# out
 
 if ( $data{bytes_out} >= $data{out} ) {
     $traffic_out = int( ( $data{bytes_out} - $data{out} ) / $data{diff} );
@@ -561,9 +574,12 @@ if ( $data{bytes_out} >= $data{out} ) {
     );
 }
 else {
-    $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} );
+
+    # the old value is larger than the new one: the counter overflowed
+    $traffic_out =
+      int( ( $MAX_LONG - $data{out} + $data{bytes_out} ) / $data{diff} );
     debug(
-"OUT (overflow): $traffic_out = int( ( $data{out} - $data{bytes_out} ) / $data{diff} )"
+"OUT (overflow): $traffic_out = int( ( $MAX_LONG - $data{out} + $data{bytes_out} ) / $data{diff} )"
     );
 }
 

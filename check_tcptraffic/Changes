@@ -1,3 +1,8 @@
+2011-03-05  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: corrected a bug in the handling of counter
+	overflows
+
 2011-02-17  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: added a debug log

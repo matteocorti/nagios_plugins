@@ -66,7 +66,7 @@ rm -rf %{buildroot}
 
 %changelog
 * Thu Feb 17 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.3-0
-- added an optional debug log
+- added an optional debug log and corrected a bug in the handling of counter overflows
 
 * Thu Feb 10 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 2.2.2-0
 - Added the nagiosgrapher template and renamed the RPM
