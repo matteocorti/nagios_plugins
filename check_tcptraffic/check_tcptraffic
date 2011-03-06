@@ -39,7 +39,7 @@ use Readonly;
 
 our $VERSION = '2.2.3';
 
-Readonly my $MAX_LONG => 2**32 - 1;
+Readonly my $MAX_LONG => 2**32;
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
