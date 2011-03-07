@@ -22,6 +22,7 @@ requires:
   Nagios::Plugin: 0
   Nagios::Plugin::Range: 0
   Nagios::Plugin::Threshold: 0
+  Readonly: 0
   version: 0
 resources:
   license: http://opensource.org/licenses/gpl-license.php

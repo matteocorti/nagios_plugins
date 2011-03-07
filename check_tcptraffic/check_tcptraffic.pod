@@ -23,7 +23,7 @@ Since /proc/net/dev uses 32bit counters overflows are a problem
 
  10Mbit/s        55'
  100Mbit/s       5'8"
- q1GBit/s         32s
+ 1GBit/s         32s
 
 =head1 VERSION
 
@@ -41,10 +41,13 @@ Version 2.2.3
   --speed,s               speed (in Mbit/s)
 
  Options
+  --debug,d               debugging output
+  --debug_log=file        generates a log with debugging information
   --help,-h,-?            this help message
   --reset,r               initialize counter
   --version,V             print version and exit
   --verbose,v             verbose
+  
 
 =head1 REQUIRED ARGUMENTS
 
@@ -57,6 +60,10 @@ Version 2.2.3
   --critical=value,-c value     critical number of sectors/s
 
   --warning=value,-w value      number of sectors/s which generates a warning
+
+  --debug,d                     debugging output
+
+  --debug_log=file              generates a log with debugging information
 
   --help,-h,-?                  help message
 
@@ -78,7 +85,8 @@ stay below the specified limits
 =head1 DIAGNOSTICS
 
 You can specify multiple --verbose options to increase the program
-verbosity.
+verbosity. --debug will generate even more debugging output and
+--debug_log will save the debugging information to a file.
 
 =head1 EXIT STATUS
 
@@ -102,6 +110,8 @@ check_diskio depends on
 =item * Nagios::Plugin::Threshold
 
 =item * Nagios::Plugin::Range
+
+=item * Readonly
 
 =item * version
 
