@@ -14,15 +14,17 @@ use warnings;
 
 use 5.00800;
 
-use Getopt::Long;
 use Carp;
 use English qw(-no_match_vars);
-
+use File::Slurp;
+use Getopt::Long;
 use Nagios::Plugin;
 use Nagios::Plugin::Threshold;
-use File::Slurp;
+use Readonly;
 
-use version; our $VERSION = '1.0.1';
+our $VERSION = '1.0.1';
+
+## no critic (ProhibitMagicNumbers)
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -32,6 +34,7 @@ use version; our $VERSION = '1.0.1';
 #
 # All variables are therefore declared as package variables...
 #
+## no critic (ProhibitPackageVars)
 use vars qw(
   $buffers
   $cached
@@ -72,10 +75,13 @@ sub usage {
     }
 
     if ( $args{-message} ) {
-        print $args{-message};
+        #<<<
+        print $args{-message}; ## no critic (RequireCheckedSyscall)
+        #>>>
     }
 
-    print <<'EOT';
+    #<<<
+    print <<'EOT'; ## no critic (RequireCheckedSyscall)
         check_free_mem --critical=critical --warning=warning
                    [--swap]
                    [--verbose]
@@ -90,7 +96,7 @@ sub usage {
          --version,V                print version number
          --verbose,-v               be more verbose (can be repeated)
 EOT
-
+    #>>>
     exit $exitval;
 
 }
@@ -120,7 +126,9 @@ sub verbose {
     }
 
     if ( $level < $verbosity ) {
-        print $message;
+        #<<<
+        print $message; ## no critic (RequireCheckedSyscall)
+        #>>>
     }
 
     return;
@@ -137,7 +145,7 @@ sub verbose {
 # See also  : n/a
 sub check_positive_integer {
     my $number = shift;
-    return $number =~ /^[0-9]+$/mx;
+    return $number =~ /^\d+$/mxs;
 }
 
 ##############################################################################
@@ -157,17 +165,15 @@ sub get_path {
     my $which_command = "which $prog";
     my $which_output;
 
+    #<<<
     open $which_output, q{-|}, "$which_command 2>&1"
-      or $plugin->nagios_exit( UNKNOWN,
-        "Cannot execute $which_command: $OS_ERROR" );
-
+      or $plugin->nagios_exit( UNKNOWN,  "Cannot execute $which_command: $OS_ERROR" );
     while (<$which_output>) {
         chomp;
-        if ( !/^which:/mx ) {
+        if ( !/^which:/mxs ) {
             $path = $_;
         }
     }
-
     if (  !( close $which_output )
         && ( $OS_ERROR != 0 ) )
     {
@@ -177,7 +183,7 @@ sub get_path {
         $plugin->nagios_exit( UNKNOWN,
             "Error while closing pipe to $which_command: $OS_ERROR" );
     }
-
+    #>>>
     return $path;
 
 }
@@ -201,7 +207,12 @@ $result = GetOptions(
     'help|h|?'     => \$help,
     'swap|s'       => \$swap,
     'verbose|v+'   => \$verbosity,
-    'version|V'   => sub { print "check_free_mem version $VERSION\n"; exit 3; },
+    'version|V'    => sub {
+        #<<<
+        print "check_free_mem version $VERSION\n"; ## no critic (RequireCheckedSyscall)
+        #>>>
+        exit 3;
+    },
     'warning|w=i' => \$warning,
 );
 
@@ -216,7 +227,7 @@ if ($help) {
     usage( -exitval => UNKNOWN, );
 }
 if (   !defined $critical
-    || !$critical =~ /[0-9]+/mx
+    || !$critical =~ /\d+/mxs
     || $critical < 0
     || $critical > 100 )
 {
@@ -226,7 +237,7 @@ if (   !defined $critical
     );
 }
 if (   !defined $critical
-    || !$warning =~ /[0-9]+/mx
+    || !$warning =~ /\d+/mxs
     || $warning < 0
     || $warning > 100 )
 {
@@ -273,6 +284,25 @@ verbose "Executing \"$command\"\n";
 my $pid = open $output, q{-|}, "$command 2>&1"
   or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
+# read the whole file
+my @lines = read_file($output);
+
+if (  !( close $output )
+    && ( $OS_ERROR != 0 ) )
+{
+
+    # close to a piped open return false if the command with non-zero
+    # status. In this case $! is set to 0
+    $plugin->nagios_exit( UNKNOWN,
+        "Error while closing pipe to $command: $OS_ERROR" );
+}
+
+if ( $verbosity > 1 ) {
+    for my $line (@lines) {
+        verbose "$line", 1;
+    }
+}
+
 # process command outpt
 # expexted format (example)
 #
@@ -282,19 +312,11 @@ my $pid = open $output, q{-|}, "$command 2>&1"
 # Swap:    534634496   27090944  507543552
 # Total:  1028452352  504545280  523907072
 
-# read the whole file
-my @lines = read_file($output);
-
-if ( $verbosity > 1 ) {
-    for my $line (@lines) {
-        verbose "$line", 1;
-    }
-}
-
 # check the header
 my $header = shift @lines;
 if (   !$header
-    || !$header =~ /\ *total\ *used\ *free\ *shared\ *buffers\ *cached/ )
+    || !$header =~
+    /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs )
 {
     $plugin->nagios_exit( UNKNOWN, 'Cannot recognize "free" output' );
 }
@@ -303,7 +325,7 @@ if (   !$header
 my $dummy;
 $line = shift @lines;
 chomp $line;
-( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split / +/,
+( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs,
   $line;
 
 if ( !check_positive_integer($total) ) {
@@ -339,7 +361,7 @@ if ($swap) {
 
     $line = shift @lines;
     chomp $line;
-    ( $dummy, $total, $used, $free ) = split / +/, $line;
+    ( $dummy, $total, $used, $free ) = split /[ ]+/mxs, $line;
 
     if ( !check_positive_integer($total) ) {
         $plugin->nagios_exit( UNKNOWN,
@@ -374,7 +396,7 @@ if ($swap) {
 
     $line = shift @lines;
     chomp $line;
-    ( $dummy, $total, $used, $free ) = split / +/, $line;
+    ( $dummy, $total, $used, $free ) = split /[ ]+/mxs, $line;
 
     if ( !check_positive_integer($total) ) {
         $plugin->nagios_exit( UNKNOWN,
@@ -429,15 +451,5 @@ $plugin->nagios_exit(
     $threshold->get_status( 100 - $free ),
     'free ' . ( sprintf '%.2f', $free ) . q{%}
 );
-
-if (  !( close $output )
-    && ( $OS_ERROR != 0 ) )
-{
-
-    # close to a piped open return false if the command with non-zero
-    # status. In this case $! is set to 0
-    $plugin->nagios_exit( UNKNOWN,
-        "Error while closing pipe to $command: $OS_ERROR" );
-}
 
 1;
