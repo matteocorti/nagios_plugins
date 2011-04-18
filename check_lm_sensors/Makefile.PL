@@ -16,7 +16,8 @@ include 'version';
 requires 'Carp'                      => 0;
 requires 'English'                   => 0;
 requires 'Getopt::Long'              => 0;
-requires 'Nagios::Plugin'            => 0;
+requires 'List::MoreUtils'           => 0;
+requires 'Nagios::Plugin'            => 0.31;
 requires 'Nagios::Plugin::Threshold' => 0;
 requires 'version'                   => 0;
 
