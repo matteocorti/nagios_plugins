@@ -16,7 +16,7 @@ Packager:   Matteo Corti <matteo.corti@id.ethz.ch>
 Group:      Applications/System
 BuildRoot:  %{_tmppath}/%{packagename}-%{version}-%{release}-root-%(%{__id_u} -n)
 URL:        https://trac.id.ethz.ch/projects/nagios_plugins/wiki/check_free_mem
-Source:     http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
+Source:     http://www.id.ethz.ch/people/allid_list/corti/%{sourcename}-%{version}.tar.gz
 
 # Fedora build requirement (not needed for EPEL{4,5})
 BuildRequires: perl(ExtUtils::MakeMaker)

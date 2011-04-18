@@ -26,4 +26,7 @@ install_script  'check_free_mem';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
+    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',
+    MAN1PODS             => { 'check_free_mem.pod' => 'blib/man1/check_free_mem.1', },
+    MAN3PODS             => { },
 );
