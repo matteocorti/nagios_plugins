@@ -1,5 +1,5 @@
 %define version          1.0.1
-%define release          0
+%define release          1
 %define sourcename       check_free_mem
 %define packagename      nagios-plugins-check-free-mem
 %define nagiospluginsdir %{_libdir}/nagios/plugins
@@ -9,6 +9,7 @@
 
 Summary:    Nagios plugin that checks the amount of free physical memory
 Name:       %{packagename}
+Obsoletes:  check_free_mem
 Version:    %{version}
 Release:    %{release}%{?dist}
 License:    GPLv3+
