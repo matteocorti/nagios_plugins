@@ -1,4 +1,4 @@
-Build and install check_dir
+Build and install check_updates
 
 Install to /usr/lib/nagios/plugins/contrib
 ==========================================
@@ -14,9 +14,12 @@ Install to a custom directory (CUSTOM_DIR)
 
 In the source directory run:
 
-    perl Makefile.PL INSTALLSCRIPT=CUSTOM_DIR
+    perl Makefile.PL INSTALLSITESCRIPT=CUSTOM_DIR
     make
     make install
+
+You can override the INSTALLSCRIPT, INSTALLNBIN or INSTALLSITESCRIPT
+variable depending on your perl installation.
 
 The man page is installed to /usr/share/man/man1/check_dir.1
 you can customize the path by setting INSTALLMAN1DIR as follows
@@ -33,8 +36,15 @@ your Perl interpreter and copy it to the desired location
 
 Generate the man page with pod2man
 
-    pod2man check_dir > CUSTOM_MAN_FILE
+    pod2man check_dir.pod > CUSTOM_MAN_FILE
 
 Please report any installation problem to <matteo.corti@id.ethz.ch> or
 open a ticket at
 https://trac.id.ethz.ch/projects/nagios_plugins/newticket
+
+# Version information:
+#
+# $Id: INSTALL 1103 2009-12-07 07:49:19Z corti $
+# $Revision: 1103 $
+# $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_dir/INSTALL $
+# $Date: 2009-12-07 08:49:19 +0100 (Mon, 07 Dec 2009) $

@@ -1,18 +1,40 @@
-%define version 2.1.5
-%define release 1
-%define name    check_dir
-%define _prefix /usr/lib/nagios/plugins/contrib
+################################################################################
+# File version information:
+# $Id: check_updates.spec 1249 2011-05-25 08:27:23Z corti $
+# $Revision: 1249 $
+# $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_updates/check_updates.spec $
+# $Date: 2011-05-25 10:27:23 +0200 (Wed, 25 May 2011) $
+################################################################################
 
-Summary:   Nagios plugin to monitor the number of files in one or more directories.
-Name:      %{name}
-Version:   %{version}
-Release:   %{release}
-License:   GPL
-Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
-Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
-BuildArch: noarch
+%define version 3.0.0
+%define release 0
+%define sourcename       check_dir
+%define packagename      nagios-plugins-check-dir
+%define nagiospluginsdir %{_libdir}/nagios/plugins
+
+# No binaries in this package
+%define debug_package    %{nil}
+
+Summary:       Nagios plugin to monitor the number of files in one or more directories.
+Name:          %{packagename}
+Obsoletes:     check_dir
+Version:       %{version}
+Release:       %{release}%{?dist}
+License:       GPLv3+
+Packager:      Matteo Corti <matteo.corti@id.ethz.ch>
+Group:         Applications/System
+BuildRoot:     %{_tmppath}/%{packagename}-%{version}-%{release}-root-%(%{__id_u} -n)
+URL:           https://trac.id.ethz.ch/projects/nagios_plugins/wiki/check_dir
+Source:        https://trac.id.ethz.ch/projects/nagios_plugins/downloads/%{sourcename}-%{version}.tar.gz
+
+# Fedora build requirement (not needed for EPEL{4,5})
+
+
+BuildRequires: perl(ExtUtils::MakeMaker)
+BuildRequires: perl(Test::More)
+BuildRequires: perl(Nagios::Plugin)
+
+Requires:      nagios-plugins
 
 %description
 Nagios plugin to monitor the number of files in one or more directories.

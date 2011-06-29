@@ -1,6 +1,14 @@
+2010-06-28 Version 3.0.0: fixed some problems with permissions and hidden files
 2008-03-18 Version 2.1.1: accepts ranges for the -w and -c options
 2007-10-31 Version 2.0.1: fix in the threshold check
 2007-10-05 Version 2.0.0: uses Nagios::Plugin and compatible with ePN
 2007-02-13 Makefile + fixing a typo
 2006-08-21 Version 1.1 see ChangeLog
 2006-08-14 Initial release (1.0)
+
+# Version information:
+#
+# $Id: INSTALL 1103 2009-12-07 07:49:19Z corti $
+# $Revision: 1103 $
+# $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_dir/INSTALL $
+# $Date: 2009-12-07 08:49:19 +0100 (Mon, 07 Dec 2009) $

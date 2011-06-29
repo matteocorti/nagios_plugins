@@ -49,3 +49,9 @@
 2006-08-14  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* VERSION 1.0: initial release
+
+# File version information
+# $Id: README 1238 2011-05-24 06:40:44Z corti $
+# $Revision: 1238 $
+# $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_updates/README $
+# $Date: 2011-05-24 08:40:44 +0200 (Tue, 24 May 2011) $
