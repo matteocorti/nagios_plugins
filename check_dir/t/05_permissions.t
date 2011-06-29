@@ -69,7 +69,7 @@ if (! -d $dirname ) {
     mkdir $dirname, 0644
         or croak "Cannot create t/tests/unexecutable: $OS_ERROR";
 }
-my $expected_result = "$dirname is not executable";
+$expected_result = "$dirname is not executable";
 if ( whoami() eq 'root' ) {
     # -x does not fail for root
     $expected_result = undef;
