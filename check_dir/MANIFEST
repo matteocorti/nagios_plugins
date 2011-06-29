@@ -23,5 +23,4 @@ README
 t/00_modules.t
 t/01_functions.t
 t/03_count.t
-t/05_permissions.t
 TODO
