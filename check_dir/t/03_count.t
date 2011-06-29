@@ -14,6 +14,7 @@ use Test::More tests => 5;
 use Carp;
 use File::Spec;
 use File::Path;
+use English qw(-no_match_vars);
 
 our $VERSION = '3.0.0';
 
@@ -27,9 +28,9 @@ sub create_file {
 
     my $FH;
     open $FH, '>', $filename
-        or croak "Cannot create $filename";
+        or croak "Cannot create $filename: $OS_ERROR";
     close $FH
-        or croak "Cannot close $filename";
+        or croak "Cannot close $filename: $OS_ERROR";
 
     return;
 
@@ -44,7 +45,7 @@ sub create_dir {
     }
     
     mkdir $dirname
-        or croak "Cannot create $dirname";
+        or croak "Cannot create $dirname: $OS_ERROR";
 
     return;
 
@@ -54,7 +55,8 @@ my $check_dir = File::Spec->catfile(qw(blib script check_dir));
 
 require_ok($check_dir);
 
-my $prefix = 't/examples/counts';
+create_dir ( 't/tests' );
+my $prefix = 't/tests/counts';
 create_dir ( $prefix );
 
 my $dirname;

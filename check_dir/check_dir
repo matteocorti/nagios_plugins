@@ -219,7 +219,12 @@ sub check_dir {
     if ($options->get('recursive')) {
         foreach my $file (@files) {
             if ( -d "$dirname/$file" ) {
-                check_permissions( "$dirname/$file" );
+                my $error = check_permissions( "$dirname/$file" );
+                if ($error) {
+                    exit_with_error(
+                        UNKNOWN,
+                        "Error: $error" );
+                }
                 check_dir("$dirname/$file");
             }
         }
@@ -239,7 +244,7 @@ sub check_dir {
 sub check_permissions {
 
     my $dirname = shift;
-        
+
     if ( !-d $dirname ) {
         return "$dirname is not a directory";
     }

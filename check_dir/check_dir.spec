@@ -29,10 +29,8 @@ Source:        https://trac.id.ethz.ch/projects/nagios_plugins/downloads/%{sourc
 
 # Fedora build requirement (not needed for EPEL{4,5})
 
-
 BuildRequires: perl(ExtUtils::MakeMaker)
 BuildRequires: perl(Test::More)
-BuildRequires: perl(Nagios::Plugin)
 
 Requires:      nagios-plugins
 
@@ -40,25 +38,38 @@ Requires:      nagios-plugins
 Nagios plugin to monitor the number of files in one or more directories.
 
 %prep
-%setup -q
+%setup -q -n %{sourcename}-%{version}
 
 %build
-%__perl Makefile.PL  INSTALLSCRIPT=%{buildroot}%{_prefix} INSTALLSITEMAN3DIR=%{buildroot}/usr/share/man/man3 INSTALLSITESCRIPT=%{buildroot}%{_prefix}
-make
+%{__perl} Makefile.PL INSTALLDIRS=vendor \
+    INSTALLSCRIPT=%{nagiospluginsdir} \
+    INSTALLVENDORSCRIPT=%{nagiospluginsdir}
+make %{?_smp_mflags}
 
 %install
-make install
+rm -rf %{buildroot}
+make pure_install PERL_INSTALL_ROOT=%{buildroot}
+find %{buildroot} -type f -name .packlist -exec rm -f {} \;
+find %{buildroot} -type f -name "*.pod" -exec rm -f {} \;
+find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null \;
+%{_fixperms} %{buildroot}/*
+
+%check
+make test
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
-%defattr(-, root, root, 0644)
-%doc AUTHORS Changes NEWS README INSTALL TODO COPYING VERSION
-%attr(0755, root, root) %{_prefix}/%{name}
-%attr(0755, root, root) /usr/share/man/man3/%{name}.3pm.gz
+%defattr(-, root, root, -)
+%doc AUTHORS Changes NEWS README INSTALL TODO COPYING COPYRIGHT
+%{nagiospluginsdir}/%{sourcename}
+%{_mandir}/man1/%{sourcename}.1*
 
 %changelog
+* Wed Jun 29 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 3.0.0-0
+- Fixed the build (plugin name, files, dependencies, ...)
+
 * Fri Mar 21 2008 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.5-0
 - fixed the missing usage message
 
