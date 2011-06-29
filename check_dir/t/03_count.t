@@ -28,9 +28,9 @@ sub create_file {
 
     my $FH;
     open $FH, '>', $filename
-        or croak "Cannot create $filename: $OS_ERROR";
+      or croak "Cannot create $filename: $OS_ERROR";
     close $FH
-        or croak "Cannot close $filename: $OS_ERROR";
+      or croak "Cannot close $filename: $OS_ERROR";
 
     return;
 
@@ -43,9 +43,9 @@ sub create_dir {
     if ( -d $dirname ) {
         return;
     }
-    
+
     mkdir $dirname
-        or croak "Cannot create $dirname: $OS_ERROR";
+      or croak "Cannot create $dirname: $OS_ERROR";
 
     return;
 
@@ -55,49 +55,33 @@ my $check_dir = File::Spec->catfile(qw(blib script check_dir));
 
 require_ok($check_dir);
 
-create_dir ( 't/tests' );
+create_dir('t/tests');
 my $prefix = 't/tests/counts';
-create_dir ( $prefix );
+create_dir($prefix);
 
 my $dirname;
 
 $dirname = "$prefix/files";
-create_dir ( $dirname );
+create_dir($dirname);
 create_file("$dirname/1");
 create_file("$dirname/2");
-is(
-    scalar get_entries( $dirname ),
-    2,
-    'Files'
-);
+is( scalar get_entries($dirname), 2, 'Files' );
 
 $dirname = "$prefix/empty";
-create_dir ( $dirname );
-is(
-    scalar get_entries( $dirname ),
-    0,
-    'Empty'
-);
+create_dir($dirname);
+is( scalar get_entries($dirname), 0, 'Empty' );
 
 $dirname = "$prefix/hidden";
-create_dir ( $dirname );
+create_dir($dirname);
 create_file("$dirname/.1");
 create_file("$dirname/.2");
-is(
-    scalar get_entries( $dirname ),
-    2,
-    'Hidden files'
-);
+is( scalar get_entries($dirname), 2, 'Hidden files' );
 
 $dirname = "$prefix/dirs";
-create_dir ( $dirname );
-create_dir ( "$dirname/1" );
-create_dir ( "$dirname/2" );
-is(
-    scalar get_entries( $dirname ),
-    2,
-    'Directories'
-);
+create_dir($dirname);
+create_dir("$dirname/1");
+create_dir("$dirname/2");
+is( scalar get_entries($dirname), 2, 'Directories' );
 
 File::Path::remove_tree( $prefix, { error => \my $error } );
 if ( @{$error} ) {

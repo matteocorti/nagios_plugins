@@ -37,7 +37,6 @@ sub whoami {
     }
 
     croak 'Cannot determine the user';
-    return;
 }
 
 require_ok($check_dir);
@@ -49,35 +48,33 @@ is(
 );
 
 my $dirname = 't/tests/unreadable';
-if (! -d $dirname ) {
+if ( !-d $dirname ) {
+    ## no critic (ProhibitMagicNumbers)
     mkdir $dirname, 0000
-        or croak "Cannot create $dirname: $OS_ERROR";
+      or croak "Cannot create $dirname: $OS_ERROR";
+    ## use critic
 }
 my $expected_result = "$dirname is not readable";
 if ( whoami() eq 'root' ) {
+
     # root can read dirs with 000
     $expected_result = undef;
 }
-is(
-    check_permissions( $dirname ),
-    $expected_result,
-    'File type'
-);
+is( check_permissions($dirname), $expected_result, 'File type' );
 
 $dirname = 't/tests/unexecutable';
-if (! -d $dirname ) {
+if ( !-d $dirname ) {
+    ## no critic (ProhibitMagicNumbers)
     mkdir $dirname, 0644
-        or croak "Cannot create t/tests/unexecutable: $OS_ERROR";
+      or croak "Cannot create t/tests/unexecutable: $OS_ERROR";
+    ## use critic
 }
 $expected_result = "$dirname is not executable";
 if ( whoami() eq 'root' ) {
+
     # -x does not fail for root
     $expected_result = undef;
 }
-is(
-    check_permissions( $dirname ),
-    $expected_result,
-    'File type'
-);
+is( check_permissions($dirname), $expected_result, 'File type' );
 
 1;

@@ -18,22 +18,21 @@ use_ok('Carp');
 
 use_ok('English');
 
-
-use_ok( 'Nagios::Plugin' );
+use_ok('Nagios::Plugin');
 can_ok( 'Nagios::Plugin', 'new' );
 can_ok( 'Nagios::Plugin', 'nagios_exit' );
 can_ok( 'Nagios::Plugin', 'add_perfdata' );
 
-use_ok( 'Nagios::Plugin::Range' );
+use_ok('Nagios::Plugin::Range');
 can_ok( 'Nagios::Plugin::Range', 'parse_range_string' );
 
-use_ok( 'Nagios::Plugin::Getopt' );
+use_ok('Nagios::Plugin::Getopt');
 can_ok( 'Nagios::Plugin::Getopt', 'new' );
 can_ok( 'Nagios::Plugin::Getopt', 'arg' );
 can_ok( 'Nagios::Plugin::Getopt', 'getopts' );
 can_ok( 'Nagios::Plugin::Getopt', 'get' );
 
-use_ok( 'Nagios::Plugin::Threshold' );
+use_ok('Nagios::Plugin::Threshold');
 can_ok( 'Nagios::Plugin::Threshold', 'new' );
 can_ok( 'Nagios::Plugin::Threshold', 'set_thresholds' );
 

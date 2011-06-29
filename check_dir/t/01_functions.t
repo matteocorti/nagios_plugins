@@ -20,9 +20,11 @@ my $check_dir = File::Spec->catfile(qw(blib script check_dir));
 
 require_ok($check_dir);
 
-is( max(0,1),    1 );
-is( max(1,0),    1 );
-is( max(1,1),    1 );
-is( max(-1,-2), -1 );
+is( max( 0, 1 ), 1, 'max' );
+is( max( 1, 0 ), 1, 'max' );
+is( max( 1, 1 ), 1, 'max' );
 
+#<<<
+is( max( -1, -2 ), -1, 'max with negative numbers' );    ## no critic (ProhibitMagicNumbers)
+#>>>
 1;

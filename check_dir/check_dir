@@ -80,7 +80,7 @@ sub exit_with_error {
     return;
 
 }
-    
+
 ##############################################################################
 # Usage     : max($i, $j)
 # Purpose   : returns the maximum of two integers
@@ -118,8 +118,7 @@ sub verbose {
     my $level   = shift;
 
     if ( !defined $message ) {
-        exit_with_error(
-            UNKNOWN,
+        exit_with_error( UNKNOWN,
             q{Internal error: not enough parameters for 'verbose'} );
     }
 
@@ -128,7 +127,7 @@ sub verbose {
     }
 
     if ( $options && $level < $options->verbose ) {
-        print $message; ## no critic (RequireCheckedSyscalls)
+        print $message;    ## no critic (RequireCheckedSyscalls)
     }
 
     return;
@@ -157,16 +156,14 @@ sub get_entries {
       or exit_with_error( UNKNOWN, "Can't open $dirname: $OS_ERROR" );
 
     # exclude .. and . from the count *and* recursion
-    my @files = grep { $_ ne '.' && $_ ne '..' } readdir $DIR;
-    
+    my @files = grep { $_ ne q{.} && $_ ne q{..} } readdir $DIR;
+
     closedir $DIR
       or exit_with_error( UNKNOWN, "Error closing $dirname: $OS_ERROR" );
-    
-    return @files;
-    
-}
-    
 
+    return @files;
+
+}
 
 ##############################################################################
 # Usage     : check_dir("directory_name")
@@ -185,12 +182,11 @@ sub check_dir {
     # check if the directory is readable
 
     $info = stat $dirname
-      or exit_with_error( UNKNOWN,
-        "Can't read stat for $dirname: $OS_ERROR" );
+      or exit_with_error( UNKNOWN, "Can't read stat for $dirname: $OS_ERROR" );
 
-    my @files = get_entries( $dirname );
-    my $n = @files;
-    
+    my @files = get_entries($dirname);
+    my $n     = @files;
+
     #################
     # Additional info
     verbose "Directory '$dirname' has $n files\n";
@@ -216,20 +212,18 @@ sub check_dir {
 
     ###########
     # Recursive
-    if ($options->get('recursive')) {
+    if ( $options->get('recursive') ) {
         foreach my $file (@files) {
             if ( -d "$dirname/$file" ) {
-                my $error = check_permissions( "$dirname/$file" );
+                my $error = check_permissions("$dirname/$file");
                 if ($error) {
-                    exit_with_error(
-                        UNKNOWN,
-                        "Error: $error" );
+                    exit_with_error( UNKNOWN, "Error: $error" );
                 }
                 check_dir("$dirname/$file");
             }
         }
     }
-    
+
     return;
 }
 
@@ -248,11 +242,11 @@ sub check_permissions {
     if ( !-d $dirname ) {
         return "$dirname is not a directory";
     }
-    
+
     if ( !-r $dirname ) {
         return "$dirname is not readable";
     }
-    
+
     if ( !-x $dirname ) {
         return "$dirname is not executable";
     }
@@ -274,7 +268,7 @@ sub run {
     # initialization
     $plugin = Nagios::Plugin->new( shortname => 'CHECK_DIR' );
 
-    $status    = 0;
+    $status = 0;
 
     ########################
     # Command line arguments
@@ -287,42 +281,43 @@ sub run {
     );
 
     $options->arg(
-        spec => 'dir|d=s@',
-        help => 'specify the directory (can be repeated)',
+        spec     => 'dir|d=s@',
+        help     => 'specify the directory (can be repeated)',
         required => 1,
     );
 
     $options->arg(
-        spec => 'critical|c=s',
-        help => 'specify the critical number (or range) of files',
+        spec     => 'critical|c=s',
+        help     => 'specify the critical number (or range) of files',
         required => 1,
     );
 
     $options->arg(
-        spec => 'warning|w=s',
-        help => 'specify warning threshold (range) for the number of files',
+        spec     => 'warning|w=s',
+        help     => 'specify warning threshold (range) for the number of files',
         required => 1,
     );
 
     $options->arg(
-        spec => 'recursive|r',
+        spec    => 'recursive|r',
         default => 0,
-        help => 'perform recursive traversal (checks individual dirs not the total)',
+        help =>
+          'perform recursive traversal (checks individual dirs not the total)',
     );
-       
+
     $options->getopts();
-    
+
     #############################
     # Sanity checks: command line
 
     my $critical_range =
-        Nagios::Plugin::Range->parse_range_string( $options->get('critical') );
+      Nagios::Plugin::Range->parse_range_string( $options->get('critical') );
     if ( !$critical_range->is_set() ) {
         exit_with_error( UNKNOWN, 'Could not parse "critical"' );
     }
 
     my $warning_range =
-        Nagios::Plugin::Range->parse_range_string($options->get('warning') );
+      Nagios::Plugin::Range->parse_range_string( $options->get('warning') );
     if ( !$critical_range->is_set() ) {
         exit_with_error( UNKNOWN, 'Could not parse "warning"' );
     }
@@ -335,23 +330,23 @@ sub run {
     ##########################
     # Sanity checks: directory
 
-    foreach my $dirname (@{$options->get('dir')}) {
-        my $error = check_permissions( $dirname );
+    foreach my $dirname ( @{ $options->get('dir') } ) {
+        my $error = check_permissions($dirname);
         if ($error) {
-            exit_with_error(
-                UNKNOWN,
-                "Error: $error" );
+            exit_with_error( UNKNOWN, "Error: $error" );
         }
     }
-                    
+
     #############
     # Process dir
 
-    foreach my $dirname (@{$options->get('dir')}) {
+    foreach my $dirname ( @{ $options->get('dir') } ) {
         check_dir($dirname);
     }
 
     exit_with_error( $status, $info_string );
+
+    return;
 
 }
 
