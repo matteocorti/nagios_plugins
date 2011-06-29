@@ -48,6 +48,7 @@ sub create_file {
     my $FH;
     open $FH, '>', $filename
       or croak "Cannot create $filename: $OS_ERROR";
+
     close $FH
       or croak "Cannot close $filename: $OS_ERROR";
 
@@ -82,9 +83,8 @@ create_dir('t/tests');
 ################################################################################
 # Permission checks
 
-
 # Directory should be a directory
-create_file( 't/tests/file' );
+create_file('t/tests/file');
 is(
     check_permissions('t/tests/file'),
     't/tests/file is not a directory',
@@ -101,12 +101,13 @@ if ( !-d $dirname ) {
 }
 my $expected_result = "$dirname is not readable";
 if ( whoami() eq 'root' ) {
+
     # root can read dirs with 000
     $expected_result = undef;
 }
 is( check_permissions($dirname), $expected_result, 'File type' );
 rmdir $dirname
-    or croak "Cannot remove $dirname: $OS_ERROR";
+  or croak "Cannot remove $dirname: $OS_ERROR";
 
 # Missing executable permission
 $dirname = 't/tests/unexecutable';
@@ -125,8 +126,7 @@ if ( whoami() eq 'root' ) {
 is( check_permissions($dirname), $expected_result, 'File type' );
 
 rmdir $dirname
-    or croak "Cannot remove $dirname: $OS_ERROR";
-
+  or croak "Cannot remove $dirname: $OS_ERROR";
 
 ################################################################################
 # Count files
@@ -159,7 +159,7 @@ is( scalar get_entries($dirname), 2, 'Directories' );
 ################################################################################
 # Finalize
 
-File::Path::remove_tree( 't/tests' , { error => \my $error } );
+File::Path::remove_tree( 't/tests', { error => \my $error } );
 if ( @{$error} ) {
     croak "Error deleting $prefix: " . ( join q{, }, @{$error} );
 }
