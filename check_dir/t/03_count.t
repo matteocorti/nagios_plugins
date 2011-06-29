@@ -45,8 +45,7 @@ sub create_file {
         return;
     }
 
-    my $FH;
-    open $FH, '>', $filename
+    open my $FH, '>', $filename
       or croak "Cannot create $filename: $OS_ERROR";
 
     close $FH
