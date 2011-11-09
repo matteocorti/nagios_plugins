@@ -814,7 +814,7 @@ EOT
                         my @volume_groups = grep { /VG[ ]Name/mxs } @output;
                         if ( @volume_groups == 1 ) {
 
-                            $volume_groups[0] =~ s{.*\ }{}mxs;
+                            $volume_groups[0] =~ s{.*[ ]}{}mxs;
 
                             @output = exec_command(
                                 "vgdisplay -v $volume_groups[0] 2>&1 ");
