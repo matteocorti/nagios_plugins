@@ -1,3 +1,7 @@
+2011-11-09  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: support for 3.x kernels
+
 2010-10-22  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: fixed a problem in the parsing of the diskstat file

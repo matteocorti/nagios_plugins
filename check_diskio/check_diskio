@@ -1,5 +1,7 @@
 #!perl
 
+package main;
+
 # check_diskio is a Nagios plugin to monitor the amount of disk
 # I/O in sectors on Linux 2.6 and 2.4 systems
 #
@@ -20,10 +22,12 @@
 #   $HeadURL$
 #   $Date$
 
+use 5.00800;
+
 use strict;
 use warnings;
 
-our $VERSION = '3.2.3';
+our $VERSION = '3.2.4';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -61,6 +65,12 @@ use vars qw(
   %diskio_r
   @stat_file
 );
+
+# the script is declared as a package so that it can be unit tested
+# but it should not be used as a module
+if ( !caller ) {
+    run();
+}
 
 ##############################################################################
 # subroutines
@@ -239,30 +249,23 @@ sub read_timer {
 }
 
 ##############################################################################
-# Usage     : $version = kernel_version();
-# Purpose   : detects the Linux kernel version
-# Returns   : kernel version (w/o minor number)
+# Usage     : $boolean = use_diskstats();
+# Purpose   : detects the Linux kernel version and determines if we should
+#             use diskstats
+# Returns   : true if we should use diskstats
 # Arguments : n/a
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a
-sub kernel_version {
+sub use_diskstats {
 
     my ( $sysname, $nodename, $release, $version, $machine ) = uname;
 
     if ( $options->debug() ) {
         print "[DEBUG] kernel $release\n";
     }
-    if ( $release =~ /^2.4/mxs ) {
-        return '2.4';
-    }
-    if ( $release =~ /^2.6/mxs ) {
-        return '2.6';
-    }
-    $plugin->nagios_exit( UNKNOWN,
-        "Error: unsupported kernel version ($release)" );
 
-    return;
+    return ( $release =~ /^2.6/mxs ) || ( $release =~ /^3/mxs );
 
 }
 
@@ -522,26 +525,32 @@ sub shortenrate {
 }
 
 ##############################################################################
-# main
-#
+# Usage     : run();
+# Purpose   : main method
+# Returns   : n/a
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub run {
 
 ################
-# initialization
-$factor = 1;
-$format = q{s};
-$plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
+    # initialization
+    $factor = 1;
+    $format = q{s};
+    $plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
 
 ########################
-# Command line arguments
+    # Command line arguments
 
-my $usage = <<'EOT';
+    my $usage = <<'EOT';
 check_diskio --device=devicename --critical=critical --warning=warning
              [--help] [--reset] [--silent] [--ssize=size]
              [--verbose] [--version] [--uom=unit] [--factor=unit]
              [--strip-partition-number]
 EOT
 
-my $extra = <<'EOT';
+    my $extra = <<'EOT';
 
 Units of measurement:
 
@@ -566,256 +575,255 @@ G,giga                     giga
 
 EOT
 
-$options = Nagios::Plugin::Getopt->new(
-    usage   => $usage,
-    extra   => $extra,
-    version => $VERSION,
-    url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
-    blurb   => 'Monitor disk I/O',
-);
+    $options = Nagios::Plugin::Getopt->new(
+        usage   => $usage,
+        extra   => $extra,
+        version => $VERSION,
+        url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
+        blurb   => 'Monitor disk I/O',
+    );
 
-$options->arg(
-    spec     => 'device|d=s@',
-    help     => 'device name(s) (or mount point(s))',
-    required => 1,
-);
+    $options->arg(
+        spec     => 'device|d=s@',
+        help     => 'device name(s) (or mount point(s))',
+        required => 1,
+    );
 
-$options->arg(
-    spec     => 'critical|c=i',
-    help     => 'critical number of sectors/s',
-    required => 1,
-);
+    $options->arg(
+        spec     => 'critical|c=i',
+        help     => 'critical number of sectors/s',
+        required => 1,
+    );
 
-$options->arg(
-    spec     => 'warning|w=i',
-    help     => 'number of sectors/s which generates a warning',
-    required => 1,
-);
+    $options->arg(
+        spec     => 'warning|w=i',
+        help     => 'number of sectors/s which generates a warning',
+        required => 1,
+    );
 
-$options->arg(
-    spec     => 'reset|r',
-    help     => 'reset the counter(s)',
-    required => 0,
-);
+    $options->arg(
+        spec     => 'reset|r',
+        help     => 'reset the counter(s)',
+        required => 0,
+    );
 
-$options->arg(
-    spec     => 'silent|s',
-    help     => 'no warnings or critials are issued',
-    required => 0,
-);
+    $options->arg(
+        spec     => 'silent|s',
+        help     => 'no warnings or critials are issued',
+        required => 0,
+    );
 
-$options->arg(
-    spec     => 'ssize=i',
-    help     => 'specify the sector size in bytes (default 512)',
-    required => 0,
-    default  => $BYTES_PER_SECTOR,
-);
+    $options->arg(
+        spec     => 'ssize=i',
+        help     => 'specify the sector size in bytes (default 512)',
+        required => 0,
+        default  => $BYTES_PER_SECTOR,
+    );
 
-$options->arg(
-    spec     => 'uom=s',
-    help     => 'unit of measurement',
-    required => 0,
-);
+    $options->arg(
+        spec     => 'uom=s',
+        help     => 'unit of measurement',
+        required => 0,
+    );
 
-$options->arg(
-    spec     => 'factor=s',
-    help     => 'unit of threshold',
-    required => 0,
-);
+    $options->arg(
+        spec     => 'factor=s',
+        help     => 'unit of threshold',
+        required => 0,
+    );
 
-$options->arg(
-    spec     => 'debug',
-    help     => 'debugging output',
-    required => 0,
-);
+    $options->arg(
+        spec     => 'debug',
+        help     => 'debugging output',
+        required => 0,
+    );
 
-$options->arg(
-    spec     => 'testfile=s',
-    help     => 'tests the plugin with the given disk statistics file (debugging)',
-    required => 0,
-);
-        
+    $options->arg(
+        spec => 'testfile=s',
+        help =>
+          'tests the plugin with the given disk statistics file (debugging)',
+        required => 0,
+    );
 
-$options->arg(
-    spec => 'strip-partition-number',
-    help =>
-      'strips p[0-9]+ from the device number (needed for HP Smart Array cards)',
-    required => 0,
-);
+    $options->arg(
+        spec => 'strip-partition-number',
+        help =>
+'strips p[0-9]+ from the device number (needed for HP Smart Array cards)',
+        required => 0,
+    );
 
-$options->getopts();
+    $options->getopts();
 
 ################################################################################
-# Sanity checks
+    # Sanity checks
 
 ################
-# kernel version
+    # kernel version
 
-my $kversion = kernel_version();
-
-my $proc_diskstats_available = ( -r '/proc/diskstats' );
+    my $proc_diskstats_available = ( -r '/proc/diskstats' );
 
 #########################
-# Disk stats (read files)
+    # Disk stats (read files)
 
-if ( $kversion eq '2.6' ) {
-    if ( !-r '/proc/diskstats' && !-r '/proc/partitions' ) {
-        $plugin->nagios_exit( UNKNOWN,
-            '/proc/diskstats or /proc/partitions not readable' );
-    }
-}
-else {
-    if ( !-r '/proc/partitions' ) {
-        $plugin->nagios_exit( UNKNOWN, '/proc/partitions not readable' );
-    }
-}
-
-if (! $options->testfile() ) {
-
-    if ( -r '/proc/diskstats' ) {
-        @stat_file = File::Slurp::read_file('/proc/diskstats');
+    if ( use_diskstats() ) {
+        if ( !-r '/proc/diskstats' && !-r '/proc/partitions' ) {
+            $plugin->nagios_exit( UNKNOWN,
+                '/proc/diskstats or /proc/partitions not readable' );
+        }
     }
     else {
-        @stat_file = File::Slurp::read_file('/proc/partitions');
+        if ( !-r '/proc/partitions' ) {
+            $plugin->nagios_exit( UNKNOWN, '/proc/partitions not readable' );
+        }
     }
-    
-} else {
 
-    if ( ! -r $options->testfile() ) {
-        $plugin->nagios_exit(
-            UNKNOWN,
-            $options->testfile() . ' not readable'
-        );
-    }
-    
-    verbose 'Reading ' . $options->testfile() . "\n";
-    
-    @stat_file = File::Slurp::read_file($options->testfile());
+    if ( !$options->testfile() ) {
 
-}
-        
-
-if ( $options->debug() ) {
-    for my $line (@stat_file) {
-        chomp $line;
-        my $filename;
         if ( -r '/proc/diskstats' ) {
-            $filename = '/proc/diskstats';
+            @stat_file = File::Slurp::read_file('/proc/diskstats');
         }
         else {
-            $filename = '/proc/partitions';
+            @stat_file = File::Slurp::read_file('/proc/partitions');
         }
-        print "[DEBUG] $filename |$line|\n";
+
     }
-}
+    else {
+
+        if ( !-r $options->testfile() ) {
+            $plugin->nagios_exit( UNKNOWN,
+                $options->testfile() . ' not readable' );
+        }
+
+        verbose 'Reading ' . $options->testfile() . "\n";
+
+        @stat_file = File::Slurp::read_file( $options->testfile() );
+
+    }
+
+    if ( $options->debug() ) {
+        for my $line (@stat_file) {
+            chomp $line;
+            my $filename;
+            if ( -r '/proc/diskstats' ) {
+                $filename = '/proc/diskstats';
+            }
+            else {
+                $filename = '/proc/partitions';
+            }
+            print "[DEBUG] $filename |$line|\n";
+        }
+    }
 
 #########
-# Devices
+    # Devices
 
-my @devices;
-tie @devices, 'Array::Unique';
+    my @devices;
+    tie @devices, 'Array::Unique';
 
-for my $device ( @{ $options->device() } ) {
+    for my $device ( @{ $options->device() } ) {
 
-    # Detect device from mount point
-    if ( !( $device =~ /^\/dev\//mxs ) ) {
+        # Detect device from mount point
+        if ( !( $device =~ /^\/dev\//mxs ) ) {
 
-        if ( $options->debug() ) {
-            print "[DEBUG] $device is a mount point\n";
-        }
-
-        if ( $device ne q{/} && $device =~ /\/$/mxs ) {
-
-            # remove trailing /
-            $device =~ s/\/$//mxs;
-        }
-
-        my $MTAB_FH;
-        my $mount_point = $device;
-
-        undef $device;
-
-        open $MTAB_FH, q{<}, '/etc/mtab'
-          or
-          $plugin->nagios_exit( UNKNOWN, "Cannot open /etc/mtab: $OS_ERROR" );
-        while (<$MTAB_FH>) {
-            my $line = $_;
-            chomp $line;
             if ( $options->debug() ) {
-                print "[DEBUG] /etc/mtab |$line|\n";
+                print "[DEBUG] $device is a mount point\n";
             }
-            if ( $line =~ /(\/dev.*)\ +$mount_point\ +.*/mxs ) {
-                $device = $1;
+
+            if ( $device ne q{/} && $device =~ /\/$/mxs ) {
+
+                # remove trailing /
+                $device =~ s/\/$//mxs;
+            }
+
+            my $MTAB_FH;
+            my $mount_point = $device;
+
+            undef $device;
+
+            open $MTAB_FH, q{<}, '/etc/mtab'
+              or $plugin->nagios_exit( UNKNOWN,
+                "Cannot open /etc/mtab: $OS_ERROR" );
+            while (<$MTAB_FH>) {
+                my $line = $_;
+                chomp $line;
                 if ( $options->debug() ) {
-                    print "[DEBUG] device found: $device\n";
+                    print "[DEBUG] /etc/mtab |$line|\n";
                 }
-                last;
+                if ( $line =~ /(\/dev.*)\ +$mount_point\ +.*/mxs ) {
+                    $device = $1;
+                    if ( $options->debug() ) {
+                        print "[DEBUG] device found: $device\n";
+                    }
+                    last;
+                }
             }
-        }
-        close $MTAB_FH
-          or $plugin->nagios_exit( UNKNOWN,
-            "Error while closing /etc/mtab: $OS_ERROR" );
+            close $MTAB_FH
+              or $plugin->nagios_exit( UNKNOWN,
+                "Error while closing /etc/mtab: $OS_ERROR" );
 
-        if ( !$device ) {
-            $plugin->nagios_exit( UNKNOWN,
-                "Could not find a device for $mount_point" );
-        }
+            if ( !$device ) {
+                $plugin->nagios_exit( UNKNOWN,
+                    "Could not find a device for $mount_point" );
+            }
 
-        # device found: strip the partition number
-        if ( $options->get('strip-partition-number') ) {
-            $device =~ s/p?[0-9]+$//mxs;
-        }
+            # device found: strip the partition number
+            if ( $options->get('strip-partition-number') ) {
+                $device =~ s/p?[0-9]+$//mxs;
+            }
 
-        verbose "Mount point $mount_point corresponds to device $device\n";
+            verbose "Mount point $mount_point corresponds to device $device\n";
 
-        my $dev_name = $device;
-        $dev_name =~ s/^\/dev\///mxs;
+            my $dev_name = $device;
+            $dev_name =~ s/^\/dev\///mxs;
 
-        if ( $options->debug ) {
-            print "[DEBUG] device name: $dev_name\n";
-        }
+            if ( $options->debug ) {
+                print "[DEBUG] device name: $dev_name\n";
+            }
 
-        if ( !any { /\s$dev_name\s/msx } @stat_file ) {
+            if ( !any { /\s$dev_name\s/msx } @stat_file ) {
 
-            # LVM?
-            if ( whoami() eq 'root' ) {
+                # LVM?
+                if ( whoami() eq 'root' ) {
 
-                my @output;
+                    my @output;
 
-                @output = exec_command("lvdisplay $device 2>&1 ");
+                    @output = exec_command("lvdisplay $device 2>&1 ");
 
-                if ( any { /not\ found/mxs } @output ) {
-                    verbose "LVM volume not found\n";
-                }
-                else {
+                    if ( any { /not\ found/mxs } @output ) {
+                        verbose "LVM volume not found\n";
+                    }
+                    else {
 
-                    my @volume_groups = grep { /VG\ Name/mxs } @output;
-                    if ( @volume_groups == 1 ) {
+                        my @volume_groups = grep { /VG\ Name/mxs } @output;
+                        if ( @volume_groups == 1 ) {
 
-                        $volume_groups[0] =~ s{.*\ }{}mxs;
+                            $volume_groups[0] =~ s{.*\ }{}mxs;
 
-                        @output =
-                          exec_command("vgdisplay -v $volume_groups[0] 2>&1 ");
+                            @output = exec_command(
+                                "vgdisplay -v $volume_groups[0] 2>&1 ");
 
-                        if ( any { /not\ found/mxs } @output ) {
-                            verbose "Cannot get info on $volume_groups[0]\n";
-                        }
-                        else {
-
-                            my @pvs = grep { /PV\ Name/mxs } @output;
-
-                            if ( @pvs < 1 ) {
-                                verbose "No physical volumes found\n";
+                            if ( any { /not\ found/mxs } @output ) {
+                                verbose
+                                  "Cannot get info on $volume_groups[0]\n";
                             }
                             else {
 
-                                # strip everything but the device name fro
-                                # the output
-                                for (@pvs) {
-                                    s{.*\s+/dev/([a-z]+).*}{/dev/$1}mxs;
-                                }
+                                my @pvs = grep { /PV\ Name/mxs } @output;
 
-                                push @devices, @pvs;
+                                if ( @pvs < 1 ) {
+                                    verbose "No physical volumes found\n";
+                                }
+                                else {
+
+                                    # strip everything but the device name fro
+                                    # the output
+                                    for (@pvs) {
+                                        s{.*\s+/dev/([a-z]+).*}{/dev/$1}mxs;
+                                    }
+
+                                    push @devices, @pvs;
+
+                                }
 
                             }
 
@@ -824,275 +832,277 @@ for my $device ( @{ $options->device() } ) {
                     }
 
                 }
+                else {
 
-            }
-            else {
+                    $plugin->nagios_exit( UNKNOWN,
+                        "Cannot check LVM volume $device if not root" );
 
-                $plugin->nagios_exit( UNKNOWN,
-                    "Cannot check LVM volume $device if not root" );
+                }
 
             }
 
         }
-
-    }
-    else {
+        else {
 
             push @devices, $device;
 
+        }
+
     }
 
-}
-
-if ( $options->debug() ) {
-    print "[DEBUG] devices: @devices\n";
-}
-
-# check if the devices exist
-
-for my $device (@devices) {
-    if ( !-e $device && ! $options->testfile() ) {
-        $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+    if ( $options->debug() ) {
+        print "[DEBUG] devices: @devices\n";
     }
-}
 
-verbose "Checking: @devices\n";
+    # check if the devices exist
+
+    for my $device (@devices) {
+        if ( !-e $device && !$options->testfile() ) {
+            $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+        }
+    }
+
+    verbose "Checking: @devices\n";
 
 #####
-# UOM
+    # UOM
 
-my $multiplier;
-my $UOM;
+    my $multiplier;
+    my $UOM;
 
-if ( $options->uom() ) {
-    $format = $options->uom();
-}
-
-# according to the guidelines only [TGMK]B (Bytes) are valid UOM
-#   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
-my $perfdata_UOM = 'B';
-if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
-
-    #sectors
-    $multiplier   = 1;
-    $UOM          = 'sectors';
-    $perfdata_UOM = q{};
-
-}
-elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
-
-    # bits
-    $multiplier   = $options->ssize() * $BITS_PER_BYTE;
-    $UOM          = 'b';
-    $perfdata_UOM = q{};
-
-}
-elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
-
-    # bytes
-    $multiplier = $options->ssize();
-    $UOM        = 'B';
-
-}
-else {
-    $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
-}
-
-my $unit = 1024;
-if ( $options->factor() ) {
-    $format = $options->factor();
-
-    if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
-        $factor = 1024;
+    if ( $options->uom() ) {
+        $format = $options->uom();
     }
-    elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
-        $factor = 1024 * 1024;
+
+    # according to the guidelines only [TGMK]B (Bytes) are valid UOM
+    #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+    my $perfdata_UOM = 'B';
+    if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
+
+        #sectors
+        $multiplier   = 1;
+        $UOM          = 'sectors';
+        $perfdata_UOM = q{};
+
     }
-    elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
-        $factor = 1024 * 1024 * 1024;
+    elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
+
+        # bits
+        $multiplier   = $options->ssize() * $BITS_PER_BYTE;
+        $UOM          = 'b';
+        $perfdata_UOM = q{};
+
     }
-    elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
-        $factor = 1000;
-        $unit   = 1000;
-    }
-    elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
-        $factor = 1000 * 1000;
-        $unit   = 1000;
-    }
-    elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
-        $factor = 1000 * 1000 * 1000;
-        $unit   = 1000;
+    elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
+
+        # bytes
+        $multiplier = $options->ssize();
+        $UOM        = 'B';
+
     }
     else {
-        $plugin->nagios_exit( UNKNOWN, "Uknown unit of threshold: $format" );
+        $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
     }
-}
+
+    my $unit = 1024;
+    if ( $options->factor() ) {
+        $format = $options->factor();
+
+        if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
+            $factor = 1024;
+        }
+        elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
+            $factor = 1024 * 1024;
+        }
+        elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
+            $factor = 1024 * 1024 * 1024;
+        }
+        elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
+            $factor = 1000;
+            $unit   = 1000;
+        }
+        elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
+            $factor = 1000 * 1000;
+            $unit   = 1000;
+        }
+        elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
+            $factor = 1000 * 1000 * 1000;
+            $unit   = 1000;
+        }
+        else {
+            $plugin->nagios_exit( UNKNOWN,
+                "Uknown unit of threshold: $format" );
+        }
+    }
 
 ################
-# Initialization
+    # Initialization
 
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
-    warning  => $options->warning() * $factor,
-    critical => $options->critical() * $factor,
-);
+    $threshold = Nagios::Plugin::Threshold->set_thresholds(
+        warning  => $options->warning() * $factor,
+        critical => $options->critical() * $factor,
+    );
 
-my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
+    my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
 
-# strip /dev/
-for (@devices) {
-    s/^\/dev\///mxs;
-}
-
-for my $device (@devices) {
-
-    # we need one temporary file per device
-    my ( $controller, $disk ) = split /\//mxs, $device;
-    if ( !$disk ) {
-        $tmp_files{$device} = "$tmp_file_prefix-$controller";
-    }
-    else {
-        $tmp_files{$device} = "$tmp_file_prefix--$disk";
+    # strip /dev/
+    for (@devices) {
+        s/^\/dev\///mxs;
     }
 
-}
+    for my $device (@devices) {
+
+        # we need one temporary file per device
+        my ( $controller, $disk ) = split /\//mxs, $device;
+        if ( !$disk ) {
+            $tmp_files{$device} = "$tmp_file_prefix-$controller";
+        }
+        else {
+            $tmp_files{$device} = "$tmp_file_prefix--$disk";
+        }
+
+    }
 
 ########################
-# Check the proc entry
+    # Check the proc entry
 
-my $diff;
-my $found = 0;
-my $in;
-my $out;
-my $time;
+    my $diff;
+    my $found = 0;
+    my $in;
+    my $out;
+    my $time;
 
-my $s_read;
-my $s_write;
+    my $s_read;
+    my $s_write;
 
-my $TMP_FH;
-my $status = OK;
-my @status_lines;
+    my $TMP_FH;
+    my $status = OK;
+    my @status_lines;
 
-for my $device (@devices) {
+    for my $device (@devices) {
 
-    if ( $kversion eq '2.6' && $proc_diskstats_available ) {
-        ( $s_read, $s_write ) = read_26($device);
-    }
-    else {
-        ( $s_read, $s_write ) = read_24($device);
-    }
-
-    verbose 'current data: read='
-      . format_number( $s_read, 0, 0 )
-      . ' write='
-      . format_number( $s_write, 0, 0 )
-      . "\n", 1;
-
-    if ( !-f $tmp_files{$device} ) {
-        verbose "temporary file not available resetting and waiting\n";
-        write_timer( $tmp_files{$device}, $s_write, $s_read );
-        sleep 1;
-        if ( $kversion eq '2.6' && $proc_diskstats_available ) {
+        if ( use_diskstats() && $proc_diskstats_available ) {
             ( $s_read, $s_write ) = read_26($device);
         }
         else {
             ( $s_read, $s_write ) = read_24($device);
         }
+
+        verbose 'current data: read='
+          . format_number( $s_read, 0, 0 )
+          . ' write='
+          . format_number( $s_write, 0, 0 )
+          . "\n", 1;
+
+        if ( !-f $tmp_files{$device} ) {
+            verbose "temporary file not available resetting and waiting\n";
+            write_timer( $tmp_files{$device}, $s_write, $s_read );
+            sleep 1;
+            if ( use_diskstats() && $proc_diskstats_available ) {
+                ( $s_read, $s_write ) = read_26($device);
+            }
+            else {
+                ( $s_read, $s_write ) = read_24($device);
+            }
+        }
+
+        ( $diff, $in, $out ) = read_timer( $tmp_files{$device} );
+
+        if ( $diff < 1 ) {
+
+            # wait a little bit
+            sleep 1;
+            ( $diff, $in, $out ) = read_timer();
+
+        }
+
+        write_timer( $tmp_files{$device}, $s_write, $s_read );
+
+        verbose 'time difference: ' . $diff . "s\n", 1;
+
+        if ( $diff == 0 ) {
+
+            # round up
+            $diff = 1;
+
+        }
+
+        # check for overflows (2^32 sectors)
+        if ( $s_write < $in ) {
+
+            # overflow
+            $diskio_w{$device} = $OVERFLOW - $in + $s_write;
+
+        }
+        else {
+            $diskio_w{$device} = $s_write - $in;
+        }
+
+        if ( $s_read < $out ) {
+
+            # overflow
+            $diskio_r{$device} = $OVERFLOW - $out + $s_read;
+        }
+        else {
+            $diskio_r{$device} = $s_read - $out;
+        }
+
+        $diskio_w{$device} = int( $diskio_w{$device} * $multiplier / $diff );
+        $diskio_r{$device} = int( $diskio_r{$device} * $multiplier / $diff );
+        $diskio{$device}   = $diskio_w{$device} + $diskio_r{$device};
+
+        my $suffix = q{};
+
+        # we append the device name to the labels only if there is more
+        # than one device to maintain backwards compatibility
+        if ( @devices > 1 ) {
+            $suffix = "_\U$device";
+        }
+
+        # use unscaled values for performance data - will be scaled by rrdtool
+
+        $plugin->add_perfdata(
+            label     => "WRITE$suffix",
+            value     => sprintf( '%.0f', $diskio_w{$device} ),
+            uom       => $perfdata_UOM,
+            threshold => $threshold,
+        );
+
+        $plugin->add_perfdata(
+            label     => "READ$suffix",
+            value     => sprintf( '%.0f', $diskio_r{$device} ),
+            uom       => $perfdata_UOM,
+            threshold => $threshold,
+        );
+
+        $plugin->add_perfdata(
+            label     => "TOTAL$suffix",
+            value     => sprintf( '%.0f', $diskio{$device} ),
+            uom       => $perfdata_UOM,
+            threshold => $threshold,
+        );
+
+        my $device_status = $threshold->get_status( $diskio{$device} );
+        if ( $device_status == CRITICAL ) {
+            $status = CRITICAL;
+        }
+        elsif ( $device_status == WARNING && $status != CRITICAL ) {
+            $status = WARNING;
+        }
+
+        my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
+        push @status_lines,
+          "$device " . sprintf( '%.2f', $val ) . " $prefix$UOM/s";
+
     }
 
-    ( $diff, $in, $out ) = read_timer( $tmp_files{$device} );
-
-    if ( $diff < 1 ) {
-
-        # wait a little bit
-        sleep 1;
-        ( $diff, $in, $out ) = read_timer();
-
-    }
-
-    write_timer( $tmp_files{$device}, $s_write, $s_read );
-
-    verbose 'time difference: ' . $diff . "s\n", 1;
-
-    if ( $diff == 0 ) {
-
-        # round up
-        $diff = 1;
-
-    }
-
-    # check for overflows (2^32 sectors)
-    if ( $s_write < $in ) {
-
-        # overflow
-        $diskio_w{$device} = $OVERFLOW - $in + $s_write;
-
+    if ( $options->silent() ) {
+        $plugin->nagios_exit( OK, ( join ', ', @devices ) . 'OK' );
     }
     else {
-        $diskio_w{$device} = $s_write - $in;
+        $plugin->nagios_exit( $status, join ', ', @status_lines, );
     }
 
-    if ( $s_read < $out ) {
-
-        # overflow
-        $diskio_r{$device} = $OVERFLOW - $out + $s_read;
-    }
-    else {
-        $diskio_r{$device} = $s_read - $out;
-    }
-
-    $diskio_w{$device} = int( $diskio_w{$device} * $multiplier / $diff );
-    $diskio_r{$device} = int( $diskio_r{$device} * $multiplier / $diff );
-    $diskio{$device}   = $diskio_w{$device} + $diskio_r{$device};
-
-    my $suffix = q{};
-
-    # we append the device name to the labels only if there is more
-    # than one device to maintain backwards compatibility
-    if ( @devices > 1 ) {
-        $suffix = "_\U$device";
-    }
-
-    # use unscaled values for performance data - will be scaled by rrdtool
-
-    $plugin->add_perfdata(
-        label     => "WRITE$suffix",
-        value     => sprintf( '%.0f', $diskio_w{$device} ),
-        uom       => $perfdata_UOM,
-        threshold => $threshold,
-    );
-
-    $plugin->add_perfdata(
-        label     => "READ$suffix",
-        value     => sprintf( '%.0f', $diskio_r{$device} ),
-        uom       => $perfdata_UOM,
-        threshold => $threshold,
-    );
-
-    $plugin->add_perfdata(
-        label     => "TOTAL$suffix",
-        value     => sprintf( '%.0f', $diskio{$device} ),
-        uom       => $perfdata_UOM,
-        threshold => $threshold,
-    );
-
-    my $device_status = $threshold->get_status( $diskio{$device} );
-    if ( $device_status == CRITICAL ) {
-        $status = CRITICAL;
-    }
-    elsif ( $device_status == WARNING && $status != CRITICAL ) {
-        $status = WARNING;
-    }
-
-    my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
-    push @status_lines, "$device " . sprintf( '%.2f', $val ) . " $prefix$UOM/s";
-
-}
-
-if ( $options->silent() ) {
-    $plugin->nagios_exit( OK, ( join ', ', @devices ) . 'OK' );
-}
-else {
-    $plugin->nagios_exit( $status, join ', ', @status_lines, );
 }
 
 1;

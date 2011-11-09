@@ -4,9 +4,10 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name     'check_diskio';
-all_from 'check_diskio.pod';
-version_from 'check_diskio';
+name              'check_diskio';
+version_from      'check_diskio';
+perl_version_from 'check_diskio';
+all_from          'check_diskio.pod';
 
 ##############################################################################
 # Specific dependencies
@@ -25,6 +26,10 @@ requires 'POSIX'                     => 0;
 requires 'Readonly'                  => 0;
 
 install_script  'check_diskio';
+
+tests 't/*.t';
+test_requires 'Test::More'       => 0;
+test_requires 'File::Spec'       => 0;
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',

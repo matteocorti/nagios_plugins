@@ -1,3 +1,4 @@
+2011-11-09 3.2.4: supports 3.X kernels
 2010-10-20 3.2.3: fixes a bug in the parsing of the statistics file
 2010-07-06 3.2.2: fixes a bug which ignored devices specified with -d /dev
 2010-06-30 3.2.1: exits with UNKNOWN if not able to read LVM stats

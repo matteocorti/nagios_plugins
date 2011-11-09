@@ -4,17 +4,17 @@
 =head1 NAME
 
 C<check_diskio> - a Nagios plugin to monitor the amount of disk I/O in sectors
-on Linux 2.6 and 2.4 systems
+on Linux
 
 
 =head1 DESCRIPTION
 
 check_diskio is a Nagios plugin to monitor the amount of disk I/O in sectors
-on Linux 2.6 and 2.4 systems
+on Linux
 
 =head1 VERSION
 
-Version 3.2.3
+Version 3.2.4
 
 =head1 SYNOPSIS
 
