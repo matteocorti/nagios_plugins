@@ -23,7 +23,7 @@ use_ok('English');
 use_ok('File::Slurp');
 
 use_ok('List::MoreUtils');
-can_ok('List::MoreUtils', 'any');
+can_ok( 'List::MoreUtils', 'any' );
 
 use_ok('Nagios::Plugin');
 can_ok( 'Nagios::Plugin', 'new' );
@@ -42,7 +42,7 @@ can_ok( 'Nagios::Plugin::Threshold', 'new' );
 can_ok( 'Nagios::Plugin::Threshold', 'set_thresholds' );
 
 use_ok('Number::Format');
-can_ok('Number::Format', 'format_number');
+can_ok( 'Number::Format', 'format_number' );
 
 use_ok('POSIX');
 can_ok( 'POSIX', 'uname' );

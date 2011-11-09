@@ -45,6 +45,9 @@ Readonly my $OVERFLOW => 2**32;
 Readonly my $BITS_PER_BYTE    => 8;
 Readonly my $BYTES_PER_SECTOR => 512;
 
+Readonly my $KILO => 1_000;
+Readonly my $KIBI => 1_024;
+
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
 #            declared subroutines would therefore be inner subroutines
@@ -53,6 +56,7 @@ Readonly my $BYTES_PER_SECTOR => 512;
 #
 # All variables are therefore declared as package variables...
 #
+## no critic (ProhibitPackageVars)
 use vars qw(
   $factor
   $format
@@ -65,12 +69,15 @@ use vars qw(
   %diskio_r
   @stat_file
 );
+## use critic (ProhibitPackageVars)
 
 # the script is declared as a package so that it can be unit tested
 # but it should not be used as a module
 if ( !caller ) {
     run();
 }
+
+## no critic (InputOutput::RequireCheckedSyscalls)
 
 ##############################################################################
 # subroutines
@@ -178,6 +185,7 @@ sub write_timer {
       . $time
       . "\n", 1;
 
+    ## no critic (InputOutput::RequireBriefOpen)
     open $TMP_FH, q{>}, $tmp
       or $plugin->nagios_exit( UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
@@ -192,6 +200,7 @@ sub write_timer {
 
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+    ## use critic (InputOutput::RequireBriefOpen)
 
     return;
 
@@ -215,6 +224,7 @@ sub read_timer {
     my $out;
     my $diff;
 
+    ## no critic (InputOutput::RequireBriefOpen)
     open $TMP_FH, q{<}, $tmp
       or $plugin->nagios_exit( UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
 
@@ -233,6 +243,7 @@ sub read_timer {
 
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+    ## use critic (InputOutput::RequireBriefOpen)
 
     verbose 'reading data: read='
       . format_number( $in, 0, 0, )
@@ -353,7 +364,7 @@ sub read_26 {
             # In theory with 2.6 kernels we should get only 4 fields but
             # on some distributions we get 11 of them
 
-            if ( defined $f05 && $f05 =~ m/[0-9]/mxs ) {
+            if ( defined $f05 && $f05 =~ m/\d/mxs ) {
 
                 # 11 fields
                 if ( $options->debug() ) {
@@ -432,7 +443,7 @@ sub read_24 {
             verbose "Information found for '$name'\n", 1;
         }
 
-        if ( $name =~ /^ide.*bus([0-9]).*target([0-9]).*lun([0-9])/mxs ) {
+        if ( $name =~ /^ide.*bus(\d).*target(\d).*lun(\d)/mxs ) {
 
             # we try to get the corresponding device
 
@@ -532,15 +543,16 @@ sub shortenrate {
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub run {
 
-################
+    ################
     # initialization
     $factor = 1;
     $format = q{s};
     $plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
 
-########################
+    ########################
     # Command line arguments
 
     my $usage = <<'EOT';
@@ -654,15 +666,15 @@ EOT
 
     $options->getopts();
 
-################################################################################
+    ################################################################################
     # Sanity checks
 
-################
+    ################
     # kernel version
 
     my $proc_diskstats_available = ( -r '/proc/diskstats' );
 
-#########################
+    #########################
     # Disk stats (read files)
 
     if ( use_diskstats() ) {
@@ -714,11 +726,13 @@ EOT
         }
     }
 
-#########
+    #########
     # Devices
 
-    my @devices;
-    tie @devices, 'Array::Unique';
+    my @unique_devices;
+    ## no critic (Miscellanea::ProhibitTies)
+    tie @unique_devices, 'Array::Unique';
+    ## use critic (Miscellanea::ProhibitTies)
 
     for my $device ( @{ $options->device() } ) {
 
@@ -740,6 +754,7 @@ EOT
 
             undef $device;
 
+            ## no critic (InputOutput::RequireBriefOpen)
             open $MTAB_FH, q{<}, '/etc/mtab'
               or $plugin->nagios_exit( UNKNOWN,
                 "Cannot open /etc/mtab: $OS_ERROR" );
@@ -749,7 +764,7 @@ EOT
                 if ( $options->debug() ) {
                     print "[DEBUG] /etc/mtab |$line|\n";
                 }
-                if ( $line =~ /(\/dev.*)\ +$mount_point\ +.*/mxs ) {
+                if ( $line =~ /(\/dev.*)[ ]+$mount_point[ ]+.*/mxs ) {
                     $device = $1;
                     if ( $options->debug() ) {
                         print "[DEBUG] device found: $device\n";
@@ -760,6 +775,7 @@ EOT
             close $MTAB_FH
               or $plugin->nagios_exit( UNKNOWN,
                 "Error while closing /etc/mtab: $OS_ERROR" );
+            ## use critic (InputOutput::RequireBriefOpen)
 
             if ( !$device ) {
                 $plugin->nagios_exit( UNKNOWN,
@@ -768,7 +784,7 @@ EOT
 
             # device found: strip the partition number
             if ( $options->get('strip-partition-number') ) {
-                $device =~ s/p?[0-9]+$//mxs;
+                $device =~ s/p?\d+$//mxs;
             }
 
             verbose "Mount point $mount_point corresponds to device $device\n";
@@ -780,6 +796,7 @@ EOT
                 print "[DEBUG] device name: $dev_name\n";
             }
 
+            ## no critic (ControlStructures::ProhibitDeepNests)
             if ( !any { /\s$dev_name\s/msx } @stat_file ) {
 
                 # LVM?
@@ -789,12 +806,12 @@ EOT
 
                     @output = exec_command("lvdisplay $device 2>&1 ");
 
-                    if ( any { /not\ found/mxs } @output ) {
+                    if ( any { /not[ ]found/mxs } @output ) {
                         verbose "LVM volume not found\n";
                     }
                     else {
 
-                        my @volume_groups = grep { /VG\ Name/mxs } @output;
+                        my @volume_groups = grep { /VG[ ]Name/mxs } @output;
                         if ( @volume_groups == 1 ) {
 
                             $volume_groups[0] =~ s{.*\ }{}mxs;
@@ -802,13 +819,13 @@ EOT
                             @output = exec_command(
                                 "vgdisplay -v $volume_groups[0] 2>&1 ");
 
-                            if ( any { /not\ found/mxs } @output ) {
+                            if ( any { /not[ ]found/mxs } @output ) {
                                 verbose
                                   "Cannot get info on $volume_groups[0]\n";
                             }
                             else {
 
-                                my @pvs = grep { /PV\ Name/mxs } @output;
+                                my @pvs = grep { /PV[ ]Name/mxs } @output;
 
                                 if ( @pvs < 1 ) {
                                     verbose "No physical volumes found\n";
@@ -818,10 +835,10 @@ EOT
                                     # strip everything but the device name fro
                                     # the output
                                     for (@pvs) {
-                                        s{.*\s+/dev/([a-z]+).*}{/dev/$1}mxs;
+s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
                                     }
 
-                                    push @devices, @pvs;
+                                    push @unique_devices, @pvs;
 
                                 }
 
@@ -840,29 +857,32 @@ EOT
                 }
 
             }
+            ## use critic (ControlStructures::ProhibitDeepNests)
 
         }
         else {
 
-            push @devices, $device;
+            push @unique_devices, $device;
 
         }
 
     }
 
     if ( $options->debug() ) {
-        print "[DEBUG] devices: @devices\n";
+        #<<<
+        print "[DEBUG] devices: @unique_devices\n"; ## no critic (RequireCheckedSyscalls)
+        #>>>
     }
 
     # check if the devices exist
 
-    for my $device (@devices) {
+    for my $device (@unique_devices) {
         if ( !-e $device && !$options->testfile() ) {
             $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
         }
     }
 
-    verbose "Checking: @devices\n";
+    verbose "Checking: @unique_devices\n";
 
 #####
     # UOM
@@ -876,13 +896,13 @@ EOT
 
     # according to the guidelines only [TGMK]B (Bytes) are valid UOM
     #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
-    my $perfdata_UOM = 'B';
+    my $perfdata_uom = 'B';
     if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
 
         #sectors
         $multiplier   = 1;
         $UOM          = 'sectors';
-        $perfdata_UOM = q{};
+        $perfdata_uom = q{};
 
     }
     elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
@@ -890,7 +910,7 @@ EOT
         # bits
         $multiplier   = $options->ssize() * $BITS_PER_BYTE;
         $UOM          = 'b';
-        $perfdata_UOM = q{};
+        $perfdata_uom = q{};
 
     }
     elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
@@ -904,38 +924,40 @@ EOT
         $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
     }
 
-    my $unit = 1024;
+    my $unit = $KIBI;
+    ## no critic (ControlStructures::ProhibitCascadingIfElse)
     if ( $options->factor() ) {
         $format = $options->factor();
 
         if ( $format =~ m/^ki$/imxs || $format =~ m/^Kibi$/imxs ) {
-            $factor = 1024;
+            $factor = $KIBI;
         }
         elsif ( $format =~ m/^mi$/imxs || $format =~ m/^mebi$/imxs ) {
-            $factor = 1024 * 1024;
+            $factor = $KIBI * $KIBI;
         }
         elsif ( $format =~ m/^gi$/imxs || $format =~ m/^gibi$/imxs ) {
-            $factor = 1024 * 1024 * 1024;
+            $factor = $KIBI * $KIBI * $KIBI;
         }
         elsif ( $format =~ m/^k$/imxs || $format =~ m/^Kilo$/imxs ) {
-            $factor = 1000;
-            $unit   = 1000;
+            $factor = $KILO;
+            $unit   = $KILO;
         }
         elsif ( $format =~ m/^m$/imxs || $format =~ m/^mega$/imxs ) {
-            $factor = 1000 * 1000;
-            $unit   = 1000;
+            $factor = $KILO * $KILO;
+            $unit   = $KILO;
         }
         elsif ( $format =~ m/^g$/imxs || $format =~ m/^giga$/imxs ) {
-            $factor = 1000 * 1000 * 1000;
-            $unit   = 1000;
+            $factor = $KILO * $KILO * $KILO;
+            $unit   = $KILO;
         }
         else {
             $plugin->nagios_exit( UNKNOWN,
                 "Uknown unit of threshold: $format" );
         }
     }
+    ## use critic (ControlStructures::ProhibitCascadingIfElse)
 
-################
+    ################
     # Initialization
 
     $threshold = Nagios::Plugin::Threshold->set_thresholds(
@@ -946,11 +968,11 @@ EOT
     my $tmp_file_prefix = '/tmp/check_diskio_status-' . whoami();
 
     # strip /dev/
-    for (@devices) {
+    for (@unique_devices) {
         s/^\/dev\///mxs;
     }
 
-    for my $device (@devices) {
+    for my $device (@unique_devices) {
 
         # we need one temporary file per device
         my ( $controller, $disk ) = split /\//mxs, $device;
@@ -979,7 +1001,7 @@ EOT
     my $status = OK;
     my @status_lines;
 
-    for my $device (@devices) {
+    for my $device (@unique_devices) {
 
         if ( use_diskstats() && $proc_diskstats_available ) {
             ( $s_read, $s_write ) = read_26($device);
@@ -1055,7 +1077,7 @@ EOT
 
         # we append the device name to the labels only if there is more
         # than one device to maintain backwards compatibility
-        if ( @devices > 1 ) {
+        if ( @unique_devices > 1 ) {
             $suffix = "_\U$device";
         }
 
@@ -1064,21 +1086,21 @@ EOT
         $plugin->add_perfdata(
             label     => "WRITE$suffix",
             value     => sprintf( '%.0f', $diskio_w{$device} ),
-            uom       => $perfdata_UOM,
+            uom       => $perfdata_uom,
             threshold => $threshold,
         );
 
         $plugin->add_perfdata(
             label     => "READ$suffix",
             value     => sprintf( '%.0f', $diskio_r{$device} ),
-            uom       => $perfdata_UOM,
+            uom       => $perfdata_uom,
             threshold => $threshold,
         );
 
         $plugin->add_perfdata(
             label     => "TOTAL$suffix",
             value     => sprintf( '%.0f', $diskio{$device} ),
-            uom       => $perfdata_UOM,
+            uom       => $perfdata_uom,
             threshold => $threshold,
         );
 
@@ -1097,12 +1119,15 @@ EOT
     }
 
     if ( $options->silent() ) {
-        $plugin->nagios_exit( OK, ( join ', ', @devices ) . 'OK' );
+        $plugin->nagios_exit( OK, ( join ', ', @unique_devices ) . 'OK' );
     }
     else {
         $plugin->nagios_exit( $status, join ', ', @status_lines, );
     }
 
+    return;
+
 }
+## use critic (Subroutines::ProhibitExcessComplexity)
 
 1;
