@@ -6,27 +6,39 @@
 # $Date$
 ################################################################################
 
-%define version 3.2.4
-%define release 0
-%define name    check_diskio
+%define version          3.2.4
+%define release          0
+%define sourcename       check_diskio
+%define packagename      nagios-plugins-check-diskio
 %define nagiospluginsdir %{_libdir}/nagios/plugins
 
 # No binaries in this package
 %define debug_package %{nil}
 
 Summary:   Nagios plugin to monitor the amount of disk I/O
-Name:      %{name}
+Name:      %{packagename}
 Version:   %{version}
+Obsoletes: check_diskio
 Release:   %{release}%{?dist}
 License:   GPLv3+
 Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-URL:       https://trac.id.ethz.ch/projects/nagios_plugins/wiki/%{name}
-Source:    https://trac.id.ethz.ch/projects/nagios_plugins/downloads/%{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{packagename}-%{version}-%{release}-root-%(%{__id_u} -n)
+URL:       https://trac.id.ethz.ch/projects/nagios_plugins/wiki/check_diskio
+Source:    https://trac.id.ethz.ch/projects/nagios_plugins/downloads/%{sourcename}-%{version}.tar.gz
 
 # Fedora build requirement (not needed for EPEL{4,5})
 BuildRequires: perl(ExtUtils::MakeMaker)
+BuildRequires: perl(Test::More)
+BuildRequires: perl(Number::Format)
+BuildRequires: perl(Nagios::Plugin)
+BuildRequires: perl(Readonly)
+BuildRequires: perl(File::Spec)
+BuildRequires: perl(List::MoreUtils)
+BuildRequires: perl(File::Slurp)
+BuildRequires: perl(English)
+BuildRequires: perl(Carp)
+BuildRequires: perl(Array::Unique)
 
 Requires:  nagios-plugins
 
@@ -34,7 +46,7 @@ Requires:  nagios-plugins
 Nagios plugin to monitor the amount of disk I/O
 
 %prep
-%setup -q
+%setup -q -n %{sourcename}-%{version}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor \
@@ -50,14 +62,17 @@ find %{buildroot} -type f -name "*.pod" -exec rm -f {} \;
 find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null \;
 %{_fixperms} %{buildroot}/*
 
+%check
+make test
+
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-, root, root, -)
 %doc AUTHORS Changes NEWS README INSTALL TODO COPYING COPYRIGHT
-%{nagiospluginsdir}/%{name}
-%{_mandir}/man1/%{name}.1*
+%{nagiospluginsdir}/%{sourcename}
+%{_mandir}/man1/%{sourcename}.1*
 
 %changelog
 * Wed Nov  9 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.4-0
