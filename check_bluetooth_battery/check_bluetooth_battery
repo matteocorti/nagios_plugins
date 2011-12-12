@@ -4,7 +4,7 @@
 #
 # See  the INSTALL file for installation instructions
 #
-# Copyright (c) 2007, 2008 ETH Zurich.
+# Copyright (c) 2007, 2011 ETH Zurich.
 #
 # This module is free software; you can redistribute it and/or modify it
 # under the terms of GNU general public license (gpl) version 3.
@@ -56,7 +56,7 @@ usage() {
 # Params
 #   $1 error message
 critical() {
-    echo "${NAME}T CRITICAL: $1"
+    echo "${NAME} CRITICAL: $1"
     exit 2
 }
 
@@ -65,7 +65,7 @@ critical() {
 # Param
 #   $1 warning message
 warning() {
-    echo "${NAME}T WARN: $1"
+    echo "${NAME} WARN: $1"
     exit 1
 }
 
@@ -74,7 +74,7 @@ warning() {
 # Param
 #   $1 message
 unknown() {
-    echo "${NAME}T UNKNOWN: $1"
+    echo "${NAME} UNKNOWN: $1"
     exit 3
 }
 
@@ -157,52 +157,49 @@ check_value ${WARNING}
 check_required_prog ioreg
 IOREG=$PROG
 
-##############################################################################
-# Keyboard
+check_device() {
 
-KEYBOARD=$(get_level IOAppleBluetoothHIDDriver)
+    device=$1
+    name=$2
+    description=$3
 
-if [ -n "${KEYBOARD}" ] ; then
-    if [ -n "${VERBOSE}" ] ; then
-        echo "bluetooth keyboard detected (battery ${KEYBOARD}%)"
-    fi
-    PERFORMANCE=" keyboard=${KEYBOARD};${WARNING};${CRITICAL};;"
-    STATUS="keyboard ${KEYBOARD}%"
-    if [ ${KEYBOARD} -lt ${WARNING} ] ; then
-        EXITW=1
-    fi
-    if [ ${KEYBOARD} -lt ${CRITICAL} ] ; then
-        EXITC=1
-    fi
-fi
+    level=$(get_level AppleBluetoothHIDKeyboard)
 
-##############################################################################
-# Mouse
+    if [ -n "${level}" ] ; then
 
-MOUSE=$(get_level AppleBluetoothHIDMouse)
+        if [ -n "${VERBOSE}" ] ; then
+            echo "${description} detected (battery ${level}%)"
+        fi
+        
+        PERFORMANCE="${PERFORMANCE} ${name}=${level};${WARNING};${CRITICAL};;"
+        STATUS="${name} ${level}%"
+        device_found=1
+        
+        if [ ${level} -lt ${WARNING} ] ; then
+            EXITW=1
+        fi
+        if [ ${level} -lt ${CRITICAL} ] ; then
+            EXITC=1
+        fi
 
-if [ -n "${MOUSE}" ] ; then
-    if [ -n "${VERBOSE}" ] ; then
-        echo "bluetooth mouse detected (battery ${MOUSE}%)"
-    fi
-    PERFORMANCE="${PERFORMANCE} mouse=${MOUSE};${WARNING};${CRITICAL};;"
-    if [ -n "${STATUS}" ] ; then
-        STATUS="${STATUS}, mouse ${MOUSE}%"
     else
-        STATUS="mouse ${MOUSE}%"
+        
+        if [ -n "${VERBOSE}" ] ; then
+            echo "no ${description} detected"
+        fi
+
     fi
-    if [ ${MOUSE} -lt ${WARNING} ] ; then
-        EXITW=1
-    fi
-    if [ ${MOUSE} -lt ${CRITICAL} ] ; then
-        EXITC=1
-    fi
-fi
+
+}
+
+check_device 'AppleBluetoothHIDKeyboard' 'keyboard' 'bluetooth keyboard'
+check_device 'BNBMouseDevice'            'mouse'    'bluetooth mouse'
+check_device 'BNBTrackpadDevice'         'trackpad' 'bluetooth trackpad'
 
 ##############################################################################
 # Checks
 
-if [ -z "${MOUSE}" -a -z "${KEYBOARD}" ] ; then
+if [ -z "${device_found}" ] ; then
     critical "no device detected"
 fi
 
@@ -217,4 +214,5 @@ if [ -n "${EXITW}" ] ; then
 fi
 
 echo "${NAME} OK - ${STATUS} |${PERFORMANCE}"
+
 exit 0
