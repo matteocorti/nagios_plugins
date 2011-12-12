@@ -1,7 +1,7 @@
-PLUGIN=`cat NAME`
+PLUGIN=check_bluetooth_battery
 VERSION=`cat VERSION`
 DIST_DIR=$(PLUGIN)-$(VERSION)
-DIST_FILES=AUTHORS COPYING ChangeLog INSTALL Makefile NEWS README TODO VERSION $(PLUGIN) NAME
+DIST_FILES=AUTHORS COPYING ChangeLog INSTALL Makefile NEWS README TODO VERSION $(PLUGIN) COPYRIGHT
 
 dist: version_check
 	rm -rf $(DIST_DIR) $(DIST_DIR).tar.gz
@@ -17,6 +17,8 @@ install:
 version_check:
 	VERSION=`cat VERSION`
 	grep -q "VERSION\ *=\ *[\'\"]*$(VERSION)" $(PLUGIN)
+	grep -q "${VERSION}" NEWS
+        echo "Version check: OK"
 
 clean:
 	rm -f *~

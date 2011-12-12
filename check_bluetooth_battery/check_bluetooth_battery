@@ -19,7 +19,7 @@
 #   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_ssl_cert/check_ssl_cert $
 #   $Date: 2009-03-31 22:17:13 +0200 (Tue, 31 Mar 2009) $
 
-VERSION=1.0.0
+VERSION=1.1.0
 NAME="BLUETOOTH BATTERY"
 
 ################################################################################
@@ -163,7 +163,7 @@ check_device() {
     name=$2
     description=$3
 
-    level=$(get_level AppleBluetoothHIDKeyboard)
+    level=$(get_level ${device})
 
     if [ -n "${level}" ] ; then
 
@@ -172,7 +172,12 @@ check_device() {
         fi
         
         PERFORMANCE="${PERFORMANCE} ${name}=${level};${WARNING};${CRITICAL};;"
-        STATUS="${name} ${level}%"
+        
+        if [ -n "${STATUS}" ] ; then
+            STATUS="${STATUS}, "
+        fi
+        STATUS="${STATUS}${name} ${level}%"
+        
         device_found=1
         
         if [ ${level} -lt ${WARNING} ] ; then
@@ -192,6 +197,7 @@ check_device() {
 
 }
 
+check_device 'IOAppleBluetoothHIDDriver' 'keyboard' 'bluetooth keyboard'
 check_device 'AppleBluetoothHIDKeyboard' 'keyboard' 'bluetooth keyboard'
 check_device 'BNBMouseDevice'            'mouse'    'bluetooth mouse'
 check_device 'BNBTrackpadDevice'         'trackpad' 'bluetooth trackpad'
