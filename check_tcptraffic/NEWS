@@ -1,3 +1,4 @@
+2012-03-13 2.2.4 Added UOMs to the output
 2011-02-17 2.2.3 Added an optional debug log and corrected a bug in the handling of
                  counter overflows
 2011-02-10 2.2.2 Added the NagiosGrapher tempkate (Marcus Schopen)

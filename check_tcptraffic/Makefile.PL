@@ -13,9 +13,10 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name         'check_tcptraffic';
-version_from 'check_tcptraffic';
-all_from     'check_tcptraffic.pod';
+name              'check_tcptraffic';
+version_from      'check_tcptraffic';
+perl_version_from 'check_tcptraffic';
+all_from          'check_tcptraffic.pod';
 
 ##############################################################################
 # Specific dependencies

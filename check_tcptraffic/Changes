@@ -1,3 +1,7 @@
+2012-03-13  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: added UOM to the output
+
 2011-03-05  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: corrected a bug in the handling of counter

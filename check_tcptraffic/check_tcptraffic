@@ -23,6 +23,8 @@
 #   $HeadURL$
 #   $Date$
 
+use 5.00800;
+
 use strict;
 use warnings;
 
@@ -37,7 +39,7 @@ use Readonly;
 ################################################################################
 # constants
 
-our $VERSION = '2.2.3';
+our $VERSION = '2.2.4';
 
 Readonly my $MAX_LONG => 2**32;
 
@@ -589,26 +591,26 @@ debug("TOT: $traffic = $traffic_in + $traffic_out");
 $plugin->add_perfdata(
     label     => 'TOTAL',
     value     => sprintf( '%.0f', $traffic ),
-    uom       => q{},
+    uom       => 'B',
     threshold => $threshold,
 );
 
 $plugin->add_perfdata(
     label => 'IN',
     value => sprintf( '%.0f', $traffic_in ),
-    uom   => q{},
+    uom   => 'B',
 );
 
 $plugin->add_perfdata(
     label => 'OUT',
     value => sprintf( '%.0f', $traffic_out ),
-    uom   => q{},
+    uom   => 'B',
 );
 
 $plugin->add_perfdata(
     label => 'TIME',
     value => sprintf( '%.0f', $data{diff} ),
-    uom   => q{},
+    uom   => 'B',
 );
 
 $plugin->nagios_exit( $threshold->get_status($traffic),
