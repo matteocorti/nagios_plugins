@@ -220,7 +220,7 @@ sub write_timer {
     }
 
     my $line = time . " $in $out\n";
-    print {$TMP} $line;                ## no critic (RequireCheckedSyscalls)
+    print {$TMP} $line;    ## no critic (RequireCheckedSyscalls)
     debug("$dbg_message: $line");
 
     close $TMP
