@@ -214,7 +214,7 @@ sub write_timer {
 
     my $dbg_message = "writing to $tmp";
 
-    if ( !open $TMP, q{>}, $tmp ) {    ## no critic (RequireBriefOpen)
+    if ( !open $TMP, q{>}, $tmp ) {
         debug("error: $OS_ERROR");
         $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
     }
