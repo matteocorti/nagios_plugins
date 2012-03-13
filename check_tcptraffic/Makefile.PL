@@ -33,6 +33,10 @@ requires 'version'                   => 0;
 
 install_script  'check_tcptraffic';
 
+
+tests 't/*.t';
+test_requires 'Test::More'           => 0;
+
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
     INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',

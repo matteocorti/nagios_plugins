@@ -4,6 +4,7 @@ author:
   - 'Matteo Corti <matteo.corti@id.ethz.ch>'
 build_requires:
   ExtUtils::MakeMaker: 6.42
+  Test::More: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
@@ -16,6 +17,7 @@ name: check_tcptraffic
 no_index:
   directory:
     - inc
+    - t
 requires:
   Carp: 0
   English: 0
@@ -27,4 +29,4 @@ requires:
   version: 0
 resources:
   license: http://opensource.org/licenses/gpl-license.php
-version: 2.2.4
+version: 2.2.5
