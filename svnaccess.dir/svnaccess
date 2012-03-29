@@ -2,6 +2,7 @@
 corti = rw
 bircher = rw
 vermeul = rw
+id_jenkins = r
 * = r
 
 #trac TRAC_ADMIN = corti
