@@ -1,3 +1,7 @@
+2012-04-14  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: fixed a minor issue in the option parsing and output
+
 2011-11-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: support for 3.x kernels

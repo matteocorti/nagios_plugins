@@ -884,7 +884,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     verbose "Checking: @unique_devices\n";
 
-#####
+    #####
     # UOM
 
     my $multiplier;
@@ -897,7 +897,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     # according to the guidelines only [TGMK]B (Bytes) are valid UOM
     #   http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
     my $perfdata_uom = 'B';
-    if ( $format eq 's' || $format =~ /^sector[s]$/mxs ) {
+    if ( $format eq 's' || $format =~ /^sectors?$/mxs ) {
 
         #sectors
         $multiplier   = 1;
@@ -905,7 +905,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
         $perfdata_uom = q{};
 
     }
-    elsif ( $format eq 'b' || $format =~ /^bit[s]$/mxs ) {
+    elsif ( $format eq 'b' || $format =~ /^bits?$/mxs ) {
 
         # bits
         $multiplier   = $options->ssize() * $BITS_PER_BYTE;
@@ -913,7 +913,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
         $perfdata_uom = q{};
 
     }
-    elsif ( $format eq 'B' || $format =~ /^byte[s]$/mxs ) {
+    elsif ( $format eq 'B' || $format =~ /^bytes?$/mxs ) {
 
         # bytes
         $multiplier = $options->ssize();
@@ -985,7 +985,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     }
 
-########################
+    ########################
     # Check the proc entry
 
     my $diff;
@@ -1119,7 +1119,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     }
 
     if ( $options->silent() ) {
-        $plugin->nagios_exit( OK, ( join ', ', @unique_devices ) . 'OK' );
+        $plugin->nagios_exit( OK, ( join ', ', @unique_devices ) . ' OK' );
     }
     else {
         $plugin->nagios_exit( $status, join ', ', @status_lines, );
