@@ -10,7 +10,7 @@ use 5.00800;
 use strict;
 use warnings;
 
-use Test::More tests => 17;
+use Test::More tests => 19;
 
 our $VERSION = '2.2.5';
 
