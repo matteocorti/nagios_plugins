@@ -103,6 +103,8 @@ check_diskio depends on
 
 =item * English
 
+=item * File::Basename
+
 =item * Nagios::Plugin
 
 =item * Nagios::Plugin::Getopt

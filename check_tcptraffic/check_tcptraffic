@@ -30,6 +30,7 @@ use warnings;
 
 use Carp;
 use English qw(-no_match_vars);
+use File::Basename;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
 use Nagios::Plugin::Range;
@@ -192,6 +193,53 @@ sub whoami {
     }
 
     $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : assert_is_writable( 'filename' )
+# Purpose   : checks if the file can be written
+# Returns   : exits with UNKNOW status if not
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub assert_is_writable {
+
+    my $filename = shift;
+
+    if ( -e $filename ) {
+        if ( -f $filename ) {
+            if ( !-w $filename ) {
+                $plugin->nagios_exit( UNKNOWN,
+                    "File $filename exists and is not writable" );
+            }
+        }
+        else {
+            $plugin->nagios_exit( UNKNOWN,
+                "Cannot write to $filename: exists but is not a regular file" );
+        }
+    }
+    else {
+
+        # check the parent directory
+        my $directory = dirname($filename);
+
+        if ( !-e $directory ) {
+            $plugin->nagios_exit( UNKNOWN,
+"Cannot write to $filename: parent directory $directory does not exist"
+            );
+        }
+
+        if ( !-w $directory ) {
+            $plugin->nagios_exit( UNKNOWN,
+"Cannot write to $filename: parent directory $directory exists but is not writable"
+            );
+        }
+
+    }
 
     return;
 
@@ -463,8 +511,8 @@ $options->getopts();
 ###############
 # Sanity checks
 
-if ( $options->debug_log() && ( !-w $options->debug_log() ) ) {
-    $plugin->nagios_exit( UNKNOWN, $options->debug_log() . ' is not writable' );
+if ( $options->debug_log() ) {
+    assert_is_writable( $options->debug_log() );
 }
 debug('------------------------------------------');
 

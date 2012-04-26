@@ -18,6 +18,9 @@ use_ok('Carp');
 
 use_ok('English');
 
+use_ok('File::Basename');
+can_ok( 'File::Basename', 'dirname' );
+
 use_ok('Nagios::Plugin');
 can_ok( 'Nagios::Plugin', 'new' );
 can_ok( 'Nagios::Plugin', 'nagios_exit' );

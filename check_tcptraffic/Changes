@@ -1,3 +1,7 @@
+2012-04-26  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_tcptraffic: fixed the check on writability of the debug log file
+
 2012-03-13  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_tcptraffic: added UOM to the output

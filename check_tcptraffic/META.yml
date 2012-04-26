@@ -21,6 +21,7 @@ no_index:
 requires:
   Carp: 0
   English: 0
+  File::Basename: 0
   Nagios::Plugin: 0
   Nagios::Plugin::Range: 0
   Nagios::Plugin::Threshold: 0
