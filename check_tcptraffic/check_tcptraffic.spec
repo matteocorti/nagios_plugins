@@ -6,7 +6,7 @@
 # $Date: 2009-12-10 17:35:09 +0100 (Thu, 10 Dec 2009) $
 ################################################################################
 
-%define version          2.2.4
+%define version          2.2.5
 %define release          0
 %define sourcename       check_tcptraffic
 %define packagename      nagios-plugins-check-tcptraffic
