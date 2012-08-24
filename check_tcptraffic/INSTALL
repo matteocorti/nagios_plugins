@@ -3,7 +3,7 @@ Build and install check_tcptraffic
 Dependencies
 ============
 
-The check_tcptraffic depends on several Perl modules
+check_tcptraffic depends on several Perl modules
 
 * Carp
 * English

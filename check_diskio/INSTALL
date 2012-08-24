@@ -1,5 +1,34 @@
 Build and install check_diskio
 
+Dependences
+===========
+
+check_diskio depends on several Perl modules:
+
+ * Array::Unique
+ * English
+ * File::Slurp
+ * List::MoreUtils
+ * Nagios::Plugin
+ * Nagios::Plugin::Getopt
+ * Nagios::Plugin::Threshold
+ * Number::Format
+ * POSIX
+ * Readonly
+ * version
+
+Perl modules can be found on the "Comprehensive Perl Archive Network"
+(CPAN). The "How to install CPAN modules" guide summarizes how these
+can be installed
+
+        http://www.cpan.org/modules/INSTALL.html
+
+On many systems Perl modules are also available as installation
+packages (refer to your system documentation on how to install them).
+
+The 'perl Makefile.PL' command (see below) will list the missing
+packages the you will need to install.
+
 Install to /usr/lib/nagios/plugins/contrib
 ==========================================
 
