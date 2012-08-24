@@ -95,7 +95,7 @@ in case of an unknown problem
 
 =head1 DEPENDENCIES
 
-check_diskio depends on
+check_tcptraffic depends on
 
 =over 4
 
