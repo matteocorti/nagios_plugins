@@ -186,7 +186,8 @@ sub write_timer {
       . "\n", 1;
 
     ## no critic (InputOutput::RequireBriefOpen)
-    open $TMP_FH, q{>}, $tmp
+    open $TMP_FH, q{>},
+      $tmp
       or $plugin->nagios_exit( UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
 
@@ -755,7 +756,8 @@ EOT
             undef $device;
 
             ## no critic (InputOutput::RequireBriefOpen)
-            open $MTAB_FH, q{<}, '/etc/mtab'
+            open $MTAB_FH, q{<},
+              '/etc/mtab'
               or $plugin->nagios_exit( UNKNOWN,
                 "Cannot open /etc/mtab: $OS_ERROR" );
             while (<$MTAB_FH>) {
