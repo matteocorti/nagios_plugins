@@ -94,7 +94,8 @@ sub debug {
 
     if ( $options->debug_log() ) {
 
-        open $log_file, '>>', $options->debug_log()
+        open $log_file, '>>',
+          $options->debug_log()
           or $plugin->nagios_exit( UNKNOWN,
             'Cannot open ' . $options->debug_log() . ": $OS_ERROR" );
 
