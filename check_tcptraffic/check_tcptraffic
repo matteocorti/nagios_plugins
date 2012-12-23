@@ -98,12 +98,10 @@ sub debug {
           $options->debug_log()
           or $plugin->nagios_exit( UNKNOWN,
             'Cannot open ' . $options->debug_log() . ": $OS_ERROR" );
-
         print {$log_file} time
           . " $message\n"
           or $plugin->nagios_exit( UNKNOWN,
             'Cannot write to ' . $options->debug_log() . ": $OS_ERROR" );
-
         close $log_file
           or $plugin->nagios_exit( UNKNOWN,
             'Cannot close ' . $options->debug_log() . ": $OS_ERROR" );
