@@ -1,3 +1,6 @@
+2013-02-26  Matteo Corti  <matteo.corti@id.ethz.ch>
+        * check_diskio: empty temporary files are re-written
+
 2012-04-14  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: fixed a minor issue in the option parsing and output

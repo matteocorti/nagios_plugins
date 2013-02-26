@@ -7,7 +7,7 @@ package main;
 #
 # See  the INSTALL file for installation instructions
 #
-# Copyright (c) 2007,2008 ETH Zurich.
+# Copyright (c) 2007-2013 ETH Zurich.
 #
 # This module is free software; you can redistribute it and/or modify it
 # under the terms of GNU general public license (gpl) version 3.
@@ -27,7 +27,7 @@ use 5.00800;
 use strict;
 use warnings;
 
-our $VERSION = '3.2.4';
+our $VERSION = '3.2.5';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -1018,7 +1018,8 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
           . format_number( $s_write, 0, 0 )
           . "\n", 1;
 
-        if ( !-f $tmp_files{$device} ) {
+        # check if the temporary file exists and has some content
+        if ( !-s $tmp_files{$device} ) {
             verbose "temporary file not available resetting and waiting\n";
             write_timer( $tmp_files{$device}, $s_write, $s_read );
             sleep 1;

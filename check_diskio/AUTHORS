@@ -8,3 +8,4 @@ Many thanks to
 * Nikolaus Filus for the UOM enhancements
 * Vitaliy Zhhuta for the help with /proc/diskstats formatting issues
 * Greg Maples for helping in the partition stripping of LVM volumes
+* Anonymous reporter for the temporary file check fix

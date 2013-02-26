@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version          3.2.4
+%define version          3.2.5
 %define release          0
 %define sourcename       check_diskio
 %define packagename      nagios-plugins-check-diskio
