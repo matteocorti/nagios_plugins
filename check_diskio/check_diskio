@@ -388,7 +388,7 @@ sub read_26 {
 
     }
 
-    $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+    $plugin->nagios_exit( UNKNOWN, "Device '$device' not found" );
 
     return
 
