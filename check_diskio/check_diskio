@@ -3,7 +3,7 @@
 package main;
 
 # check_diskio is a Nagios plugin to monitor the amount of disk
-# I/O in sectors on Linux 2.6 and 2.4 systems
+# I/O in sectors on Linux
 #
 # See  the INSTALL file for installation instructions
 #
@@ -27,7 +27,7 @@ use 5.00800;
 use strict;
 use warnings;
 
-our $VERSION = '3.2.5';
+our $VERSION = '3.2.6';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -208,16 +208,22 @@ sub write_timer {
 }
 
 ##############################################################################
-# Usage     : ($time, $in, $out) = read_timer()
+# Usage     : ($time, $in, $out) = read_timer( $temporary_file )
 # Purpose   : reads the time and I/O data from the temporary file
 # Returns   : ($time, $in, $out) time difference, input and output data
-# Arguments : n/a
+# Arguments : $temporary_file : name of the temporary file holding the timer
+#             data
 # Throws    : n/a
 # Comments  : n/a
 # See also  : n/a
 sub read_timer {
 
     my $tmp = shift;
+
+    if ( !defined $tmp ) {
+        $plugin->nagios_exit( UNKNOWN,
+            'Internal error: read_timer called without parameters' );
+    }
 
     my $TMP_FH;
     my $time;
@@ -1037,7 +1043,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
             # wait a little bit
             sleep 1;
-            ( $diff, $in, $out ) = read_timer();
+            ( $diff, $in, $out ) = read_timer( $tmp_files{$device} );
 
         }
 

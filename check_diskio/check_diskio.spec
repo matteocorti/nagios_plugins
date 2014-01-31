@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version          3.2.5
+%define version          3.2.6
 %define release          0
 %define sourcename       check_diskio
 %define packagename      nagios-plugins-check-diskio
@@ -75,6 +75,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{sourcename}.1*
 
 %changelog
+* Thu Jan 30 2014 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.6-0
+- Updated to 3.2.6 (bug fix)
+
 * Wed Nov  9 2011 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.4-0
 - 3.X kernel support
 

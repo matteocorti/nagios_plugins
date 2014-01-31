@@ -1,3 +1,5 @@
+2014-01-31 3.2.6: fixed a bug when calling the plugin in periods shorter than
+                  1 second
 2013-02-26 3.2.5: handles empty temporary files and fixes a minor bug in option
                   parsing
 2011-11-09 3.2.4: supports 3.X kernels
