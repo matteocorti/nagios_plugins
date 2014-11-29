@@ -16,6 +16,7 @@ include 'version';
 
 requires 'Array::Unique'             => 0;
 requires 'English'                   => 0;
+requires 'Fcntl'                     => 0;
 requires 'File::Slurp'               => 0;
 requires 'List::MoreUtils'           => 0;
 requires 'Nagios::Plugin'            => 0;

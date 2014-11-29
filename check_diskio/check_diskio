@@ -31,6 +31,7 @@ our $VERSION = '3.2.7';
 
 use Array::Unique;
 use English qw(-no_match_vars);
+use Fcntl;
 use File::Slurp;
 use List::MoreUtils qw(any);
 use Nagios::Plugin::Getopt;
