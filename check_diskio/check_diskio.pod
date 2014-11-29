@@ -167,7 +167,7 @@ Nagios documentation
 
 No bugs have been reported.
 
-Please report any bugs or feature requests to matteo.corti@id.ethz.ch,
+Please report any bugs or feature requests to matteo@corti.li,
 or through the web interface at
 https://svn.id.ethz.ch/trac/bd_webhosting/newticket
 
