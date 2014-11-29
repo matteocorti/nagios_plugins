@@ -1,3 +1,8 @@
+2014-11-29  Matteo Corti  <matteo@corti.li>
+
+	* check_diskio: fixed a security bug when creating the temporary file
+                        (CVE-2014-8994)
+
 2014-01-30  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_diskio: fixed a bug when calling the plugin in periods shorter than 1 second

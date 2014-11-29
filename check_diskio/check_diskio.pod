@@ -14,7 +14,7 @@ on Linux
 
 =head1 VERSION
 
-Version 3.2.6
+Version 3.2.7
 
 =head1 SYNOPSIS
 

@@ -27,7 +27,7 @@ use 5.00800;
 use strict;
 use warnings;
 
-our $VERSION = '3.2.6';
+our $VERSION = '3.2.7';
 
 use Array::Unique;
 use English qw(-no_match_vars);
@@ -185,9 +185,10 @@ sub write_timer {
       . $time
       . "\n", 1;
 
-    ## no critic (InputOutput::RequireBriefOpen)
-    open $TMP_FH, q{>},
-      $tmp
+# use sysopen to avoid a race condition (http://en.wikipedia.org/wiki/Symlink_race)
+
+    sysopen $TMP_FH, $tmp,
+      O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW
       or $plugin->nagios_exit( UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
 
@@ -201,7 +202,6 @@ sub write_timer {
 
     close $TMP_FH
       or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
-    ## use critic (InputOutput::RequireBriefOpen)
 
     return;
 
