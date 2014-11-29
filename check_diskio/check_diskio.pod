@@ -175,7 +175,7 @@ Include the output of the script with the --debug command line option
 
 =head1 AUTHOR
 
-Matteo Corti <matteo.corti@id.ethz.ch>
+Matteo Corti <matteo@corti.li>
 
 =head1 LICENSE AND COPYRIGHT
 

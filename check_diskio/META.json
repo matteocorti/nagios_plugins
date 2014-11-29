@@ -1,7 +1,7 @@
 {
    "abstract" : "unknown",
    "author" : [
-      "Matteo Corti <matteo.corti@id.ethz.ch>"
+      "Matteo Corti <matteo@corti@id.ethz.ch>"
    ],
    "dynamic_config" : 0,
    "generated_by" : "ExtUtils::MakeMaker version 6.72, CPAN::Meta::Converter version 2.132140",
