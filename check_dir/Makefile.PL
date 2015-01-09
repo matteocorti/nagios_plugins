@@ -23,20 +23,20 @@ all_from          'check_dir.pod';
 
 include 'version';
 
-requires 'English'                   => 0;
-requires 'Getopt::Long'              => 0;
-requires 'Nagios::Plugin'            => 0;
-requires 'Nagios::Plugin::Range'     => 0;
-requires 'Nagios::Plugin::Threshold' => 0;
+requires 'English'                       => 0;
+requires 'Getopt::Long'                  => 0;
+requires 'Monitoring::Plugin'            => 0;
+requires 'Monitoring::Plugin::Range'     => 0;
+requires 'Monitoring::Plugin::Threshold' => 0;
 
 install_script  'check_dir';
 
 tests 't/*.t';
-test_requires 'Carp'                 => 0;
-test_requires 'File::Path'           => '2.06';
-test_requires 'File::Spec'           => 0;
-test_requires 'Test::More'           => 0;
-test_requires 'English'              => 0;
+test_requires 'Carp'                     => 0;
+test_requires 'File::Path'               => '2.06';
+test_requires 'File::Spec'               => 0;
+test_requires 'Test::More'               => 0;
+test_requires 'English'                  => 0;
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',

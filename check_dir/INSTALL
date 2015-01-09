@@ -7,10 +7,10 @@ check_dir depends on several Perl modules:
 
  * English
  * Getopt::Long
- * Nagios::Plugin
- * Nagios::Plugin::Getopt
- * Nagios::Plugin::Range
- * Nagios::Plugin::Threshold
+ * Monitoring::Plugin
+ * Monitoring::Plugin::Getopt
+ * Monitoring::Plugin::Range
+ * Monitoring::Plugin::Threshold
  * version
 
 Perl modules can be found on the "Comprehensive Perl Archive Network"

@@ -1,3 +1,8 @@
+2015-01-09  Matteo Corti  <matteo@corti.li>
+
+	* check_dir: using Monitoring::Plugin instead of the deprecated
+	             Nagios::Plugin
+
 2011-06-29  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_dir: fixed the checks on directory permissions

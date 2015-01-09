@@ -18,10 +18,10 @@ use warnings;
 
 use English qw(-no_match_vars);
 
-use Nagios::Plugin;
-use Nagios::Plugin::Range;
-use Nagios::Plugin::Getopt;
-use Nagios::Plugin::Threshold;
+use Monitoring::Plugin;
+use Monitoring::Plugin::Range;
+use Monitoring::Plugin::Getopt;
+use Monitoring::Plugin::Threshold;
 
 our $VERSION = '3.0.0';
 
@@ -266,14 +266,14 @@ sub check_permissions {
 sub run {
 
     # initialization
-    $plugin = Nagios::Plugin->new( shortname => 'CHECK_DIR' );
+    $plugin = Monitoring::Plugin->new( shortname => 'CHECK_DIR' );
 
     $status = 0;
 
     ########################
     # Command line arguments
 
-    $options = Nagios::Plugin::Getopt->new(
+    $options = Monitoring::Plugin::Getopt->new(
         usage   => 'Usage: %s [OPTIONS]',
         version => $VERSION,
         url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
@@ -311,18 +311,18 @@ sub run {
     # Sanity checks: command line
 
     my $critical_range =
-      Nagios::Plugin::Range->parse_range_string( $options->get('critical') );
+      Monitoring::Plugin::Range->parse_range_string( $options->get('critical') );
     if ( !$critical_range->is_set() ) {
         exit_with_error( UNKNOWN, 'Could not parse "critical"' );
     }
 
     my $warning_range =
-      Nagios::Plugin::Range->parse_range_string( $options->get('warning') );
+      Monitoring::Plugin::Range->parse_range_string( $options->get('warning') );
     if ( !$critical_range->is_set() ) {
         exit_with_error( UNKNOWN, 'Could not parse "warning"' );
     }
 
-    $threshold = Nagios::Plugin::Threshold->set_thresholds(
+    $threshold = Monitoring::Plugin::Threshold->set_thresholds(
         warning  => $warning_range,
         critical => $critical_range,
     );
