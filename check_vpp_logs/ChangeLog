@@ -1,5 +1,0 @@
-2009-04-15  Matteo Corti  <matteo.corti@id.ethz.ch>
-
-	* check_vpp_logs: avoid overflows
-	* check_vpp_logs: debugging output
-
