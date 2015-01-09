@@ -311,7 +311,8 @@ sub run {
     # Sanity checks: command line
 
     my $critical_range =
-      Monitoring::Plugin::Range->parse_range_string( $options->get('critical') );
+      Monitoring::Plugin::Range->parse_range_string(
+        $options->get('critical') );
     if ( !$critical_range->is_set() ) {
         exit_with_error( UNKNOWN, 'Could not parse "critical"' );
     }
