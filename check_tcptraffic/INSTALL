@@ -8,10 +8,10 @@ check_tcptraffic depends on several Perl modules
 * Carp
 * English
 * File::Basename
-* Nagios::Plugin
-* Nagios::Plugin::Getopt
-* Nagios::Plugin::Threshold
-* Nagios::Plugin::Range
+* Monitoring::Plugin
+* Monitoring::Plugin::Getopt
+* Monitoring::Plugin::Threshold
+* Monitoring::Plugin::Range
 * Readonly
 * version
 

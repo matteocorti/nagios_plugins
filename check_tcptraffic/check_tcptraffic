@@ -31,10 +31,10 @@ use warnings;
 use Carp;
 use English qw(-no_match_vars);
 use File::Basename;
-use Nagios::Plugin::Threshold;
-use Nagios::Plugin;
-use Nagios::Plugin::Range;
-use Nagios::Plugin::Getopt;
+use Monitoring::Plugin::Threshold;
+use Monitoring::Plugin;
+use Monitoring::Plugin::Range;
+use Monitoring::Plugin::Getopt;
 use Readonly;
 
 ################################################################################
@@ -448,14 +448,14 @@ sub verbose {
 # Initialization
 
 $os_64_bit  = 0;
-$plugin     = Nagios::Plugin->new( shortname => 'TCPTRAFFIC' );
+$plugin     = Monitoring::Plugin->new( shortname => 'TCPTRAFFIC' );
 $status     = 0;
 $status_msg = q{};
 
 ########################
 # Command line arguments
 
-$options = Nagios::Plugin::Getopt->new(
+$options = Monitoring::Plugin::Getopt->new(
     usage   => 'Usage: %s [OPTIONS]',
     version => $VERSION,
     url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
@@ -521,13 +521,13 @@ if ( !running_on_linux() ) {
 
 # parse the critical and warning ranges
 my $critical_range =
-  Nagios::Plugin::Range->parse_range_string( $options->critical() );
+  Monitoring::Plugin::Range->parse_range_string( $options->critical() );
 if ( !( $critical_range && $critical_range->is_set() ) ) {
     $plugin->nagios_exit( UNKNOWN, 'Could not parse "critical"' );
 }
 
 my $warning_range =
-  Nagios::Plugin::Range->parse_range_string( $options->warning() );
+  Monitoring::Plugin::Range->parse_range_string( $options->warning() );
 if ( !( $warning_range && $warning_range->is_set() ) ) {
     $plugin->nagios_exit( UNKNOWN, 'Could not parse "warning"' );
 }
@@ -552,7 +552,7 @@ else {
 verbose
   "the counters can hold data for $max_check_time seconds before overflow\n";
 
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
+$threshold = Monitoring::Plugin::Threshold->set_thresholds(
     warning  => $warning_range,
     critical => $critical_range,
 );

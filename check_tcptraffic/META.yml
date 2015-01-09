@@ -9,7 +9,7 @@ configure_requires:
   ExtUtils::MakeMaker: 6.59
 distribution_type: module
 dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+generated_by: 'Module::Install version 1.14'
 license: gpl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -23,9 +23,9 @@ requires:
   Carp: 0
   English: 0
   File::Basename: 0
-  Nagios::Plugin: 0
-  Nagios::Plugin::Range: 0
-  Nagios::Plugin::Threshold: 0
+  Monitoring::Plugin: 0
+  Monitoring::Plugin::Range: 0
+  Monitoring::Plugin::Threshold: 0
   Readonly: 0
   perl: 5.8.0
   version: 0

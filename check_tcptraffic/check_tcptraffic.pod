@@ -105,13 +105,13 @@ check_tcptraffic depends on
 
 =item * File::Basename
 
-=item * Nagios::Plugin
+=item * Monitoring::Plugin
 
-=item * Nagios::Plugin::Getopt
+=item * Monitoring::Plugin::Getopt
 
-=item * Nagios::Plugin::Threshold
+=item * Monitoring::Plugin::Threshold
 
-=item * Nagios::Plugin::Range
+=item * Monitoring::Plugin::Range
 
 =item * Readonly
 

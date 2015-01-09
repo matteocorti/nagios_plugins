@@ -23,14 +23,14 @@ all_from          'check_tcptraffic.pod';
 
 include 'version';
 
-requires 'Carp'                      => 0;
-requires 'English'                   => 0;
-requires 'File::Basename'            => 0;
-requires 'Nagios::Plugin'            => 0;
-requires 'Nagios::Plugin::Range'     => 0;
-requires 'Nagios::Plugin::Threshold' => 0;
-requires 'Readonly'                  => 0;
-requires 'version'                   => 0;
+requires 'Carp'                          => 0;
+requires 'English'                       => 0;
+requires 'File::Basename'                => 0;
+requires 'Monitoring::Plugin'            => 0;
+requires 'Monitoring::Plugin::Range'     => 0;
+requires 'Monitoring::Plugin::Threshold' => 0;
+requires 'Readonly'                      => 0;
+requires 'version'                       => 0;
 
 install_script  'check_tcptraffic';
 
