@@ -10,8 +10,8 @@ check_writable depends on several Perl modules:
  * File::Temp
  * English
  * Getopt::Long
- * Nagios::Plugin
- * Nagios::Plugin::Threshold
+ * Monitoring::Plugin
+ * Monitoring::Plugin::Threshold
  * POSIX
  * Pod::Usage
  * version

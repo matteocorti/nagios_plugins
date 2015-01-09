@@ -38,8 +38,8 @@ use Data::Random;
 use English qw(-no_match_vars);
 use File::Temp;
 use Getopt::Long;
-use Nagios::Plugin::Threshold;
-use Nagios::Plugin;
+use Monitoring::Plugin::Threshold;
+use Monitoring::Plugin;
 use Pod::Usage qw(pod2usage);
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
@@ -64,7 +64,7 @@ use vars qw(
 
 ################
 # Initialization
-$plugin = Nagios::Plugin->new( shortname => 'CHECK_WRITABLE' );
+$plugin = Monitoring::Plugin->new( shortname => 'CHECK_WRITABLE' );
 
 ########################
 # Command line arguments
