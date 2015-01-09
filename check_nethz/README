@@ -1,3 +1,0 @@
-check_updates is a Nagios plugin to check the health of the nethz system
-
-! The TNS_ADMIN environment variable should be set !
