@@ -1,3 +1,8 @@
+2015-01-09  Matteo Corti  <matteo@corti.li>
+
+	* check_procs_multi: using Monitoring::Plugin instead of the
+	                     deprecated Nagios::Plugin
+
 2011-02-16  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* README: added hint on adding data sources on RRD files
