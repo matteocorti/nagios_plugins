@@ -89,9 +89,9 @@ check_bandwidth depends on
 
 =item * Getopt::Long
 
-=item * Nagios::Plugin
+=item * Monitoring::Plugin
 
-=item * Nagios::Plugin::Threshold
+=item * Monitoring::Plugin::Threshold
 
 =item * Net::DNS::Resolver
 

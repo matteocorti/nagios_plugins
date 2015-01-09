@@ -7,7 +7,7 @@ Summary:   Nagios plugin that checks the available bandwidth
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}
-License:   GPL
+License:   GPLv3+
 Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
 Group:     Applications/System
 BuildRoot: %{_tmppath}/%{name}-%{version}-root

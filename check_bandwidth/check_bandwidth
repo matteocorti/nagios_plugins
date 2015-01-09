@@ -12,14 +12,14 @@
 use strict;
 use warnings;
 
-use 5.008;
+use 5.00800;
 
 use Getopt::Long;
 use Carp;
 use English qw(-no_match_vars);
 
-use Nagios::Plugin;
-use Nagios::Plugin::Threshold;
+use Monitoring::Plugin;
+use Monitoring::Plugin::Threshold;
 use Net::DNS::Resolver;
 use File::Slurp;
 
@@ -84,7 +84,7 @@ sub usage {
                    [--version|--help]
 
         Mandatory arguments:
-         --host,-h       hostname   check the bandwidth from localhost to 'hostname'
+         --host,-H       hostname   check the bandwidth from localhost to 'hostname'
 
         Options:
          --iperf         path       path of the iperf utility
@@ -160,9 +160,10 @@ sub get_ip {
         }
     }
 
-    unknown("cannot get the address of $host ("
-          . $dns_resolver->errorstring
-          . ')' );
+    $plugin->nagios_exit(
+        UNKNOWN,
+        "cannot get the address of $host (" . $dns_resolver->errorstring . ')'
+    );
 
     return;
 
@@ -228,7 +229,7 @@ sub get_path {
 
 # initialization
 $iperf     = q{};
-$plugin    = Nagios::Plugin->new( shortname => 'CHECK_BANDWIDTH' );
+$plugin    = Monitoring::Plugin->new( shortname => 'CHECK_BANDWIDTH' );
 $verbosity = 0;
 
 ########################
@@ -334,13 +335,18 @@ if ( $verbosity > 1 ) {
 }
 
 # process output
+
+my $upstream_id;
+my $downstream_id;
+
 for my $line (@lines) {
 
-    if ( $line =~ /^\[\ *[0-9]+\]\ local.*/mx ) {
+    if ( $line =~ /^\[\ *([0-9]+)\]\ local.*/mx ) {
+        warn "ID $1";
         next;
     }
 
-    if ( $line =~ /^[\\ *[0-9]+\]\ \ .*\ ([0-9]+)\ Kbits\/sec/mx ) {
+    if ( $line =~ /^[\\ *[0-9]+\]\ \ .*\ ([0-9]+)\ Kbits`\/sec/mx ) {
         if ( !defined $upstream ) {
             $upstream = $1;
         }
