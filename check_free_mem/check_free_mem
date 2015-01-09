@@ -18,8 +18,8 @@ use Carp;
 use English qw(-no_match_vars);
 use File::Slurp;
 use Getopt::Long;
-use Nagios::Plugin;
-use Nagios::Plugin::Threshold;
+use Monitoring::Plugin;
+use Monitoring::Plugin::Threshold;
 use Readonly;
 
 our $VERSION = '1.0.1';
@@ -193,7 +193,7 @@ sub get_path {
 
 # initialization
 $free      = q{};
-$plugin    = Nagios::Plugin->new( shortname => 'CHECK_FREE_MEM' );
+$plugin    = Monitoring::Plugin->new( shortname => 'CHECK_FREE_MEM' );
 $swap      = 0;
 $verbosity = 0;
 
@@ -253,7 +253,7 @@ if ( $critical > $warning ) {
     );
 }
 
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
+$threshold = Monitoring::Plugin::Threshold->set_thresholds(
     warning  => 100 - $warning,
     critical => 100 - $critical,
 );

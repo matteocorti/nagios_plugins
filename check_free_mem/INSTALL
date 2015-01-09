@@ -9,8 +9,8 @@ check_free_mem depends on several Perl modules:
  * English
  * File::Slurp
  * Getopt::Long
- * Nagios::Plugin
- * Nagios::Plugin::Threshold
+ * Monitoring::Plugin
+ * Monitoring::Plugin::Threshold
  * version
 
 Perl modules can be found on the "Comprehensive Perl Archive Network"
