@@ -9,9 +9,9 @@ check_diskio depends on several Perl modules:
  * English
  * File::Slurp
  * List::MoreUtils
- * Nagios::Plugin
- * Nagios::Plugin::Getopt
- * Nagios::Plugin::Threshold
+ * Monitoring::Plugin
+ * Monitoring::Plugin::Getopt
+ * Monitoring::Plugin::Threshold
  * Number::Format
  * POSIX
  * Readonly

@@ -1,3 +1,8 @@
+2015-01-09  Matteo Corti  <matteo@corti.li>
+
+	* check_diskio: using Monitoring::Plugin instead of the deprecated
+	                Monitoring::Plugin
+
 2014-11-29  Matteo Corti  <matteo@corti.li>
 
 	* check_diskio: fixed a security bug when creating the temporary file

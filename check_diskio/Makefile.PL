@@ -14,17 +14,17 @@ all_from          'check_diskio.pod';
 
 include 'version';
 
-requires 'Array::Unique'             => 0;
-requires 'English'                   => 0;
-requires 'Fcntl'                     => 0;
-requires 'File::Slurp'               => 0;
-requires 'List::MoreUtils'           => 0;
-requires 'Nagios::Plugin'            => 0;
-requires 'Nagios::Plugin::Getopt'    => 0;
-requires 'Nagios::Plugin::Threshold' => 0;
-requires 'Number::Format'            => 0;
-requires 'POSIX'                     => 0;
-requires 'Readonly'                  => 0;
+requires 'Array::Unique'                 => 0;
+requires 'English'                       => 0;
+requires 'Fcntl'                         => 0;
+requires 'File::Slurp'                   => 0;
+requires 'List::MoreUtils'               => 0;
+requires 'Monitoring::Plugin'            => 0;
+requires 'Monitoring::Plugin::Getopt'    => 0;
+requires 'Monitoring::Plugin::Threshold' => 0;
+requires 'Number::Format'                => 0;
+requires 'POSIX'                         => 0;
+requires 'Readonly'                      => 0;
 
 install_script  'check_diskio';
 

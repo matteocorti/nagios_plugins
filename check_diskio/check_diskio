@@ -34,9 +34,9 @@ use English qw(-no_match_vars);
 use Fcntl;
 use File::Slurp;
 use List::MoreUtils qw(any);
-use Nagios::Plugin::Getopt;
-use Nagios::Plugin::Threshold;
-use Nagios::Plugin;
+use Monitoring::Plugin::Getopt;
+use Monitoring::Plugin::Threshold;
+use Monitoring::Plugin;
 use Number::Format qw(format_number);
 use POSIX qw(uname);
 use Readonly;
@@ -558,7 +558,7 @@ sub run {
     # initialization
     $factor = 1;
     $format = q{s};
-    $plugin = Nagios::Plugin->new( shortname => 'CHECK_DISKIO' );
+    $plugin = Monitoring::Plugin->new( shortname => 'CHECK_DISKIO' );
 
     ########################
     # Command line arguments
@@ -595,7 +595,7 @@ G,giga                     giga
 
 EOT
 
-    $options = Nagios::Plugin::Getopt->new(
+    $options = Monitoring::Plugin::Getopt->new(
         usage   => $usage,
         extra   => $extra,
         version => $VERSION,
@@ -969,7 +969,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     ################
     # Initialization
 
-    $threshold = Nagios::Plugin::Threshold->set_thresholds(
+    $threshold = Monitoring::Plugin::Threshold->set_thresholds(
         warning  => $options->warning() * $factor,
         critical => $options->critical() * $factor,
     );
