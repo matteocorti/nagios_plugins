@@ -6,9 +6,10 @@
 # $Date$
 ################################################################################
 
-%define version 2.1.1
-%define release 0
-%define name    check_connections
+%define version          2.1.1
+%define release          1
+%define sourcename       check_connections
+%define packagename      nagios-plugins-check-connections
 %define nagiospluginsdir %{_libdir}/nagios/plugins
 
 # No binaries in this package

@@ -20,15 +20,17 @@
 #   $HeadURL$
 #   $Date$
 
+use 5.00800;
+
 use strict;
 use warnings;
 
 use Carp;
 use English '-no_match_vars';
 use File::Slurp;
-use Nagios::Plugin::Threshold;
-use Nagios::Plugin;
-use Nagios::Plugin::Getopt;
+use Monitoring::Plugin::Threshold;
+use Monitoring::Plugin;
+use Monitoring::Plugin::Getopt;
 use version;
 
 our $VERSION = '2.1.1';
@@ -251,12 +253,12 @@ $status     = 0;
 $status_msg = q{};
 $verbosity  = 0;
 
-$plugin = Nagios::Plugin->new( shortname => 'CHECK_CONNECTIONS' );
+$plugin = Monitoring::Plugin->new( shortname => 'CHECK_CONNECTIONS' );
 
 ########################
 # Command line arguments
 
-$options = Nagios::Plugin::Getopt->new(
+$options = Monitoring::Plugin::Getopt->new(
     usage   => 'Usage: %s [--help] [--verbose] [--version] [--timeout t]',
     version => $VERSION,
     url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
@@ -321,7 +323,7 @@ verbose "using $netstat\n", 2;
 ################
 # Set the limits
 
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
+$threshold = Monitoring::Plugin::Threshold->set_thresholds(
     warning  => $options->warning,
     critical => $options->critical,
 );

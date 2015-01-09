@@ -9,8 +9,8 @@ check_connections depends on several Perl modules:
  * English
  * File::Slurp
  * Getopt::Long
- * Nagios::Plugin
- * Nagios::Plugin::Threshold
+ * Monitoring::Plugin
+ * Monitoring::Plugin::Threshold
  * Pod::Usage
  * version
 
