@@ -339,7 +339,7 @@ if ( $verbosity > 1 ) {
     }
 }
 
-# process command outpt
+# process command outpt (free -bt)
 # expexted format (example)
 #
 #              total       used       free     shared    buffers     cached
@@ -350,19 +350,23 @@ if ( $verbosity > 1 ) {
 
 # check the header
 my $header = shift @lines;
-if (   !$header
-    || !$header =~
-    /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs )
-{
-    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output' );
+if ( !$header ) {
+    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output (no header)' );
 }
 
 # process real memory
 my $dummy;
 $line = shift @lines;
 chomp $line;
-( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs,
-  $line;
+
+if ( $header =~ /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs  ) {
+	( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs, $line;
+} elsif ( $header =~ /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buff\/cache[ ]*available/mxs  ) {
+	( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs, $line;
+	$cached = 0;
+} else {
+    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output (wrong header)' );
+}
 
 if ( !check_positive_integer($total) ) {
     $plugin->nagios_exit( $plugin->UNKNOWN,
@@ -468,14 +472,8 @@ $plugin->add_perfdata(
 );
 
 $plugin->add_perfdata(
-    label => 'buffers',
-    value => $buffers,
-    uom   => 'B',
-);
-
-$plugin->add_perfdata(
-    label => 'cached',
-    value => $cached,
+    label => 'buff/cache',
+    value => $buffers+$cached,
     uom   => 'B',
 );
 
