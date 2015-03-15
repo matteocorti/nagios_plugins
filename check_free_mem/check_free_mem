@@ -18,11 +18,46 @@ use Carp;
 use English qw(-no_match_vars);
 use File::Slurp;
 use Getopt::Long;
-use Monitoring::Plugin;
-use Monitoring::Plugin::Threshold;
 use Readonly;
 
 our $VERSION = '1.0.1';
+
+# Check which version of the monitoring plugins is available
+
+sub load_module {
+
+    my @names = @_;
+    my $loaded_module;
+
+    for my $name ( @names ) {
+
+        my $file = $name;
+
+        # requires need either a bare word or a file name
+        $file =~ s[::][/]g;
+        $file .= '.pm';
+        
+        eval {
+            require $file;            
+            $name->import();
+        };
+        if ( ! $EVAL_ERROR ) {
+            $loaded_module = $name;
+            last;
+        }
+    }
+    
+    if ( ! $loaded_module ) {
+        print 'CHECK_FREE_MEM: plugin not found: ' . join ( ', ', @names ) . "\n";
+        exit 2;
+    }
+    
+    return $loaded_module;
+    
+}
+
+my $plugin_module           = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
+my $plugin_threshold_module = load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
 
 ## no critic (ProhibitMagicNumbers)
 
@@ -117,7 +152,7 @@ sub verbose {
     my $level   = shift;
 
     if ( !defined $message ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             q{Internal error: not enough parameters for 'verbose'} );
     }
 
@@ -167,7 +202,7 @@ sub get_path {
 
     #<<<
     open $which_output, q{-|}, "$which_command 2>&1"
-      or $plugin->nagios_exit( UNKNOWN,  "Cannot execute $which_command: $OS_ERROR" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN,  "Cannot execute $which_command: $OS_ERROR" );
     while (<$which_output>) {
         chomp;
         if ( !/^which:/mxs ) {
@@ -180,7 +215,7 @@ sub get_path {
 
         # close to a piped open return false if the command with non-zero
         # status. In this case $! is set to 0
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error while closing pipe to $which_command: $OS_ERROR" );
     }
     #>>>
@@ -193,7 +228,8 @@ sub get_path {
 
 # initialization
 $free      = q{};
-$plugin    = Monitoring::Plugin->new( shortname => 'CHECK_FREE_MEM' );
+
+$plugin    = $plugin_module->new( shortname => 'CHECK_FREE_MEM' );
 $swap      = 0;
 $verbosity = 0;
 
@@ -220,11 +256,11 @@ $result = GetOptions(
 # Sanity checks: command line
 
 if ( !$result ) {
-    usage( -exitval => UNKNOWN, );
+    usage( -exitval => $plugin->UNKNOWN, );
 }
 
 if ($help) {
-    usage( -exitval => UNKNOWN, );
+    usage( -exitval => $plugin->UNKNOWN, );
 }
 if (   !defined $critical
     || !$critical =~ /\d+/mxs
@@ -232,7 +268,7 @@ if (   !defined $critical
     || $critical > 100 )
 {
     usage(
-        -exitval => UNKNOWN,
+        -exitval => $plugin->UNKNOWN,
         -message => 'Could not parse "critical"',
     );
 }
@@ -242,18 +278,18 @@ if (   !defined $critical
     || $warning > 100 )
 {
     usage(
-        -exitval => UNKNOWN,
+        -exitval => $plugin->UNKNOWN,
         -message => 'Could not parse "warning"',
     );
 }
 if ( $critical > $warning ) {
     usage(
-        -exitval => UNKNOWN,
+        -exitval => $plugin->UNKNOWN,
         -message => '"critical" has to be smaller than "warning"',
     );
 }
 
-$threshold = Monitoring::Plugin::Threshold->set_thresholds(
+$threshold = $plugin_threshold_module->set_thresholds(
     warning  => 100 - $warning,
     critical => 100 - $critical,
 );
@@ -266,11 +302,11 @@ if ( !$free ) {
 }
 
 if ( !$free ) {
-    $plugin->nagios_exit( UNKNOWN, 'Unable to find the "free" utility"' );
+    $plugin->nagios_exit( $plugin->UNKNOWN, 'Unable to find the "free" utility"' );
 }
 
 if ( !-x $free ) {
-    $plugin->nagios_exit( UNKNOWN, "$free is not executable" );
+    $plugin->nagios_exit( $plugin->UNKNOWN, "$free is not executable" );
 }
 
 ##################################
@@ -282,7 +318,7 @@ my $output;
 verbose "Executing \"$command\"\n";
 
 my $pid = open $output, q{-|}, "$command 2>&1"
-  or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+  or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
 # read the whole file
 my @lines = read_file($output);
@@ -293,7 +329,7 @@ if (  !( close $output )
 
     # close to a piped open return false if the command with non-zero
     # status. In this case $! is set to 0
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error while closing pipe to $command: $OS_ERROR" );
 }
 
@@ -318,7 +354,7 @@ if (   !$header
     || !$header =~
     /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs )
 {
-    $plugin->nagios_exit( UNKNOWN, 'Cannot recognize "free" output' );
+    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output' );
 }
 
 # process real memory
@@ -329,27 +365,27 @@ chomp $line;
   $line;
 
 if ( !check_positive_integer($total) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $total (total) is not a number" );
 }
 if ( !check_positive_integer($used) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $used (used) is not a number" );
 }
 if ( !check_positive_integer($free) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $free (free) is not a number" );
 }
 if ( !check_positive_integer($shared) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $shared (shared) is not a number" );
 }
 if ( !check_positive_integer($buffers) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $buffers (buffers) is not a number" );
 }
 if ( !check_positive_integer($cached) ) {
-    $plugin->nagios_exit( UNKNOWN,
+    $plugin->nagios_exit( $plugin->UNKNOWN,
         "Error processing free output: $cached (cached) is not a number" );
 }
 
@@ -364,15 +400,15 @@ if ($swap) {
     ( $dummy, $total, $used, $free ) = split /[ ]+/mxs, $line;
 
     if ( !check_positive_integer($total) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $total (total) is not a number" );
     }
     if ( !check_positive_integer($used) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $used (used) is not a number" );
     }
     if ( !check_positive_integer($free) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $free (free) is not a number" );
     }
 
@@ -399,15 +435,15 @@ if ($swap) {
     ( $dummy, $total, $used, $free ) = split /[ ]+/mxs, $line;
 
     if ( !check_positive_integer($total) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $total (total) is not a number" );
     }
     if ( !check_positive_integer($used) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $used (used) is not a number" );
     }
     if ( !check_positive_integer($free) ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error processing free output: $free (free) is not a number" );
     }
 

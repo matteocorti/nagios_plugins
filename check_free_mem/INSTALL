@@ -9,8 +9,8 @@ check_free_mem depends on several Perl modules:
  * English
  * File::Slurp
  * Getopt::Long
- * Monitoring::Plugin
- * Monitoring::Plugin::Threshold
+ * Monitoring::Plugin (or Nagios::Plugin)
+ * Monitoring::Plugin::Threshold (or Nagios::Plugin::Threshold)
  * version
 
 Perl modules can be found on the "Comprehensive Perl Archive Network"
@@ -60,6 +60,6 @@ Generate the man page with pod2man
 
     pod2man check_free_mem > CUSTOM_MAN_FILE
 
-Please report any installation problem to <matteo.corti@id.ethz.ch> or
+Please report any installation problem to <matteo@corti.li> or
 open a ticket at
 https://trac.id.ethz.ch/projects/nagios_plugins/newticket

@@ -1,3 +1,7 @@
+2015-03-15  Matteo Corti  <matteo@corti.li>
+
+	* check_free_mem: uses Monitoring::Plugin if available
+
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_free_mem: fixed issue with ePN (POD)
