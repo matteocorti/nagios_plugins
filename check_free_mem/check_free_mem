@@ -1,4 +1,4 @@
-#!perl
+#!perl -- ## no critic (Modules::ProhibitExcessMainComplexity)
 
 # RCS information
 # enable substitution with:
@@ -20,7 +20,7 @@ use File::Slurp;
 use Getopt::Long;
 use Readonly;
 
-our $VERSION = '1.0.1';
+our $VERSION = '1.1.0';
 
 # Check which version of the monitoring plugins is available
 
@@ -29,37 +29,42 @@ sub load_module {
     my @names = @_;
     my $loaded_module;
 
-    for my $name ( @names ) {
+    for my $name (@names) {
 
         my $file = $name;
 
         # requires need either a bare word or a file name
-        $file =~ s[::][/]g;
+        $file =~ s{::}{/}gsxm;
         $file .= '.pm';
-        
-        eval {
-            require $file;            
-            $name->import();
-        };
-        if ( ! $EVAL_ERROR ) {
+
+        if (
+            !eval {
+                require $file;
+                $name->import();
+                1;
+            };
+          )
+        {
             $loaded_module = $name;
             last;
         }
     }
-    
-    if ( ! $loaded_module ) {
-        print 'CHECK_FREE_MEM: plugin not found: ' . join ( ', ', @names ) . "\n";
+
+    if ( !$loaded_module ) {
+        #<<<
+        print 'CHECK_FREE_MEM: plugin not found: ' . join( ', ', @names ) . "\n";  ## no critic (RequireCheckedSyscall)
+        #>>>
+
         exit 2;
     }
-    
+
     return $loaded_module;
-    
+
 }
 
-my $plugin_module           = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
-my $plugin_threshold_module = load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
-
-## no critic (ProhibitMagicNumbers)
+my $plugin_module = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
+my $plugin_threshold_module =
+  load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -227,7 +232,7 @@ sub get_path {
 # main
 
 # initialization
-$free      = q{};
+$free = q{};
 
 $plugin    = $plugin_module->new( shortname => 'CHECK_FREE_MEM' );
 $swap      = 0;
@@ -247,7 +252,7 @@ $result = GetOptions(
         #<<<
         print "check_free_mem version $VERSION\n"; ## no critic (RequireCheckedSyscall)
         #>>>
-        exit 3;
+        exit 3;    ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
     },
     'warning|w=i' => \$warning,
 );
@@ -265,7 +270,8 @@ if ($help) {
 if (   !defined $critical
     || !$critical =~ /\d+/mxs
     || $critical < 0
-    || $critical > 100 )
+    || $critical >
+    100 )    ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
 {
     usage(
         -exitval => $plugin->UNKNOWN,
@@ -275,7 +281,8 @@ if (   !defined $critical
 if (   !defined $critical
     || !$warning =~ /\d+/mxs
     || $warning < 0
-    || $warning > 100 )
+    || $warning >
+    100 )    ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
 {
     usage(
         -exitval => $plugin->UNKNOWN,
@@ -302,7 +309,8 @@ if ( !$free ) {
 }
 
 if ( !$free ) {
-    $plugin->nagios_exit( $plugin->UNKNOWN, 'Unable to find the "free" utility"' );
+    $plugin->nagios_exit( $plugin->UNKNOWN,
+        'Unable to find the "free" utility"' );
 }
 
 if ( !-x $free ) {
@@ -318,7 +326,8 @@ my $output;
 verbose "Executing \"$command\"\n";
 
 my $pid = open $output, q{-|}, "$command 2>&1"
-  or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+  or $plugin->nagios_exit( $plugin->UNKNOWN,
+    "Cannot execute $command: $OS_ERROR" );
 
 # read the whole file
 my @lines = read_file($output);
@@ -351,7 +360,8 @@ if ( $verbosity > 1 ) {
 # check the header
 my $header = shift @lines;
 if ( !$header ) {
-    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output (no header)' );
+    $plugin->nagios_exit( $plugin->UNKNOWN,
+        'Cannot recognize "free" output (no header)' );
 }
 
 # process real memory
@@ -359,14 +369,24 @@ my $dummy;
 $line = shift @lines;
 chomp $line;
 
-if ( $header =~ /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs  ) {
-	( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs, $line;
-} elsif ( $header =~ /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buff\/cache[ ]*available/mxs  ) {
-	( $dummy, $total, $used, $free, $shared, $buffers, $cached ) = split /[ ]+/mxs, $line;
-	$cached = 0;
-} else {
-    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot recognize "free" output (wrong header)' );
+## no critic (RegularExpressions::ProhibitComplexRegexes)
+if ( $header =~ /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buffers[ ]*cached/mxs )
+{
+    ( $dummy, $total, $used, $free, $shared, $buffers, $cached ) =
+      split /[ ]+/mxs, $line;
 }
+elsif ( $header =~
+    /[ ]*total[ ]*used[ ]*free[ ]*shared[ ]*buff\/cache[ ]*available/mxs )
+{
+    ( $dummy, $total, $used, $free, $shared, $buffers, $cached ) =
+      split /[ ]+/mxs, $line;
+    $cached = 0;
+}
+else {
+    $plugin->nagios_exit( $plugin->UNKNOWN,
+        'Cannot recognize "free" output (wrong header)' );
+}
+## use critic (RegularExpressions::ProhibitComplexRegexes)
 
 if ( !check_positive_integer($total) ) {
     $plugin->nagios_exit( $plugin->UNKNOWN,
@@ -473,17 +493,20 @@ $plugin->add_perfdata(
 
 $plugin->add_perfdata(
     label => 'buff/cache',
-    value => $buffers+$cached,
+    value => $buffers + $cached,
     uom   => 'B',
 );
 
 # adjust buffers and caches and compute percentage
 
-$free = ( $free + $buffers + $cached ) / $total * 100;
+$free = ( $free + $buffers + $cached ) /
+  $total * 100;    ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
 
+#<<<
 $plugin->nagios_exit(
-    $threshold->get_status( 100 - $free ),
+    $threshold->get_status( 100 - $free ),  ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
     'free ' . ( sprintf '%.2f', $free ) . q{%}
 );
+#>>>
 
 1;
