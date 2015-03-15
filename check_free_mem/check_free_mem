@@ -37,11 +37,11 @@ sub load_module {
         $file =~ s{::}{/}gsxm;
         $file .= '.pm';
 
-        eval {
-        	require $file;
-                $name->import();
+        eval {    ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            require $file;
+            $name->import();
         };
-	if ( ! $EVAL_ERROR ) {
+        if ( !$EVAL_ERROR ) {
             $loaded_module = $name;
             last;
         }
