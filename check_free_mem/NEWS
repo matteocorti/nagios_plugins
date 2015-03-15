@@ -1,3 +1,4 @@
+2015-03-15   Version 1.1.0: Support for RHEL 6 and both Nagios:: and Monitoring:: modules
 2008-01-14   Version 0.11.2: corrected a problem in the threshold computation
 2008-01-13   Version 0.11.1: added swap to the performance output
 2008-01-13   Version 0.11.0: added --free to specify the path of 'free'
