@@ -1,5 +1,6 @@
 2015-03-15  Matteo Corti  <matteo@corti.li>
 
+        * Version 1.1.1
 	* check_free_mem: uses Monitoring::Plugin if available
 
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
