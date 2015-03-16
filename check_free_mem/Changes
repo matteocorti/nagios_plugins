@@ -1,10 +1,10 @@
-2015-03-15  Matteo Corti  <matteo@corti.li>
+2015-03-16  Matteo Corti  <matteo@corti.li>
 
-        * Version 1.1.1
-	* check_free_mem: uses Monitoring::Plugin if available
+	* Makefile.PL: dynamic choice of the ::Plugin modules
 
 2008-03-21  Matteo Corti  <matteo.corti@id.ethz.ch>
 
+        * Version 1.1.1
 	* check_free_mem: fixed issue with ePN (POD)
 
 2008-01-14  Matteo Corti  <matteo.corti@id.ethz.ch>

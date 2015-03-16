@@ -14,17 +14,32 @@ all_from          'check_free_mem.pod';
 
 include 'version';
 
-requires 'Carp'                          => 0;
-requires 'English'                       => 0;
-requires 'File::Slurp'                   => 0;
-requires 'Getopt::Long'                  => 0;
-requires 'Monitoring::Plugin'            => 0;
-requires 'Monitoring::Plugin::Threshold' => 0;        
-requires 'version'                       => 0;
+my %prereqs = (
+    'Carp'                          => 0,
+    'English'                       => 0,
+    'File::Slurp'                   => 0,
+    'Getopt::Long'                  => 0,
+    'version'                       => 0,    
+);
+
+if( eval { require Monitoring::Plugin } ) {
+    $prereqs{'Monitoring::Plugin'} = 0;
+}
+else {
+    $prereqs{'Nagios::Plugin'} = 0;
+}
+
+if( eval { require Monitoring::Plugin::Threshold } ) {
+    $prereqs{'Monitoring::Plugin::Threshold'} = 0;
+}
+else {
+    $prereqs{'Nagios::Plugin::Threshold'} = 0;
+}
 
 install_script  'check_free_mem';
 
 WriteMakefile(
+    PREREQ_PM            => \%prereqs,
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
     INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',
     MAN1PODS             => { 'check_free_mem.pod' => 'blib/man1/check_free_mem.1', },
