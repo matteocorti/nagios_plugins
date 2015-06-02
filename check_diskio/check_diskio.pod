@@ -14,7 +14,7 @@ on Linux
 
 =head1 VERSION
 
-Version 3.2.7
+Version 3.2.8
 
 =head1 SYNOPSIS
 
@@ -137,11 +137,11 @@ check_diskio depends on
 
 =item * List::MoreUtils
 
-=item * Monitoring::Plugin
+=item * Monitoring::Plugin (or Nagios::Plugin)
 
-=item * Monitoring::Plugin::Getopt
+=item * Monitoring::Plugin::Getopt(or Nagios::Plugin::Getopt)
 
-=item * Monitoring::Plugin::Threshold
+=item * Monitoring::Plugin::Threshold (or Nagios::Plugin::Threshold)
 
 =item * Number::Format
 

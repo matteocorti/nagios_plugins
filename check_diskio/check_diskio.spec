@@ -6,7 +6,7 @@
 # $Date$
 ################################################################################
 
-%define version          3.2.7
+%define version          3.2.8
 %define release          0
 %define sourcename       check_diskio
 %define packagename      nagios-plugins-check-diskio
@@ -75,6 +75,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{sourcename}.1*
 
 %changelog
+* Tue Jun  2 2015 Matteo Corti <matteo.corti@id.ethz.ch> - 3.2.8-0
+- Updated to 3.2.8
+
 * Sat Nov 29 2014 Matteo Corti <matteo@corti.li> - 3.2.7-0
 - Updated to 3.2.7 (fixes CVE-2014-8994)
 

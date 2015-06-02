@@ -1,3 +1,8 @@
+2015-06-02  Matteo Corti  <matteo.corti@id.ethz.ch>
+
+	* check_diskio: dynamically choose between Monitoring::Plugin and Nagios::Plugin
+	* check_diskio: fixed the kernel version check (works with version 4)
+
 2015-01-09  Matteo Corti  <matteo@corti.li>
 
 	* check_diskio: using Monitoring::Plugin instead of the deprecated

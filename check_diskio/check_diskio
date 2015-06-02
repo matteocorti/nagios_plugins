@@ -7,7 +7,7 @@ package main;
 #
 # See  the INSTALL file for installation instructions
 #
-# Copyright (c) 2007-2013 ETH Zurich.
+# Copyright (c) 2007-2015 Matteo Corti
 #
 # This module is free software; you can redistribute it and/or modify it
 # under the terms of GNU general public license (gpl) version 3.
@@ -27,16 +27,13 @@ use 5.00800;
 use strict;
 use warnings;
 
-our $VERSION = '3.2.7';
+our $VERSION = '3.2.8';
 
 use Array::Unique;
 use English qw(-no_match_vars);
 use Fcntl;
 use File::Slurp;
 use List::MoreUtils qw(any);
-use Monitoring::Plugin::Getopt;
-use Monitoring::Plugin::Threshold;
-use Monitoring::Plugin;
 use Number::Format qw(format_number);
 use POSIX qw(uname);
 use Readonly;
@@ -48,6 +45,49 @@ Readonly my $BYTES_PER_SECTOR => 512;
 
 Readonly my $KILO => 1_000;
 Readonly my $KIBI => 1_024;
+
+sub load_module {
+
+    my @names = @_;
+    my $loaded_module;
+
+    for my $name (@names) {
+
+        my $file = $name;
+
+        # requires need either a bare word or a file name
+        $file =~ s{::}{/}gsxm;
+        $file .= '.pm';
+
+        eval {    ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            require $file;
+            $name->import();
+        };
+        if ( !$EVAL_ERROR ) {
+            $loaded_module = $name;
+            last;
+        }
+    }
+
+    if ( !$loaded_module ) {
+        #<<<
+        print 'CHECK_DISKIO: plugin not found: ' . join( ', ', @names ) . "\n";  ## no critic (RequireCheckedSyscall)
+        #>>>
+
+        exit 2;
+    }
+
+    return $loaded_module;
+
+}
+
+
+my $plugin_module = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
+my $plugin_threshold_module =
+    load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
+my $plugin_getopt_module =
+    load_module( 'Monitoring::Plugin::Getopt', 'Nagios::Plugin::Getopt' );
+
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -99,7 +139,7 @@ sub verbose {
     my $level   = shift;
 
     if ( !defined $message ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             q{Internal error: not enough parameters for 'verbose'} );
     }
 
@@ -137,7 +177,7 @@ sub exec_command {
     verbose "Executing '$command'\n", 1;
 
     my $pid = open $output, q{-|}, $command
-      or $plugin->nagios_exit( UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot execute $command: $OS_ERROR" );
 
     while (<$output>) {
         chomp;
@@ -150,7 +190,7 @@ sub exec_command {
 
         # close to a piped open return false if the command with non-zero
         # status. In this case $! is set to 0
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error while closing pipe to whoami: $OS_ERROR" );
 
     }
@@ -190,19 +230,19 @@ sub write_timer {
 
     sysopen $TMP_FH, $tmp,
       O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW
-      or $plugin->nagios_exit( UNKNOWN,
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
 
     print {$TMP_FH} $time . " $in $out\n"
       or
-      $plugin->nagios_exit( UNKNOWN, "Cannot write timer ($tmp): $OS_ERROR" );
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot write timer ($tmp): $OS_ERROR" );
 
     if ( $options->debug() ) {
         print "[DEBUG] writing $tmp: |$time $in $out|\n";
     }
 
     close $TMP_FH
-      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
     return;
 
@@ -222,7 +262,7 @@ sub read_timer {
     my $tmp = shift;
 
     if ( !defined $tmp ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             'Internal error: read_timer called without parameters' );
     }
 
@@ -234,7 +274,7 @@ sub read_timer {
 
     ## no critic (InputOutput::RequireBriefOpen)
     open $TMP_FH, q{<}, $tmp
-      or $plugin->nagios_exit( UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
 
     while (<$TMP_FH>) {
 
@@ -250,7 +290,7 @@ sub read_timer {
     }
 
     close $TMP_FH
-      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
     ## use critic (InputOutput::RequireBriefOpen)
 
     verbose 'reading data: read='
@@ -284,7 +324,7 @@ sub use_diskstats {
         print "[DEBUG] kernel $release\n";
     }
 
-    return ( $release =~ /^2.6/mxs ) || ( $release =~ /^3/mxs );
+    return ( $release =~ /^2.6/mxs ) || ( $release =~ /^[3-9]/mxs );
 
 }
 
@@ -395,7 +435,7 @@ sub read_26 {
 
     }
 
-    $plugin->nagios_exit( UNKNOWN, "Device '$device' not found" );
+    $plugin->nagios_exit( $plugin->UNKNOWN, "Device '$device' not found" );
 
     return
 
@@ -489,7 +529,7 @@ sub whoami {
 
     my $pid = open $output, q{-|}, 'whoami'
       or
-      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot determine the user: $OS_ERROR" );
     while (<$output>) {
         chomp;
         $user = $_;
@@ -501,13 +541,13 @@ sub whoami {
 
         # close to a piped open return false if the command with non-zero
         # status. In this case $! is set to 0
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             "Error while closing pipe to whoami: $OS_ERROR" );
 
     }
 
     if ( !$user ) {
-        $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+        $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot determine the user' );
     }
 
     return $user;
@@ -558,7 +598,7 @@ sub run {
     # initialization
     $factor = 1;
     $format = q{s};
-    $plugin = Monitoring::Plugin->new( shortname => 'CHECK_DISKIO' );
+    $plugin = $plugin_module->new( shortname => 'CHECK_DISKIO' );
 
     ########################
     # Command line arguments
@@ -595,7 +635,7 @@ G,giga                     giga
 
 EOT
 
-    $options = Monitoring::Plugin::Getopt->new(
+    $options = $plugin_getopt_module->new(
         usage   => $usage,
         extra   => $extra,
         version => $VERSION,
@@ -687,13 +727,13 @@ EOT
 
     if ( use_diskstats() ) {
         if ( !-r '/proc/diskstats' && !-r '/proc/partitions' ) {
-            $plugin->nagios_exit( UNKNOWN,
+            $plugin->nagios_exit( $plugin->UNKNOWN,
                 '/proc/diskstats or /proc/partitions not readable' );
         }
     }
     else {
         if ( !-r '/proc/partitions' ) {
-            $plugin->nagios_exit( UNKNOWN, '/proc/partitions not readable' );
+            $plugin->nagios_exit( $plugin->UNKNOWN, '/proc/partitions not readable' );
         }
     }
 
@@ -710,7 +750,7 @@ EOT
     else {
 
         if ( !-r $options->testfile() ) {
-            $plugin->nagios_exit( UNKNOWN,
+            $plugin->nagios_exit( $plugin->UNKNOWN,
                 $options->testfile() . ' not readable' );
         }
 
@@ -765,7 +805,7 @@ EOT
             ## no critic (InputOutput::RequireBriefOpen)
             open $MTAB_FH, q{<},
               '/etc/mtab'
-              or $plugin->nagios_exit( UNKNOWN,
+              or $plugin->nagios_exit( $plugin->UNKNOWN,
                 "Cannot open /etc/mtab: $OS_ERROR" );
             while (<$MTAB_FH>) {
                 my $line = $_;
@@ -782,12 +822,12 @@ EOT
                 }
             }
             close $MTAB_FH
-              or $plugin->nagios_exit( UNKNOWN,
+              or $plugin->nagios_exit( $plugin->UNKNOWN,
                 "Error while closing /etc/mtab: $OS_ERROR" );
             ## use critic (InputOutput::RequireBriefOpen)
 
             if ( !$device ) {
-                $plugin->nagios_exit( UNKNOWN,
+                $plugin->nagios_exit( $plugin->UNKNOWN,
                     "Could not find a device for $mount_point" );
             }
 
@@ -860,7 +900,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
                 }
                 else {
 
-                    $plugin->nagios_exit( UNKNOWN,
+                    $plugin->nagios_exit( $plugin->UNKNOWN,
                         "Cannot check LVM volume $device if not root" );
 
                 }
@@ -887,7 +927,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     for my $device (@unique_devices) {
         if ( !-e $device && !$options->testfile() ) {
-            $plugin->nagios_exit( UNKNOWN, "Device $device not found" );
+            $plugin->nagios_exit( $plugin->UNKNOWN, "Device $device not found" );
         }
     }
 
@@ -930,7 +970,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     }
     else {
-        $plugin->nagios_exit( UNKNOWN, "Uknown unit of measurement: $format" );
+        $plugin->nagios_exit( $plugin->UNKNOWN, "Uknown unit of measurement: $format" );
     }
 
     my $unit = $KIBI;
@@ -960,7 +1000,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
             $unit   = $KILO;
         }
         else {
-            $plugin->nagios_exit( UNKNOWN,
+            $plugin->nagios_exit( $plugin->UNKNOWN,
                 "Uknown unit of threshold: $format" );
         }
     }
@@ -969,7 +1009,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     ################
     # Initialization
 
-    $threshold = Monitoring::Plugin::Threshold->set_thresholds(
+    $threshold = $plugin_threshold_module->set_thresholds(
         warning  => $options->warning() * $factor,
         critical => $options->critical() * $factor,
     );
@@ -1007,15 +1047,17 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     my $s_write;
 
     my $TMP_FH;
-    my $status = OK;
+    my $status = $plugin->OK;
     my @status_lines;
 
     for my $device (@unique_devices) {
 
         if ( use_diskstats() && $proc_diskstats_available ) {
+            verbose "Kernel version >= 2.6\n", 1;
             ( $s_read, $s_write ) = read_26($device);
         }
         else {
+            verbose "Kernel version < 2.6\n", ;
             ( $s_read, $s_write ) = read_24($device);
         }
 
@@ -1115,11 +1157,11 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
         );
 
         my $device_status = $threshold->get_status( $diskio{$device} );
-        if ( $device_status == CRITICAL ) {
-            $status = CRITICAL;
+        if ( $device_status == $plugin->CRITICAL ) {
+            $status = $plugin->CRITICAL;
         }
-        elsif ( $device_status == WARNING && $status != CRITICAL ) {
-            $status = WARNING;
+        elsif ( $device_status == $plugin->WARNING && $status != $plugin->CRITICAL ) {
+            $status = $plugin->WARNING;
         }
 
         my ( $val, $prefix ) = shortenrate( $diskio{$device}, $unit );
@@ -1129,7 +1171,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     }
 
     if ( $options->silent() ) {
-        $plugin->nagios_exit( OK, ( join ', ', @unique_devices ) . ' OK' );
+        $plugin->nagios_exit( $plugin->OK, ( join ', ', @unique_devices ) . ' OK' );
     }
     else {
         $plugin->nagios_exit( $status, join ', ', @status_lines, );
