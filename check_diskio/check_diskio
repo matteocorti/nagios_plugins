@@ -81,13 +81,11 @@ sub load_module {
 
 }
 
-
 my $plugin_module = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
 my $plugin_threshold_module =
-    load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
+  load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
 my $plugin_getopt_module =
-    load_module( 'Monitoring::Plugin::Getopt', 'Nagios::Plugin::Getopt' );
-
+  load_module( 'Monitoring::Plugin::Getopt', 'Nagios::Plugin::Getopt' );
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -176,8 +174,11 @@ sub exec_command {
 
     verbose "Executing '$command'\n", 1;
 
-    my $pid = open $output, q{-|}, $command
-      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot execute $command: $OS_ERROR" );
+    ## no critic (InputOutput::RequireBriefOpen)
+    my $pid = open $output, q{-|},
+      $command
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot execute $command: $OS_ERROR" );
 
     while (<$output>) {
         chomp;
@@ -194,6 +195,7 @@ sub exec_command {
             "Error while closing pipe to whoami: $OS_ERROR" );
 
     }
+    ## use critic (InputOutput::RequireBriefOpen)
 
     return @result;
 
@@ -233,16 +235,18 @@ sub write_timer {
       or $plugin->nagios_exit( $plugin->UNKNOWN,
         "Cannot initialize timer ($tmp): $OS_ERROR" );
 
-    print {$TMP_FH} $time . " $in $out\n"
-      or
-      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot write timer ($tmp): $OS_ERROR" );
+    print {$TMP_FH} $time
+      . " $in $out\n"
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot write timer ($tmp): $OS_ERROR" );
 
     if ( $options->debug() ) {
         print "[DEBUG] writing $tmp: |$time $in $out|\n";
     }
 
     close $TMP_FH
-      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
+      or
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
     return;
 
@@ -273,8 +277,10 @@ sub read_timer {
     my $diff;
 
     ## no critic (InputOutput::RequireBriefOpen)
-    open $TMP_FH, q{<}, $tmp
-      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot open timer ($tmp): $OS_ERROR" );
+    open $TMP_FH, q{<},
+      $tmp
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot open timer ($tmp): $OS_ERROR" );
 
     while (<$TMP_FH>) {
 
@@ -290,7 +296,8 @@ sub read_timer {
     }
 
     close $TMP_FH
-      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
+      or
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
     ## use critic (InputOutput::RequireBriefOpen)
 
     verbose 'reading data: read='
@@ -527,9 +534,10 @@ sub whoami {
 
     my $user;
 
-    my $pid = open $output, q{-|}, 'whoami'
-      or
-      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    my $pid = open $output, q{-|},
+      'whoami'
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot determine the user: $OS_ERROR" );
     while (<$output>) {
         chomp;
         $user = $_;
@@ -733,7 +741,8 @@ EOT
     }
     else {
         if ( !-r '/proc/partitions' ) {
-            $plugin->nagios_exit( $plugin->UNKNOWN, '/proc/partitions not readable' );
+            $plugin->nagios_exit( $plugin->UNKNOWN,
+                '/proc/partitions not readable' );
         }
     }
 
@@ -927,7 +936,8 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     for my $device (@unique_devices) {
         if ( !-e $device && !$options->testfile() ) {
-            $plugin->nagios_exit( $plugin->UNKNOWN, "Device $device not found" );
+            $plugin->nagios_exit( $plugin->UNKNOWN,
+                "Device $device not found" );
         }
     }
 
@@ -970,7 +980,8 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
 
     }
     else {
-        $plugin->nagios_exit( $plugin->UNKNOWN, "Uknown unit of measurement: $format" );
+        $plugin->nagios_exit( $plugin->UNKNOWN,
+            "Uknown unit of measurement: $format" );
     }
 
     my $unit = $KIBI;
@@ -1057,7 +1068,7 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
             ( $s_read, $s_write ) = read_26($device);
         }
         else {
-            verbose "Kernel version < 2.6\n", ;
+            verbose "Kernel version < 2.6\n",;
             ( $s_read, $s_write ) = read_24($device);
         }
 
@@ -1160,7 +1171,9 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
         if ( $device_status == $plugin->CRITICAL ) {
             $status = $plugin->CRITICAL;
         }
-        elsif ( $device_status == $plugin->WARNING && $status != $plugin->CRITICAL ) {
+        elsif ($device_status == $plugin->WARNING
+            && $status != $plugin->CRITICAL )
+        {
             $status = $plugin->WARNING;
         }
 
@@ -1171,7 +1184,8 @@ s{.*\s+/dev/([[:lower:]]+).*}{/dev/$1}mxs;
     }
 
     if ( $options->silent() ) {
-        $plugin->nagios_exit( $plugin->OK, ( join ', ', @unique_devices ) . ' OK' );
+        $plugin->nagios_exit( $plugin->OK,
+            ( join ', ', @unique_devices ) . ' OK' );
     }
     else {
         $plugin->nagios_exit( $status, join ', ', @status_lines, );
