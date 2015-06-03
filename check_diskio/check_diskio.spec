@@ -31,7 +31,6 @@ Source:    https://trac.id.ethz.ch/projects/nagios_plugins/downloads/%{sourcenam
 BuildRequires: perl(ExtUtils::MakeMaker)
 BuildRequires: perl(Test::More)
 BuildRequires: perl(Number::Format)
-BuildRequires: perl(Monitoring::Plugin)
 BuildRequires: perl(Readonly)
 BuildRequires: perl(File::Spec)
 BuildRequires: perl(List::MoreUtils)
