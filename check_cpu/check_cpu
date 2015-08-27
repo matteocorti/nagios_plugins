@@ -26,11 +26,51 @@ use Carp;
 use English qw(-no_match_vars);
 use File::Temp;
 use File::Copy;
-use Nagios::Plugin::Getopt;
-use Nagios::Plugin::Threshold;
-use Nagios::Plugin;
 
-our $VERSION = '1.1.1';
+our $VERSION = '1.1.2';
+
+# Check which version of the monitoring plugins is available
+
+sub load_module {
+
+    my @names = @_;
+    my $loaded_module;
+
+    for my $name (@names) {
+
+        my $file = $name;
+
+        # requires need either a bare word or a file name
+        $file =~ s{::}{/}gsxm;
+        $file .= '.pm';
+
+        eval {    ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            require $file;
+            $name->import();
+        };
+        if ( !$EVAL_ERROR ) {
+            $loaded_module = $name;
+            last;
+        }
+    }
+
+    if ( !$loaded_module ) {
+        #<<<
+        print 'CHECK_FREE_MEM: plugin not found: ' . join( ', ', @names ) . "\n";  ## no critic (RequireCheckedSyscall)
+        #>>>
+
+        exit 2;
+    }
+
+    return $loaded_module;
+
+}
+
+my $plugin_module = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
+my $plugin_threshold_module =
+  load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
+my $plugin_getopt_module =
+  load_module( 'Monitoring::Plugin::GetOpt', 'Nagios::Plugin::GetOpt' );
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -268,7 +308,7 @@ sub read_stats {
 # Initialization
 $tmp = '/tmp/check_cpu_status-' . get_proc_owner();
 
-$plugin = Nagios::Plugin->new( shortname => 'CHECK_CPU' );
+$plugin = $plugin_module->new( shortname => 'CHECK_CPU' );
 
 my $time = time;
 
@@ -280,7 +320,7 @@ Usage: check_cpu [--help] [--verbose] [--version] [--timeout t]
                  --critical n --warning n
 EOT
 
-$options = Nagios::Plugin::Getopt->new(
+$options = $plugin_getopt_module->new(
     usage   => $usage,
     version => $VERSION,
     url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
@@ -339,7 +379,7 @@ if ( !$options->silent() ) {
     }
 }
 
-$threshold = Nagios::Plugin::Threshold->set_thresholds(
+$threshold = $plugin_threshold_module->set_thresholds(
     warning  => $options->warning(),
     critical => $options->critical(),
 );

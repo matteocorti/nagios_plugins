@@ -22,8 +22,8 @@ requires:
   File::Copy: '0'
   File::Temp: '0'
   Getopt::Long: '0'
-  Nagios::Plugin: '0'
-  Nagios::Plugin::Threshold: '0'
+  Monitoring::Plugin: '0'
+  Monitoring::Plugin::Threshold: '0'
   version: '0'
 resources:
   license: http://opensource.org/licenses/gpl-license.php

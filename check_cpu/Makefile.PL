@@ -14,18 +14,33 @@ all_from          'check_cpu.pod';
 
 include 'version';
 
-requires 'Carp'                      => 0;
-requires 'English'                   => 0;
-requires 'File::Temp'                => 0;
-requires 'File::Copy'                => 0;
-requires 'Getopt::Long'              => 0;
-requires 'Nagios::Plugin'            => 0;
-requires 'Nagios::Plugin::Threshold' => 0;
-requires 'version'                   => 0;
+my %prereqs = (
+    'Carp'                          => 0,
+    'English'                       => 0,
+    'File::Temp'                    => 0,
+    'File::Copy'                    => 0,
+    'Getopt::Long'                  => 0,
+    'version'                       => 0,    
+);
+
+if( eval { require Monitoring::Plugin } ) {
+    $prereqs{'Monitoring::Plugin'} = 0;
+}
+else {
+    $prereqs{'Nagios::Plugin'} = 0;
+}
+
+if( eval { require Monitoring::Plugin::Threshold } ) {
+    $prereqs{'Monitoring::Plugin::Threshold'} = 0;
+}
+else {
+    $prereqs{'Nagios::Plugin::Threshold'} = 0;
+}
 
 install_script 'check_cpu';
 
 WriteMakefile(
+    PREREQ_PM            => \%prereqs,
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
     INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',
     MAN1PODS             => { 'check_cpu.pod' => 'blib/man1/check_cpu.1', },

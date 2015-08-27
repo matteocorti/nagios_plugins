@@ -1,3 +1,7 @@
+2015-08-27  Matteo Corti  <matteo@corti.li>
+
+	* check_cpu (load_module): dynamic choice of the ::Plugin modules
+
 2010-04-09  Matteo Corti  <matteo.corti@id.ethz.ch>
 
 	* check_cpu: print the wait value
