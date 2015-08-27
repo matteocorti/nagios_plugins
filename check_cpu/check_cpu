@@ -1,0 +1,445 @@
+#!perl
+
+# check_cpu is a nagios plugin to monitor the CPU usage on Linux systems
+#
+# See  the INSTALL file for installation instructions
+#
+# Copyright (c) 2007, ETH Zurich.
+#
+# This module is free software; you can redistribute it and/or modify it
+# under the terms of GNU general public license (gpl) version 3.
+# See the LICENSE file for details.
+#
+# RCS information
+# enable substitution with:
+#   $ svn propset svn:keywords "Id Revision HeadURL Source Date"
+#
+#   $Id: check_cpu 1160 2010-04-09 09:03:40Z corti $
+#   $Revision: 1160 $
+#   $HeadURL: https://svn.id.ethz.ch/nagios_plugins/check_cpu/check_cpu $
+#   $Date: 2010-04-09 11:03:40 +0200 (Fri, 09 Apr 2010) $
+
+use strict;
+use warnings;
+
+use Carp;
+use English qw(-no_match_vars);
+use File::Temp;
+use File::Copy;
+use Nagios::Plugin::Getopt;
+use Nagios::Plugin::Threshold;
+use Nagios::Plugin;
+
+our $VERSION = '1.1.0';
+
+# IMPORTANT: Nagios plugins could be executed using embedded perl in this case
+#            the main routine would be executed as a subroutine and all the
+#            declared subroutines would therefore be inner subroutines
+#            This will cause all the global lexical variables not to stay shared
+#            in the subroutines!
+#
+# All variables are therefore declared as package variables...
+#
+
+our (
+    $blocked, $cpu,     $diff,      $help, $options, $plugin,
+    $result,  $running, $threshold, $tmp,  %new,     %old,
+);
+
+##############################################################################
+# subroutines
+
+##############################################################################
+# Usage     : usage( -message => 'some text', -exitval => 1 )
+# Purpose   : prints a usage message
+# Returns   : n/a
+# Arguments : -message : an optional error message
+#             -exitval : the exit code (defaults to 0)
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub usage {
+
+    my %args = @_;
+
+    my $exitval = 0;
+    if ( $args{-exitval} ) {
+        $exitval = $args{-exitval};
+    }
+
+    if ( $args{-message} ) {
+        print $args{-message};
+    }
+
+    print <<'EOT';
+        check_cpu --warning=W --critical=C [OPTIONS]
+
+        Options:
+         --critical,-c=crit            critical threshold
+         --help,-h,-?                  this help message
+         --silent,-s                   do not issue warnings
+         --warning,-w=warn             warning threshold
+         --verbose,-v                  increase verbosity
+         --version                     version
+EOT
+
+    exit $exitval;
+
+}
+
+##############################################################################
+# Usage     : write_timer_to_file($file)
+# Purpose   : writes the time and transmit data to the temporary file
+# Returns   : n/a
+# Arguments : $file : file to write the timer to
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub write_timer_to_file {
+
+    my $file = shift;
+
+    # copy the stats
+    copy( '/proc/stat', $file )
+      or $plugin->nagios_exit( UNKNOWN,
+        "Cannot copy /proc/stat to $file: $OS_ERROR" );
+
+    my $TMP;
+
+    # add the time
+    open $TMP, q{>>}, $file
+      or $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
+    print {$TMP} 'time ' . time . "\n";
+    close $TMP
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : get_proc_owner()
+# Purpose   : retrieve the user runnging the process
+# Returns   : username
+# Arguments : n/a
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub get_proc_owner {
+    my $output;
+    my $pid = open $output, q{-|}, 'whoami'
+      or
+      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    while (<$output>) {
+        chomp;
+        return $_;
+    }
+    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    return;
+}
+
+##############################################################################
+# Usage     : print_verbose("some message string", $optional_verbosity_level);
+# Purpose   : write a message if the verbosity level is high enough
+# Returns   : n/a
+# Arguments : message : message string
+#             level   : options verbosity level
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub print_verbose {
+
+    # arguments
+    my $message = shift;
+    my $level   = shift;
+
+    if ( !defined $message ) {
+        $plugin->nagios_exit( UNKNOWN,
+            q{Internal error: not enough parameters for 'print_verbose'} );
+    }
+
+    if ( !defined $level ) {
+        $level = 0;
+    }
+
+    if ( $level < $options->verbose() ) {
+        print $message;
+    }
+
+    return;
+
+}
+
+##############################################################################
+# Usage     : %data = read_timer($file)
+# Purpose   : reads the performance data from the given file
+# Returns   : hash table with the performance data
+# Arguments : $file : file containing the performance data
+# Throws    : n/a
+# Comments  : n/a
+# See also  : n/a
+sub read_stats {
+
+    my $file = shift;
+    my %result;
+    my $IN;
+
+    print_verbose "reading $file\n";
+
+    open $IN, q{<}, $file
+      or $plugin->nagios_exit( UNKNOWN, "Cannot open $file" );
+
+    while (<$IN>) {
+
+        # /proc/stat file format
+        #
+        # cpu   user nice system idle iowait irq softirq
+        # cpu n user nice system idle iowait irq softirq
+        # intr  total irq0 irq1 ...
+        # ctxt  context_switches
+        # btime boot_time
+        # processes  number_of_created_processes_and_threads
+        # procs_running  running_processes
+        # procs_blocked  blocked_processes
+
+        my $line = $_;
+
+        chomp $line;
+
+        if ( $line =~ m/^cpu\s+/mxs ) {
+
+            $line =~ s/^cpu\s+//mxs;
+
+            (
+                $result{cpu_user}, $result{cpu_nice},   $result{cpu_system},
+                $result{cpu_idle}, $result{cpu_iowait}, $result{cpu_irq},
+                $result{cpu_softirq}
+            ) = split m/\s/mxs, $line;
+
+            $result{cpu} =
+              $result{cpu_user} +
+              $result{cpu_nice} +
+              $result{cpu_system} +
+              $result{cpu_idle} +
+              $result{cpu_iowait} +
+              $result{cpu_irq} +
+              $result{cpu_softirq};
+
+        }
+        elsif ( $line =~ m/^intr\s+/mxs ) {
+            $line =~ s/^intr\s+//mxs;
+            ( $result{irq} ) = split m/\s+/mxs, $line;
+        }
+        elsif ( $line =~ m/^ctxt\s+/mxs ) {
+            $line =~ s/^ctxt\s+//mxs;
+            $result{ctxt} = $line;
+        }
+        elsif ( $line =~ m/^processes\s+/mxs ) {
+            $line =~ s/^processes\s+//mxs;
+            $result{new_procs} = $line;
+        }
+        elsif ( $line =~ m/^procs_running\s+/mxs ) {
+            $line =~ s/^procs_running\s+//mxs;
+            $result{running} = $line;
+        }
+        elsif ( $line =~ m/^procs_blocked\s+/mxs ) {
+            $line =~ s/^procs_blocked\s+//mxs;
+            $result{blocked} = $line;
+        }
+        elsif ( $line =~ m/^time\s+/mxs ) {
+            $line =~ s/^time\s+//mxs;
+            ( $result{time} ) = split m/\s/mxs, $line;
+        }
+
+    }
+
+    close $IN
+      or $plugin->nagios_exit( UNKNOWN, "Cannot close $file: $OS_ERROR" );
+
+    return %result;
+
+}
+
+##############################################################################
+# main
+#
+
+################
+# Initialization
+$tmp = '/tmp/check_cpu_status-' . get_proc_owner();
+
+$plugin = Nagios::Plugin->new( shortname => 'CHECK_CPU' );
+
+my $time = time;
+
+########################
+# Command line arguments
+
+my $usage = <<'EOT';
+Usage: check_cpu [--help] [--verbose] [--version] [--timeout t]                 
+                 --critical n --warning n
+EOT
+
+$options = Nagios::Plugin::Getopt->new(
+    usage   => $usage,
+    version => $VERSION,
+    url     => 'https://trac.id.ethz.ch/projects/nagios_plugins',
+    blurb   => 'Check CPU status',
+);
+
+$options->arg(
+    spec     => 'critical|c=i',
+    help     => 'critical threshold',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'warning|w=i',
+    help     => 'Number of blacklisting servers for a warning',
+    required => 1,
+);
+
+$options->arg(
+    spec     => 'silent|s',
+    help     => 'do not issue warnings',
+    required => 0,
+    default  => 0,
+);
+
+$options->arg(
+    spec     => 'debug|d',
+    help     => 'Prints debugging information',
+    required => 0,
+    default  => 0,
+);
+
+$options->getopts();
+
+###############
+# Sanity checks
+
+if ( !$options->silent() ) {
+    if ( !defined $options->critical() || $options->critical() <= 0 ) {
+        usage(
+            -exitval => UNKNOWN,
+            -message => 'Could not parse "critical"'
+        );
+    }
+    if ( !defined $options->warning() || $options->warning() <= 0 ) {
+        usage(
+            -exitval => UNKNOWN,
+            -message => 'Could not parse "warning"'
+        );
+    }
+    if ( $options->critical() < $options->warning() ) {
+        usage(
+            -exitval => UNKNOWN,
+            -message => '"critical" has to be greater than "warning"'
+        );
+    }
+}
+
+$threshold = Nagios::Plugin::Threshold->set_thresholds(
+    warning  => $options->warning(),
+    critical => $options->critical(),
+);
+
+########################
+# Check the proc entry
+
+if ( !-f $tmp ) {
+    print_verbose "temporary file ($tmp) not available resetting and waiting\n";
+    write_timer_to_file($tmp);
+    sleep 1;    # wait at least one second to gather some data
+}
+
+%old = read_stats($tmp);
+
+%new = read_stats('/proc/stat');
+
+$diff = time - $old{time};
+
+if ( $diff < 1 ) {
+
+    # wait a little bit
+    sleep 1;
+    %old = read_stats($tmp);
+}
+
+write_timer_to_file($tmp);
+
+$cpu = sprintf( '%.0f',
+    ( 1 - ( ( $new{cpu_idle} - $old{cpu_idle} ) / ( $new{cpu} - $old{cpu} ) ) )
+      * 100 );
+$plugin->add_perfdata(
+    label     => 'CPU',
+    value     => $cpu,
+    uom       => q{%},
+    threshold => $threshold,
+);
+
+$plugin->add_perfdata(
+    label => 'NICE',
+    value => sprintf( '%.0f',
+        ( ( $new{cpu_nice} - $old{cpu_nice} ) / ( $new{cpu} - $old{cpu} ) ) *
+          100 ),
+    uom => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'SYS',
+    value => sprintf( '%.0f',
+        ( ( $new{cpu_system} - $old{cpu_system} ) / ( $new{cpu} - $old{cpu} ) )
+          * 100 ),
+    uom => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'USER',
+    value => sprintf( '%.0f',
+        ( ( $new{cpu_user} - $old{cpu_user} ) / ( $new{cpu} - $old{cpu} ) ) *
+          100 ),
+    uom => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'WAIT',
+    value => sprintf( '%.0f',
+        ( ( $new{cpu_iowait} - $old{cpu_iowait} ) / ( $new{cpu} - $old{cpu} ) )
+          * 100 ),
+    uom => q{%},
+);
+
+$plugin->add_perfdata(
+    label => 'IRQ',
+    value => abs( int( ( $new{irq} - $old{irq} ) / $diff ) ),
+);
+
+$plugin->add_perfdata(
+    label => 'CTXT',
+    value => abs( int( ( $new{ctxt} - $old{ctxt} ) / $diff ) ),
+);
+
+$plugin->add_perfdata(
+    label => 'NEW_PROCS',
+    value => abs( int( ( $new{new_procs} - $old{new_procs} ) / $diff ) ),
+);
+
+$plugin->add_perfdata(
+    label => 'RUNNING',
+    value => $new{running},
+);
+
+$plugin->add_perfdata(
+    label => 'BLOCKED',
+    value => $new{blocked},
+);
+
+if ( !$options->silent() ) {
+    $plugin->nagios_exit( $threshold->get_status($cpu), "CPU $cpu%" );
+}
+else {
+    $plugin->nagios_exit( OK, "CPU $cpu%" );
+}
+
+1;
