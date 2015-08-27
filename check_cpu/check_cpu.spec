@@ -1,4 +1,4 @@
-%define version 1.1.2
+%define version 1.1.3
 %define release 1
 %define sourcename       check_cpu
 %define packagename      nagios-plugins-check-cpu
@@ -51,6 +51,9 @@ rm -rf %{buildroot}
 %{_mandir}/man1/%{sourcename}.1*
 
 %changelog
+* Thu Aug 27 2015 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.3-1
+- Upgrade to 1.1.3
+
 * Thu Aug 27 2015 Matteo Corti <matteo.corti@id.ethz.ch> - 1.1.2-1
 - Upgrade to 1.1.2
 

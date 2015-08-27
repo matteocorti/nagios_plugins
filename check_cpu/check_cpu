@@ -27,7 +27,7 @@ use English qw(-no_match_vars);
 use File::Temp;
 use File::Copy;
 
-our $VERSION = '1.1.2';
+our $VERSION = '1.1.3';
 
 # Check which version of the monitoring plugins is available
 
@@ -70,7 +70,7 @@ my $plugin_module = load_module( 'Monitoring::Plugin', 'Nagios::Plugin' );
 my $plugin_threshold_module =
   load_module( 'Monitoring::Plugin::Threshold', 'Nagios::Plugin::Threshold' );
 my $plugin_getopt_module =
-  load_module( 'Monitoring::Plugin::GetOpt', 'Nagios::Plugin::GetOpt' );
+  load_module( 'Monitoring::Plugin::Getopt', 'Nagios::Plugin::Getopt' );
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
@@ -141,17 +141,20 @@ sub write_timer_to_file {
 
     # copy the stats
     copy( '/proc/stat', $file )
-      or $plugin->nagios_exit( UNKNOWN,
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
         "Cannot copy /proc/stat to $file: $OS_ERROR" );
 
     my $TMP;
 
     # add the time
-    open $TMP, q{>>}, $file
-      or $plugin->nagios_exit( UNKNOWN, "Cannot initialize timer: $OS_ERROR" );
+    open $TMP, q{>>},
+      $file
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot initialize timer: $OS_ERROR" );
     print {$TMP} 'time ' . time . "\n";
     close $TMP
-      or $plugin->nagios_exit( UNKNOWN, "Cannot close timer: $OS_ERROR" );
+      or
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close timer: $OS_ERROR" );
 
     return;
 
@@ -167,14 +170,15 @@ sub write_timer_to_file {
 # See also  : n/a
 sub get_proc_owner {
     my $output;
-    my $pid = open $output, q{-|}, 'whoami'
-      or
-      $plugin->nagios_exit( UNKNOWN, "Cannot determine the user: $OS_ERROR" );
+    my $pid = open $output, q{-|},
+      'whoami'
+      or $plugin->nagios_exit( $plugin->UNKNOWN,
+        "Cannot determine the user: $OS_ERROR" );
     while (<$output>) {
         chomp;
         return $_;
     }
-    $plugin->nagios_exit( UNKNOWN, 'Cannot determine the user' );
+    $plugin->nagios_exit( $plugin->UNKNOWN, 'Cannot determine the user' );
     return;
 }
 
@@ -194,7 +198,7 @@ sub print_verbose {
     my $level   = shift;
 
     if ( !defined $message ) {
-        $plugin->nagios_exit( UNKNOWN,
+        $plugin->nagios_exit( $plugin->UNKNOWN,
             q{Internal error: not enough parameters for 'print_verbose'} );
     }
 
@@ -227,7 +231,7 @@ sub read_stats {
     print_verbose "reading $file\n";
 
     open $IN, q{<}, $file
-      or $plugin->nagios_exit( UNKNOWN, "Cannot open $file" );
+      or $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot open $file" );
 
     while (<$IN>) {
 
@@ -294,7 +298,8 @@ sub read_stats {
     }
 
     close $IN
-      or $plugin->nagios_exit( UNKNOWN, "Cannot close $file: $OS_ERROR" );
+      or
+      $plugin->nagios_exit( $plugin->UNKNOWN, "Cannot close $file: $OS_ERROR" );
 
     return %result;
 
@@ -361,19 +366,19 @@ $options->getopts();
 if ( !$options->silent() ) {
     if ( !defined $options->critical() || $options->critical() <= 0 ) {
         usage(
-            -exitval => UNKNOWN,
+            -exitval => $plugin->UNKNOWN,
             -message => 'Could not parse "critical"'
         );
     }
     if ( !defined $options->warning() || $options->warning() <= 0 ) {
         usage(
-            -exitval => UNKNOWN,
+            -exitval => $plugin->UNKNOWN,
             -message => 'Could not parse "warning"'
         );
     }
     if ( $options->critical() < $options->warning() ) {
         usage(
-            -exitval => UNKNOWN,
+            -exitval => $plugin->UNKNOWN,
             -message => '"critical" has to be greater than "warning"'
         );
     }
@@ -479,7 +484,7 @@ if ( !$options->silent() ) {
     $plugin->nagios_exit( $threshold->get_status($cpu), "CPU $cpu%" );
 }
 else {
-    $plugin->nagios_exit( OK, "CPU $cpu%" );
+    $plugin->nagios_exit( $plugin->OK, "CPU $cpu%" );
 }
 
 1;
