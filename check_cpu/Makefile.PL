@@ -4,10 +4,10 @@ use inc::Module::Install;
 ##############################################################################
 # Define metadata (we read it from the binary)
 
-name     'check_cpu';
-
-version_from 'check_cpu';
-all_from 'check_cpu.pod';
+name              'check_cpu';
+version_from      'check_cpu';
+perl_version_from 'check_cpu';
+all_from          'check_cpu.pod';
 
 ##############################################################################
 # Specific dependencies
@@ -23,8 +23,11 @@ requires 'Nagios::Plugin'            => 0;
 requires 'Nagios::Plugin::Threshold' => 0;
 requires 'version'                   => 0;
 
-install_script  'check_cpu';
+install_script 'check_cpu';
 
 WriteMakefile(
     INSTALLSCRIPT        => '/usr/lib/nagios/plugins/contrib',
+    INSTALLSITESCRIPT    => '/usr/lib/nagios/plugins/contrib',
+    MAN1PODS             => { 'check_cpu.pod' => 'blib/man1/check_cpu.1', },
+    MAN3PODS             => { },
 );

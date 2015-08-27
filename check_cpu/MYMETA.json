@@ -4,7 +4,7 @@
       "Matteo Corti <matteo.corti@id.ethz.ch>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Install version 0.95, CPAN::Meta::Converter version 2.150001",
+   "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.150001",
    "license" : [
       "open_source"
    ],

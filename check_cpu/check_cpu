@@ -30,7 +30,7 @@ use Nagios::Plugin::Getopt;
 use Nagios::Plugin::Threshold;
 use Nagios::Plugin;
 
-our $VERSION = '1.1.0';
+our $VERSION = '1.1.1';
 
 # IMPORTANT: Nagios plugins could be executed using embedded perl in this case
 #            the main routine would be executed as a subroutine and all the
