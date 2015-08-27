@@ -16,14 +16,15 @@
 %define debug_package %{nil}
 
 Summary:   Nagios plugin to monitor the number of network connections
-Name:      %{name}
+Name:      %{packagename}
 Version:   %{version}
+Obsoletes: check_connections
 Release:   %{release}%{?dist}
 License:   GPLv3+
-Packager:  Matteo Corti <matteo.corti@id.ethz.ch>
+Packager:  Matteo Corti <matteo@corti.li>
 Group:     Applications/System
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source:    http://www.id.ethz.ch/people/allid_list/corti/%{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{sourcename}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source:    http://www.id.ethz.ch/people/allid_list/corti/%{sourcename}-%{version}.tar.gz
 
 # Fedora build requirement (not needed for EPEL{4,5})
 BuildRequires: perl(ExtUtils::MakeMaker)
@@ -34,7 +35,7 @@ Requires:  nagios-plugins
 Nagios plugin to monitor the number of network connections
 
 %prep
-%setup -q
+%setup -q -n %{sourcename}-%{version}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor \
@@ -56,8 +57,8 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS Changes NEWS README TODO COPYING COPYRIGHT
-%{nagiospluginsdir}/%{name}
-%{_mandir}/man1/%{name}.1*
+%{nagiospluginsdir}/%{sourcename}
+%{_mandir}/man1/%{sourcename}.1*
 
 %changelog
 * Mon Feb  1 2010 Matteo Corti <matteo.corti@id.ethz.ch> - 2.1.1-0
