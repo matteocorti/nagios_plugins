@@ -1,9 +1,0 @@
-check_writable is a Nagios plugin that checks if one or more
-directories are writable by:
-
-- checking that the supplied directory is indeed a directory
-- checking if the the filesystem permissions are OK
-- creating a temporary file
-- writing random data to the temporary file (and reading it back)
-
-It return a critical status if one of the tests fails

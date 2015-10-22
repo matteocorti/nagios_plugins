@@ -1,8 +1,0 @@
-2011-12-12  Matteo Corti  <matteo.corti@id.ethz.ch>
-
-	* check_bluetooth_battery: trackpad support
-
-2009-05-25  Matteo Corti  <matteo.corti@id.ethz.ch>
-
-	* check_bluetooth_battery: Initial release
-
