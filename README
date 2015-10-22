@@ -1,3 +1,19 @@
 Each plugin has now an own repository
 
 Check: https://github.com/matteocorti
+
+Each plugin was moved to an own repository:
+
+ * check_bandwidth: https://github.com/matteocorti/check_bandwidth/wiki
+ * check_connections: https://github.com/matteocorti/check_connections/wiki
+ * check_dir: https://github.com/matteocorti/check_dir/wiki
+ * check_diskio: https://github.com/matteocorti/check_diskio/wiki
+ * check_free_mem: https://github.com/matteocorti/check_free_mem/wiki
+ * check_lm_sensors: https://github.com/matteocorti/check_lm_sensors/wiki
+ * check_nagios_latency: https://github.com/matteocorti/check_nagios_latency/wiki
+ * check_procs_multi: https://github.com/matteocorti/check_procs_multi/wiki
+ * check_rbl: https://github.com/matteocorti/check_rbl/wiki
+ * check_ssl_cert: https://github.com/matteocorti/check_ssl_cert/wiki
+ * check_tcptraffic: https://github.com/matteocorti/check_tcptraffic/wiki
+ * check_updates: https://github.com/matteocorti/check_updates/wiki
+ * check_writable: https://github.com/matteocorti/check_writable/wiki
